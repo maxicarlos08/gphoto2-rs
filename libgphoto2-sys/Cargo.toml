@@ -1,0 +1,16 @@
+[package]
+name = "libgphoto2-sys"
+version = "2.5.10"
+edition = "2021"
+
+links = "gphoto2"
+build = "src/build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+pkg-config = "0.3.25"
+bindgen = "0.60.1"
+
+[dependencies]
+pkg-config = "0.3.25"
