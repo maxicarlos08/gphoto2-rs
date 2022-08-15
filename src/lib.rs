@@ -1,4 +1,18 @@
-// TODO: Documentation
+//! # GPhoto2-rs
+//!
+//! High lever abstractions for libgphoto2
+//!
+//! ## Usage
+//!
+//! ```
+//! use gphoto2::Context;
+//!
+//! let context = Context::new().expect("Failed to create context"); // Create library context
+//! let camera = context.autodetect_camera().expect("Failed to autodetect camera");
+//!
+//! let file_path = camera.capture_image();
+//! file_path.download(&camera, "image.jpg");
+//! ```
 
 // TODO: Camera abilities
 // TODO: Ports
@@ -6,6 +20,7 @@
 // TODO: Use PhantomData for safety
 
 #![deny(unused_must_use)]
+#![warn(missing_docs)]
 
 pub mod abilities;
 pub mod camera;
@@ -17,18 +32,12 @@ pub mod list;
 pub mod port;
 
 /// Raw bindings to libgphoto2.
-/// 
+///
 /// Use this at your own risk
 pub use libgphoto2_sys;
-
 pub use crate::context::Context;
 
 use error::{Error, Result};
-
-pub enum OwnedOrRef<'a, T> {
-  Owned(T),
-  Ref(&'a T),
-}
 
 trait AsPtr<T> {
   unsafe fn as_ptr(&self) -> *const T;

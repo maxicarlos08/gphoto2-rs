@@ -1,16 +1,32 @@
+//! Camera port information
+
 use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, mem::MaybeUninit};
 
+
+/// Type of the port
 pub enum PortType {
+  /// Serial port
   Serial,
+  /// USB port
   Usb,
+  /// Disk
   Disk,
+
+  /// PTP/IP
   PTPIp,
+
+  /// IP
   Ip,
+
+  /// USB Disk direct
   UsbDiskDirect,
+
+  /// USB SCSI
   UsbScsi,
 }
 
+/// Information about the port
 pub struct PortInfo {
   pub(crate) inner: libgphoto2_sys::GPPortInfo,
 }
@@ -51,6 +67,7 @@ impl PortType {
 }
 
 impl PortInfo {
+  /// Name of the port
   pub fn name(&self) -> Result<Cow<str>> {
     let mut name = unsafe { MaybeUninit::zeroed().assume_init() };
 
@@ -59,6 +76,8 @@ impl PortInfo {
     Ok(chars_to_cow(name))
   }
 
+
+  /// Path of the port
   pub fn path(&self) -> Result<Cow<str>> {
     let mut path = unsafe { MaybeUninit::zeroed().assume_init() };
 
@@ -67,6 +86,8 @@ impl PortInfo {
     Ok(chars_to_cow(path))
   }
 
+
+  /// [Port type](PortType)
   pub fn port_type(&self) -> Result<Option<PortType>> {
     let mut port_type = unsafe { MaybeUninit::zeroed().assume_init() };
 

@@ -2,4 +2,4 @@
 
 Rust wrapper for libgphoto2
 
-TODO: #[deny(missing_docs)]
+TODO: Documentation here

@@ -1,6 +1,9 @@
+//! List of cameras and ports
+
 use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, mem::MaybeUninit};
 
+/// List of tuples: (camere model, port)
 pub struct CameraList {
   inner: *mut libgphoto2_sys::CameraList,
 }
@@ -20,6 +23,7 @@ impl From<*mut libgphoto2_sys::CameraList> for CameraList {
 }
 
 impl CameraList {
+  /// Converts the internal gphoto list to a rust vec
   pub fn to_vec(&self) -> Result<Vec<(Cow<str>, Cow<str>)>> {
     let length = unsafe { libgphoto2_sys::gp_list_count(self.inner) };
 

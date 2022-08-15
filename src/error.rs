@@ -1,43 +1,89 @@
-use std::{error, ffi, fmt, os::raw::c_int};
+//! Error handling
 
+use crate::helper::chars_to_cow;
+use std::{error, fmt, os::raw::c_int};
+
+/// Result type used in this library
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// i32 version of [`libgphoto2_sys::GP_OK`]
 pub const GP_OK: i32 = libgphoto2_sys::GP_OK as i32;
 
+/// Error type
 #[derive(Debug)]
 pub enum ErrorKind {
-  // GPhoto Errors
+  /// GP_ERROR or something else
   Other,
+
+  /// Bad parameters were used
   BadParameters,
+
+  /// The camera is bsy
   CameraBusy,
+
+  /// The camera returned an error
   CameraError,
+
+  /// Corrupted data
   CorruptedData,
+
+  /// The directory already exists
   DirectoryExists,
+
+  /// The directory was not found
   DirectoryNotFound,
+
+  /// The file already exists
   FileExists,
+
+  /// The file was not found
   FileNotFound,
+
+  /// Limit exceeded
   FixedLimitExceeded,
+
+  /// Camera model not found
   ModelNotFound,
+
+  /// Action not supported
   NotSupported,
+
+  /// Memory error
   NoMemory,
+
+  /// Not enough space
   NoSpace,
+
+  /// Io error
   Io,
+
+  /// OS error
   OsFailure,
+
+  /// Path is not absolute
   PathNotAbsolute,
+
+  /// Tiemeout
   Timeout,
+
+  /// Port is not known
   UnknownPort,
 }
 
+/// General error
 #[derive(Debug)]
 pub struct Error {
   error: c_int,
+  info: Option<String>,
 }
 
 impl Error {
+  /// Creates a new error from a gphoto internal error
   pub fn new(error: c_int) -> Self {
-    Self { error }
+    Self { error, info: None }
   }
 
+  /// Map the gphoto type to an [`ErrorKind`]
   pub fn kind(&self) -> ErrorKind {
     match self.error {
       libgphoto2_sys::GP_ERROR_BAD_PARAMETERS => ErrorKind::BadParameters,
@@ -65,31 +111,37 @@ impl Error {
 }
 
 impl From<std::io::Error> for Error {
-  fn from(_: std::io::Error) -> Self {
+  fn from(err: std::io::Error) -> Self {
     // TODO: IO errors should have more detail
 
-    Self { error: libgphoto2_sys::GP_ERROR_IO }
+    Self { error: libgphoto2_sys::GP_ERROR_IO, info: Some(err.to_string()) }
   }
 }
 
 impl From<std::ffi::NulError> for Error {
   fn from(_: std::ffi::NulError) -> Self {
-    Self { error: libgphoto2_sys::GP_ERROR }
+    Self { error: libgphoto2_sys::GP_ERROR, info: Some("FFI: NulError".to_string()) }
   }
 }
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str(unsafe {
-      ffi::CStr::from_ptr(libgphoto2_sys::gp_result_as_string(self.error))
-        .to_str()
-        .unwrap_or("Invalid error message")
-    })
+    f.write_str(unsafe { &chars_to_cow(libgphoto2_sys::gp_result_as_string(self.error)) })?;
+
+    if let Some(error_info) = &self.info {
+      f.write_fmt(format_args!(" [{}]", error_info))?;
+    }
+
+    Ok(())
   }
 }
 
 impl error::Error for Error {}
 
+/// Check the result of an internal libgphoto2 function.
+///
+/// If the return type is less than 0, an error is returned,
+/// otherwise the result of the function
 #[macro_export]
 macro_rules! try_gp_internal {
   ($x:expr) => {{
