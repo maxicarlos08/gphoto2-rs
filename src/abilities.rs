@@ -1,15 +1,16 @@
 //! GPhoto device abilities
 
 use crate::{context::Context, try_gp_internal, Result};
-use std::{borrow::Cow, ffi, mem::MaybeUninit};
+use std::{borrow::Cow, ffi, marker::PhantomData, mem::MaybeUninit};
 
-pub(crate) struct AbilitiesList {
+pub(crate) struct AbilitiesList<'a> {
   pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
+  _phantom: PhantomData<&'a ffi::c_void>,
 }
 
 /// Provides functions to get device abilities
 pub struct Abilities {
-  inner: libgphoto2_sys::CameraAbilities,
+  pub(crate) inner: libgphoto2_sys::CameraAbilities,
 }
 
 /// Status of the gphoto driver used
@@ -41,7 +42,7 @@ pub struct FileOperations(i32);
 /// Available operations of folders
 pub struct FolderOperations(i32);
 
-impl Drop for AbilitiesList {
+impl Drop for AbilitiesList<'_> {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_abilities_list_free(self.inner);
@@ -96,14 +97,14 @@ impl From<libgphoto2_sys::CameraAbilities> for Abilities {
   }
 }
 
-impl AbilitiesList {
+impl<'a> AbilitiesList<'a> {
   pub(crate) fn new(context: &Context) -> Result<Self> {
     let mut abilities_inner = unsafe { MaybeUninit::zeroed().assume_init() };
 
     try_gp_internal!(libgphoto2_sys::gp_abilities_list_new(&mut abilities_inner))?;
     try_gp_internal!(libgphoto2_sys::gp_abilities_list_load(abilities_inner, context.inner))?;
 
-    Ok(Self { inner: abilities_inner })
+    Ok(Self { inner: abilities_inner, _phantom: PhantomData })
   }
 }
 

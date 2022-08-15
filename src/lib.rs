@@ -31,11 +31,11 @@ pub(crate) mod helper;
 pub mod list;
 pub mod port;
 
+pub use crate::context::Context;
 /// Raw bindings to libgphoto2.
 ///
 /// Use this at your own risk
 pub use libgphoto2_sys;
-pub use crate::context::Context;
 
 use error::{Error, Result};
 

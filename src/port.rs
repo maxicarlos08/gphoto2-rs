@@ -3,7 +3,6 @@
 use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, mem::MaybeUninit};
 
-
 /// Type of the port
 pub enum PortType {
   /// Serial port
@@ -76,7 +75,6 @@ impl PortInfo {
     Ok(chars_to_cow(name))
   }
 
-
   /// Path of the port
   pub fn path(&self) -> Result<Cow<str>> {
     let mut path = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -85,7 +83,6 @@ impl PortInfo {
 
     Ok(chars_to_cow(path))
   }
-
 
   /// [Port type](PortType)
   pub fn port_type(&self) -> Result<Option<PortType>> {
@@ -108,7 +105,7 @@ impl PortInfoList {
   }
 
   pub(crate) fn get_port_info(&self, p: i32) -> Result<PortInfo> {
-    let mut port_info = unsafe {MaybeUninit::zeroed().assume_init()};
+    let mut port_info = unsafe { MaybeUninit::zeroed().assume_init() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_list_get_info(self.inner, p, &mut port_info))?;
 

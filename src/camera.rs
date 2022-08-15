@@ -3,15 +3,16 @@
 use crate::{
   abilities::Abilities, file::CameraFilePath, helper::camera_text_to_str, try_gp_internal, Result,
 };
-use std::mem::MaybeUninit;
+use std::{ffi, marker::PhantomData, mem::MaybeUninit};
 
 /// Represents a camera
-pub struct Camera {
+pub struct Camera<'a> {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
   pub(crate) context: *mut libgphoto2_sys::GPContext,
+  _phantom: PhantomData<&'a ffi::c_void>,
 }
 
-impl Drop for Camera {
+impl Drop for Camera<'_> {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_camera_unref(self.camera);
@@ -20,7 +21,14 @@ impl Drop for Camera {
   }
 }
 
-impl Camera {
+impl<'a> Camera<'a> {
+  pub(crate) fn new(
+    camera: *mut libgphoto2_sys::Camera,
+    context: *mut libgphoto2_sys::GPContext,
+  ) -> Self {
+    Self { camera, context, _phantom: PhantomData }
+  }
+
   /// Capture image
   ///
   /// ## Returns
@@ -48,7 +56,6 @@ impl Camera {
 
     Ok(abilities.into())
   }
-
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
