@@ -7,7 +7,7 @@ use std::{error, fmt, os::raw::c_int};
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// i32 version of [`libgphoto2_sys::GP_OK`]
-pub const GP_OK: i32 = libgphoto2_sys::GP_OK as i32;
+pub const GP_OK: c_int = libgphoto2_sys::GP_OK as c_int;
 
 /// Error type
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -112,8 +112,6 @@ impl Error {
 
 impl From<std::io::Error> for Error {
   fn from(err: std::io::Error) -> Self {
-    // TODO: IO errors should have more detail
-
     Self { error: libgphoto2_sys::GP_ERROR_IO, info: Some(err.to_string()) }
   }
 }

@@ -1,7 +1,12 @@
 //! Files stored on camera
 
-use crate::{camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Result};
-use std::{borrow::Cow, fs, mem::MaybeUninit, os::unix::io::AsRawFd, path::Path};
+use crate::{
+  camera::Camera,
+  error::Error,
+  helper::{chars_to_cow, uninit},
+  try_gp_internal, Result,
+};
+use std::{borrow::Cow, fs, os::unix::io::AsRawFd, path::Path};
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
@@ -79,7 +84,7 @@ impl CameraFilePath {
 
 impl File {
   pub(crate) fn new() -> Result<Self> {
-    let mut camera_file_ptr = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut camera_file_ptr = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_file_new(&mut camera_file_ptr))?;
 
@@ -93,7 +98,7 @@ impl File {
 
     let file = fs::File::create(path)?.as_raw_fd();
 
-    let mut camera_file_ptr = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut camera_file_ptr = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, file))
       .map(|_| Self { inner: camera_file_ptr })
@@ -101,8 +106,8 @@ impl File {
 
   /// Get the data of the file
   pub fn get_data(&self) -> Result<Box<[u8]>> {
-    let mut size = unsafe { MaybeUninit::zeroed().assume_init() };
-    let mut data = unsafe { MaybeUninit::zeroed().assume_init() }; // data from gphoto is returned as i8, but we use it as u8. This might cause errors in future
+    let mut size = unsafe { uninit() };
+    let mut data = unsafe { uninit() }; // data from gphoto is returned as i8, but we use it as u8. This might cause errors in future
 
     try_gp_internal!(libgphoto2_sys::gp_file_get_data_and_size(self.inner, &mut data, &mut size))?;
 

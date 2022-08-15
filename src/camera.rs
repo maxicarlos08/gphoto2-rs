@@ -1,9 +1,12 @@
 //! Camera related stuff
 
 use crate::{
-  abilities::Abilities, file::CameraFilePath, helper::camera_text_to_str, try_gp_internal, Result,
+  abilities::Abilities,
+  file::CameraFilePath,
+  helper::{camera_text_to_str, uninit},
+  try_gp_internal, Result,
 };
-use std::{ffi, marker::PhantomData, mem::MaybeUninit};
+use std::{ffi, marker::PhantomData};
 
 /// Represents a camera
 pub struct Camera<'a> {
@@ -36,7 +39,7 @@ impl<'a> Camera<'a> {
   /// A [`CameraFilePath`] which can be downloaded to the host system
   // TODO: Usage example
   pub fn capture_image(&self) -> Result<CameraFilePath> {
-    let mut file_path_ptr = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut file_path_ptr = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_capture(
       self.camera,
@@ -50,7 +53,7 @@ impl<'a> Camera<'a> {
 
   /// Get the camera's [`Abilities`]
   pub fn abilities(&self) -> Result<Abilities> {
-    let mut abilities = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut abilities = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_get_abilities(self.camera, &mut abilities))?;
 
@@ -59,7 +62,7 @@ impl<'a> Camera<'a> {
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
-    let mut summary = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut summary = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_get_summary(
       self.camera,
@@ -70,5 +73,5 @@ impl<'a> Camera<'a> {
     Ok(camera_text_to_str(summary).to_string())
   }
 
-  // TODO: settings, port, summary (manual?, driver?)
+  // TODO: settings (manual?, driver?)
 }

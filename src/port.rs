@@ -1,7 +1,10 @@
 //! Camera port information
 
-use crate::{helper::chars_to_cow, try_gp_internal, Result};
-use std::{borrow::Cow, mem::MaybeUninit};
+use crate::{
+  helper::{chars_to_cow, uninit},
+  try_gp_internal, Result,
+};
+use std::borrow::Cow;
 
 /// Type of the port
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -69,7 +72,7 @@ impl PortType {
 impl PortInfo {
   /// Name of the port
   pub fn name(&self) -> Result<Cow<str>> {
-    let mut name = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut name = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_get_name(self.inner, &mut name))?;
 
@@ -78,7 +81,7 @@ impl PortInfo {
 
   /// Path of the port
   pub fn path(&self) -> Result<Cow<str>> {
-    let mut path = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut path = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_get_path(self.inner, &mut path))?;
 
@@ -87,7 +90,7 @@ impl PortInfo {
 
   /// [Port type](PortType)
   pub fn port_type(&self) -> Result<Option<PortType>> {
-    let mut port_type = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut port_type = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_get_type(self.inner, &mut port_type))?;
 
@@ -97,7 +100,7 @@ impl PortInfo {
 
 impl PortInfoList {
   pub(crate) fn new() -> Result<Self> {
-    let mut port_info_list = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut port_info_list = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_list_new(&mut port_info_list))?;
     try_gp_internal!(libgphoto2_sys::gp_port_info_list_load(port_info_list))?;
@@ -106,7 +109,7 @@ impl PortInfoList {
   }
 
   pub(crate) fn get_port_info(&self, p: i32) -> Result<PortInfo> {
-    let mut port_info = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut port_info = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_list_get_info(self.inner, p, &mut port_info))?;
 

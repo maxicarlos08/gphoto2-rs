@@ -14,13 +14,11 @@
 //! file_path.download(&camera, "image.jpg");
 //! ```
 
-// TODO: Camera abilities
-// TODO: Ports
+// TODO: FileSystem
 // TODO: Settings (get, set)
-// TODO: Use PhantomData for safety
 
 #![deny(unused_must_use)]
-#![warn(missing_docs)]
+#![deny(missing_docs)] // Force documentation on all public API's
 
 pub mod abilities;
 pub mod camera;
@@ -30,12 +28,14 @@ pub mod file;
 pub(crate) mod helper;
 pub mod list;
 pub mod port;
+// pub mod widget;
 
-pub use crate::context::Context;
+pub use crate::{
+  context::Context,
+  error::{Error, Result},
+};
 
 /// Raw bindings to libgphoto2.
 ///
 /// Use this at your own risk
 pub use libgphoto2_sys;
-
-use error::{Error, Result};

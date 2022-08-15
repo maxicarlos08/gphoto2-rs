@@ -1,9 +1,9 @@
 //! Gphoto library context
 use crate::{
-  abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
-  Error, Result,
+  abilities::AbilitiesList, camera::Camera, helper::uninit, list::CameraList, port::PortInfoList,
+  try_gp_internal, Error, Result,
 };
-use std::{ffi, mem::MaybeUninit};
+use std::ffi;
 
 /// Context used internally by gphoto
 ///
@@ -45,16 +45,16 @@ impl Context {
 
   /// Lists all available cameras and their ports
   pub fn list_cameras(&self) -> Result<CameraList> {
-    let camera_list = unsafe { MaybeUninit::zeroed().assume_init() };
+    let camera_list = CameraList::new()?;
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_autodetect(camera_list, self.inner))?;
+    try_gp_internal!(libgphoto2_sys::gp_camera_autodetect(camera_list.inner, self.inner))?;
 
-    Ok(camera_list.into())
+    Ok(camera_list)
   }
 
   /// Auto chooses a camera
   pub fn autodetect_camera(&self) -> Result<Camera> {
-    let mut camera_ptr = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut camera_ptr = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_new(&mut camera_ptr))?;
     try_gp_internal!(libgphoto2_sys::gp_camera_init(camera_ptr, self.inner))?;
@@ -64,8 +64,8 @@ impl Context {
 
   /// Initialize a camera knowing its model name and port
   pub fn get_camera(&self, model: &str, port: &str) -> Result<Camera> {
-    let mut model_abilities = unsafe { MaybeUninit::zeroed().assume_init() };
-    let mut camera = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut model_abilities = unsafe { uninit() };
+    let mut camera = unsafe { uninit() };
     let abilities_list = AbilitiesList::new(self)?;
     let port_info_list = PortInfoList::new()?;
 

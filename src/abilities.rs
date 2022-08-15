@@ -1,7 +1,7 @@
 //! Gphoto device abilities
 
-use crate::{context::Context, try_gp_internal, Result};
-use std::{borrow::Cow, ffi, marker::PhantomData, mem::MaybeUninit};
+use crate::{context::Context, helper::uninit, try_gp_internal, Result};
+use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_int};
 
 pub(crate) struct AbilitiesList<'a> {
   pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
@@ -37,15 +37,15 @@ pub enum DeviceType {
 
 /// Available operations on the camera
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct CameraOperations(i32);
+pub struct CameraOperations(c_int);
 
 /// Available operations on files
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct FileOperations(i32);
+pub struct FileOperations(c_int);
 
 /// Available operations of folders
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct FolderOperations(i32);
+pub struct FolderOperations(c_int);
 
 impl Drop for AbilitiesList<'_> {
   fn drop(&mut self) {
@@ -57,19 +57,19 @@ impl Drop for AbilitiesList<'_> {
 
 impl From<libgphoto2_sys::CameraOperation> for CameraOperations {
   fn from(op: libgphoto2_sys::CameraOperation) -> Self {
-    Self(op as i32)
+    Self(op as c_int)
   }
 }
 
 impl From<libgphoto2_sys::CameraFileOperation> for FileOperations {
   fn from(op: libgphoto2_sys::CameraFileOperation) -> Self {
-    Self(op as i32)
+    Self(op as c_int)
   }
 }
 
 impl From<libgphoto2_sys::CameraFolderOperation> for FolderOperations {
   fn from(op: libgphoto2_sys::CameraFolderOperation) -> Self {
-    Self(op as i32)
+    Self(op as c_int)
   }
 }
 
@@ -104,7 +104,7 @@ impl From<libgphoto2_sys::CameraAbilities> for Abilities {
 
 impl<'a> AbilitiesList<'a> {
   pub(crate) fn new(context: &Context) -> Result<Self> {
-    let mut abilities_inner = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut abilities_inner = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_abilities_list_new(&mut abilities_inner))?;
     try_gp_internal!(libgphoto2_sys::gp_abilities_list_load(abilities_inner, context.inner))?;
@@ -124,7 +124,7 @@ impl Abilities {
     self.inner.status.into()
   }
 
-  // TODO: Port, Port speeds
+  // TODO: Port speeds
   // TODO: Usb info
 
   /// Get the [camera operations](CameraOperations) of the device
@@ -153,7 +153,7 @@ macro_rules! impl_bitmask_check {
     #[doc = "Check for the \"$name\" ability"]
     #[inline]
     pub fn $name(&self) -> bool {
-      self.0 & $op as i32 != 0
+      self.0 & $op as c_int != 0
     }
   };
 }
