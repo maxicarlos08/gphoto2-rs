@@ -4,6 +4,7 @@ use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, mem::MaybeUninit};
 
 /// Type of the port
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PortType {
   /// Serial port
   Serial,

@@ -1,4 +1,4 @@
-//! GPhoto device abilities
+//! Gphoto device abilities
 
 use crate::{context::Context, try_gp_internal, Result};
 use std::{borrow::Cow, ffi, marker::PhantomData, mem::MaybeUninit};
@@ -14,6 +14,7 @@ pub struct Abilities {
 }
 
 /// Status of the gphoto driver used
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum CameraDriverStatus {
   /// The driver is stable
   Production,
@@ -21,11 +22,12 @@ pub enum CameraDriverStatus {
   Testing,
   /// (Unstable) Experimental driver, might not work as expected
   Experimental,
-  /// The driver is depreacted, dont use this
+  /// The driver is deprecated, don't use this
   Deprecated,
 }
 
 /// Type of the device
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum DeviceType {
   /// Still camera
   Camera,
@@ -34,12 +36,15 @@ pub enum DeviceType {
 }
 
 /// Available operations on the camera
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CameraOperations(i32);
 
 /// Available operations on files
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FileOperations(i32);
 
 /// Available operations of folders
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FolderOperations(i32);
 
 impl Drop for AbilitiesList<'_> {

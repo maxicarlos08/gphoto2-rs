@@ -1,4 +1,4 @@
-//! # GPhoto2-rs
+//! # Gphoto2-rs
 //!
 //! High lever abstractions for libgphoto2
 //!
@@ -32,15 +32,10 @@ pub mod list;
 pub mod port;
 
 pub use crate::context::Context;
+
 /// Raw bindings to libgphoto2.
 ///
 /// Use this at your own risk
 pub use libgphoto2_sys;
 
 use error::{Error, Result};
-
-trait AsPtr<T> {
-  unsafe fn as_ptr(&self) -> *const T;
-
-  unsafe fn as_mut_ptr(&mut self) -> *mut T;
-}

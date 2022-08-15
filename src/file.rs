@@ -1,11 +1,11 @@
 //! Files stored on camera
 
-use crate::{camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, AsPtr, Result};
+use crate::{camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, fs, mem::MaybeUninit, os::unix::io::AsRawFd, path::Path};
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
-  inner: libgphoto2_sys::CameraFilePath,
+  pub(crate) inner: libgphoto2_sys::CameraFilePath,
 }
 
 /// File on a camera
@@ -17,10 +17,10 @@ pub struct CameraFilePath {
 ///
 /// let camera = Context::new()?.autodetect_camera()?;
 /// let file = camera.capture_image()?;
-/// let file_data = file.get_in_meory(&camera)?.get_data()?;
+/// let file_data = file.get_in_memory(&camera)?.get_data()?;
 /// ```
 pub struct File {
-  inner: *mut libgphoto2_sys::CameraFile,
+  pub(crate) inner: *mut libgphoto2_sys::CameraFile,
 }
 
 impl Drop for File {
@@ -28,16 +28,6 @@ impl Drop for File {
     unsafe {
       libgphoto2_sys::gp_file_unref(self.inner);
     }
-  }
-}
-
-impl AsPtr<libgphoto2_sys::CameraFile> for File {
-  unsafe fn as_ptr(&self) -> *const libgphoto2_sys::CameraFile {
-    self.inner
-  }
-
-  unsafe fn as_mut_ptr(&mut self) -> *mut libgphoto2_sys::CameraFile {
-    self.inner
   }
 }
 
@@ -59,7 +49,7 @@ impl CameraFilePath {
   }
 
   fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<File> {
-    let mut camera_file = match path {
+    let camera_file = match path {
       Some(dest_path) => File::new_file(dest_path)?,
       None => File::new()?,
     };
@@ -69,7 +59,7 @@ impl CameraFilePath {
       self.inner.folder.as_ptr(),
       self.inner.name.as_ptr(),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
-      camera_file.as_mut_ptr(),
+      camera_file.inner,
       camera.context
     ))?;
 

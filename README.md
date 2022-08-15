@@ -1,5 +1,5 @@
 # gphoto2-rs
 
-Rust wrapper for libgphoto2
+High level rust wrapper for libgphoto2
 
 TODO: Documentation here

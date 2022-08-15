@@ -10,7 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub const GP_OK: i32 = libgphoto2_sys::GP_OK as i32;
 
 /// Error type
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ErrorKind {
   /// GP_ERROR or something else
   Other,
@@ -63,7 +63,7 @@ pub enum ErrorKind {
   /// Path is not absolute
   PathNotAbsolute,
 
-  /// Tiemeout
+  /// Timeout
   Timeout,
 
   /// Port is not known
