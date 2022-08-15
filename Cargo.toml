@@ -1,5 +1,5 @@
 [package]
-name = "gphoto2-rs"
+name = "gphoto2"
 description = "Rust wrapper for libbgphoto2"
 version = "0.1.0"
 edition = "2021"
@@ -14,3 +14,4 @@ repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
 members = ["libgphoto2-sys"]
 
 [dependencies]
+libgphoto2_sys = { path = "libgphoto2-sys" }

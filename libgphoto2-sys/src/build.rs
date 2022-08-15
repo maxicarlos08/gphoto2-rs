@@ -2,7 +2,10 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    pkg_config::find_library("libgphoto2").expect("Could not find libgphoto2");
+    pkg_config::Config::new()
+        .atleast_version("2.5.10")
+        .probe("libgphoto2")
+        .expect("Could not find libgphoto2");
 
     println!("cargo:rerun-if-changed=wrapper.h");
 

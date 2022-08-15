@@ -1,5 +1,5 @@
 [package]
-name = "libgphoto2-sys"
+name = "libgphoto2_sys"
 version = "2.5.10"
 edition = "2021"
 
