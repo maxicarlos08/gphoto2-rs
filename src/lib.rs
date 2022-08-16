@@ -28,7 +28,7 @@ pub mod file;
 pub(crate) mod helper;
 pub mod list;
 pub mod port;
-// pub mod widget;
+pub mod widget;
 
 pub use crate::{
   context::Context,

@@ -122,6 +122,12 @@ impl From<std::ffi::NulError> for Error {
   }
 }
 
+impl From<&str> for Error {
+  fn from(message: &str) -> Self {
+    Self { error: libgphoto2_sys::GP_ERROR, info: Some(message.into()) }
+  }
+}
+
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(unsafe { &chars_to_cow(libgphoto2_sys::gp_result_as_string(self.error)) })?;

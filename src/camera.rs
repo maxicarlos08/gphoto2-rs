@@ -4,9 +4,12 @@ use crate::{
   abilities::Abilities,
   file::CameraFilePath,
   helper::{camera_text_to_str, uninit},
-  try_gp_internal, Result,
+  port::PortInfo,
+  try_gp_internal,
+  widget::Widget,
+  Result,
 };
-use std::{ffi, marker::PhantomData};
+use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char};
 
 /// Represents a camera
 pub struct Camera<'a> {
@@ -61,7 +64,7 @@ impl<'a> Camera<'a> {
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
-  pub fn summary(&self) -> Result<String> {
+  pub fn summary(&self) -> Result<Cow<str>> {
     let mut summary = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_get_summary(
@@ -70,8 +73,51 @@ impl<'a> Camera<'a> {
       self.context
     ))?;
 
-    Ok(camera_text_to_str(summary).to_string())
+    Ok(camera_text_to_str(summary))
   }
 
-  // TODO: settings (manual?, driver?)
+  /// Port used to connect to the camera
+  pub fn port_info(&self) -> Result<PortInfo> {
+    let mut port_info = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_port_info(self.camera, &mut port_info))?;
+
+    Ok(PortInfo { inner: port_info })
+  }
+
+  /// Get about information about the camera#
+  pub fn about(&self) -> Result<Cow<str>> {
+    let mut about = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_about(self.camera, &mut about, self.context))?;
+
+    Ok(camera_text_to_str(about))
+  }
+
+  /// Get the camera configuration
+  pub fn config(&self) -> Result<Widget<'a>> {
+    let mut root_widget = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_config(
+      self.camera,
+      &mut root_widget,
+      self.context
+    ))?;
+
+    Ok(Widget::new(root_widget))
+  }
+
+  /// Get a single configuration by name
+  pub fn config_key(&self, key: &str) -> Result<Widget<'a>> {
+    let mut widget = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_single_config(
+      self.camera,
+      key.as_ptr() as *const c_char,
+      &mut widget,
+      self.context
+    ))?;
+
+    Ok(Widget::new(widget))
+  }
 }
