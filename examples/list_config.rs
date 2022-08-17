@@ -4,7 +4,7 @@ fn main() -> Result<()> {
   let context = Context::new()?;
   let camera = context.autodetect_camera()?;
 
-  println!("{:#?}", camera.config()?);
-  
+  println!("{:?}", camera.config()?);
+
   Ok(())
 }
