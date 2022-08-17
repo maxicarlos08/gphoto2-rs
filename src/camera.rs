@@ -6,7 +6,7 @@ use crate::{
   helper::{camera_text_to_str, uninit},
   port::PortInfo,
   try_gp_internal,
-  widget::Widget,
+  widget::{Widget, WidgetType},
   Result,
 };
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char};
@@ -119,5 +119,33 @@ impl<'a> Camera<'a> {
     ))?;
 
     Ok(Widget::new(widget))
+  }
+
+  /// Apply a full config object to the cmaera.
+  /// The configuration must be of type Window
+  pub fn set_all_config(&self, config: &Widget) -> Result<()> {
+    if !matches!(config.widget_type()?, WidgetType::Window) {
+      Err("Full config object must be of type Window")?;
+    }
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_set_config(
+      self.camera,
+      config.inner,
+      self.context
+    ))?;
+
+    Ok(())
+  }
+
+  /// Set a single config to the camera
+  pub fn set_config(&self, config: &Widget) -> Result<()> {
+    try_gp_internal!(libgphoto2_sys::gp_camera_set_single_config(
+      self.camera,
+      config.name()?.as_ptr() as *const c_char,
+      config.inner,
+      self.context
+    ))?;
+
+    Ok(())
   }
 }
