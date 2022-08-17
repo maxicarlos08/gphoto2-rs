@@ -17,12 +17,17 @@ pub struct CameraFilePath {
 ///
 /// ## Downloading examples
 /// ### In memory
-/// ```
-/// use gphoto2::Context;
+/// ```no_run
+/// use gphoto2::{Context, Result};
 ///
-/// let camera = Context::new()?.autodetect_camera()?;
+/// # fn main() -> Result<()> {
+/// let context = Context::new()?;
+/// let camera = context.autodetect_camera()?;
 /// let file = camera.capture_image()?;
 /// let file_data = file.get_in_memory(&camera)?.get_data()?;
+///
+/// # Ok(())
+/// # }
 /// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,

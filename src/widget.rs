@@ -1,4 +1,19 @@
 //! Camera configuration
+//!
+//! ## Configuring a camera
+//! ```no_run
+//! use gphoto2::{Context, widget::WidgetValue, Result};
+//!
+//! # fn main() -> Result<()> {
+//! let context = Context::new()?;
+//! let camera = context.autodetect_camera()?;
+//!
+//! let mut config = camera.config_key("iso")?;
+//! config.set_value(WidgetValue::Menu("100".to_string()))?; // Set the iso to 100
+//! camera.set_config(&config); // Apply setting to camera
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::{
   helper::{chars_to_cow, uninit},
@@ -68,7 +83,7 @@ pub enum WidgetType {
 }
 
 /// Iterator over the children of a widget
-pub struct WidgetChildrenIter<'a> {
+pub struct WidgetIterator<'a> {
   parent_widget: &'a Widget<'a>,
   count: usize,
   index: usize,
@@ -179,9 +194,9 @@ impl<'a> Widget<'a> {
     Ok(chars_to_cow(info))
   }
 
-  /// Creates a new [`WidgetChildrenIter`]
-  pub fn children_iter(&'a self) -> Result<WidgetChildrenIter<'a>> {
-    Ok(WidgetChildrenIter { parent_widget: self, count: self.children_count()?, index: 0 })
+  /// Creates a new [`WidgetIterator`]
+  pub fn children_iter(&'a self) -> Result<WidgetIterator<'a>> {
+    Ok(WidgetIterator { parent_widget: self, count: self.children_count()?, index: 0 })
   }
 
   /// Counts the children of the widget
@@ -327,6 +342,8 @@ impl<'a> Widget<'a> {
   }
 
   /// Sets the value of the widget
+  ///
+  /// **Note**: This only sets the value of the configuration, to apply the setting to the camera use [`Camera::set_config`](crate::Camera::set_config)
   pub fn set_value(&mut self, value: WidgetValue) -> Result<()> {
     let self_type = self.widget_type()?;
 
@@ -399,7 +416,7 @@ impl<'a> Widget<'a> {
   }
 }
 
-impl<'a> Iterator for WidgetChildrenIter<'a> {
+impl<'a> Iterator for WidgetIterator<'a> {
   type Item = Widget<'a>;
 
   fn next(&mut self) -> Option<Self::Item> {

@@ -1,17 +1,20 @@
 [package]
 name = "gphoto2"
-description = "Rust wrapper for libbgphoto2"
+description = "Rust bindings for libgphoto2"
 version = "0.1.0"
 edition = "2021"
-keywords = ["gphoto2", "gphoto", "libgphoto"]
+keywords = ["gphoto2", "gphoto", "libgphoto", "camera", "ffi"]
 authors = ["Maxicarlos08 <maxicarlos08@gmail.com>"]
 license-file = "LICENSE"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
+homepage = "https://github.com/maxicarlos08/gphoto2-rs"
+readme = "README.md"
 
+# TODO: Host documentation somewhere
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
 members = ["libgphoto2-sys"]
 
 [dependencies]
-libgphoto2_sys = { path = "libgphoto2-sys" }
+libgphoto2_sys = { path = "libgphoto2-sys", version = "2.5.10"}

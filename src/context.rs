@@ -9,17 +9,22 @@ use std::ffi;
 ///
 /// ## Example
 ///
-/// ```
-/// use gphoto2::Context;
+/// ```no_run
+/// use gphoto2::{Context, Result};
 ///
+/// # fn main() -> Result<()> {
 /// let context = Context::new()?;
 ///
-/// let camera_list = context.list_cameras()?.to_vec()?;
+/// let camera_list = context.list_cameras()?;
 ///
-/// // Use second camera in the camera list
+/// // Use first camera in the camera list
 ///
-/// let (model, port) = camera_list[2];
-/// context.get_camera(model, port);
+/// let (model, port) = &camera_list.to_vec()?[0];
+/// context.get_camera(&model.to_string(), &port.to_string());
+/// 
+/// # Ok(())
+/// # }
+///
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,

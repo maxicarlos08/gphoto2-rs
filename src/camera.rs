@@ -1,5 +1,3 @@
-//! Camera related stuff
-
 use crate::{
   abilities::Abilities,
   file::CameraFilePath,
@@ -12,7 +10,28 @@ use crate::{
 };
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char};
 
-/// Represents a camera
+/// Camera
+///
+/// # Basic usage
+///
+/// ```no_run
+/// use gphoto2::{Context, Result};
+///
+/// # fn main() -> Result<()> {
+/// let context = Context::new()?;
+/// let camera = context.autodetect_camera()?;
+///
+/// // Get some basic information about the camera
+/// println!("Camera abilities: {:?}", camera.abilities()?);
+/// println!("Camera summary: {}", camera.summary()?);
+///
+/// // Capture an image
+/// let image = camera.capture_image()?;
+///
+/// // Image can be downloaded using image.download(&camera, download_path)
+/// # Ok(())
+/// # }
+/// ```
 pub struct Camera<'a> {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
   pub(crate) context: *mut libgphoto2_sys::GPContext,
@@ -41,7 +60,6 @@ impl<'a> Camera<'a> {
   /// ## Returns
   ///
   /// A [`CameraFilePath`] which can be downloaded to the host system
-  // TODO: Usage example
   pub fn capture_image(&self) -> Result<CameraFilePath> {
     let mut file_path_ptr = unsafe { uninit() };
 
@@ -122,7 +140,7 @@ impl<'a> Camera<'a> {
     Ok(Widget::new(widget))
   }
 
-  /// Apply a full config object to the cmaera.
+  /// Apply a full config object to the camera.
   /// The configuration must be of type Window
   pub fn set_all_config(&self, config: &Widget) -> Result<()> {
     if !matches!(config.widget_type()?, WidgetType::Window) {

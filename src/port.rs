@@ -1,4 +1,20 @@
 //! Camera port information
+//!
+//! Determine the port information used to connect to a device
+//!
+//! ## Getting port information
+//! ```no_run
+//! use gphoto2::{Context, Result};
+//!
+//! # fn main() -> Result<()> {
+//! let context= Context::new()?;
+//! let camera = context.autodetect_camera()?;
+//!
+//! let port_info = camera.port_info()?; // Returns a PortInfo struct
+//!
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::{
   helper::{chars_to_cow, uninit},
@@ -30,6 +46,11 @@ pub enum PortType {
 }
 
 /// Information about the port
+///
+/// ## Information
+///  - [`name`](PortInfo::name): Name of the port
+///  - [`path`](PortInfo::path): Path of the port
+///  - [`port_type`](PortInfo::port_type): Type of the port
 pub struct PortInfo {
   pub(crate) inner: libgphoto2_sys::GPPortInfo,
 }
@@ -113,6 +134,6 @@ impl PortInfoList {
 
     try_gp_internal!(libgphoto2_sys::gp_port_info_list_get_info(self.inner, p, &mut port_info))?;
 
-    todo!()
+    Ok(port_info.into())
   }
 }
