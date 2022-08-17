@@ -3,6 +3,7 @@
 use crate::{
   abilities::Abilities,
   file::CameraFilePath,
+  filesys::StorageInfo,
   helper::{camera_text_to_str, uninit},
   port::PortInfo,
   try_gp_internal,
@@ -147,5 +148,25 @@ impl<'a> Camera<'a> {
     ))?;
 
     Ok(())
+  }
+
+  /// List of storages available on the camera
+  pub fn storages(&self) -> Result<Vec<StorageInfo>> {
+    let mut storages_ptr = unsafe { uninit() };
+    let mut storages_len = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_storageinfo(
+      self.camera,
+      &mut storages_ptr,
+      &mut storages_len,
+      self.context
+    ))?;
+
+    Ok(
+      unsafe { Vec::from_raw_parts(storages_ptr, storages_len as usize, storages_len as usize) }
+        .into_iter()
+        .map(StorageInfo::new)
+        .collect(),
+    )
   }
 }

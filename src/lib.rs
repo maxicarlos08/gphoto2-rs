@@ -15,7 +15,6 @@
 //! ```
 
 // TODO: FileSystem
-// TODO: Settings (get, set)
 
 #![deny(unused_must_use)]
 #![deny(missing_docs)] // Force documentation on all public API's
@@ -29,6 +28,7 @@ pub(crate) mod helper;
 pub mod list;
 pub mod port;
 pub mod widget;
+pub mod filesys;
 
 pub use crate::{
   context::Context,
