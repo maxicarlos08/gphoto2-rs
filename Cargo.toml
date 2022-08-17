@@ -1,11 +1,11 @@
 [package]
 name = "gphoto2"
 description = "Rust bindings for libgphoto2"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 keywords = ["gphoto2", "gphoto", "libgphoto", "camera", "ffi"]
 authors = ["Maxicarlos08 <maxicarlos08@gmail.com>"]
-license-file = "LICENSE"
+license = "GPL-3.0-or-later"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
 homepage = "https://github.com/maxicarlos08/gphoto2-rs"
 readme = "README.md"
@@ -17,4 +17,4 @@ readme = "README.md"
 members = ["libgphoto2-sys"]
 
 [dependencies]
-libgphoto2_sys = { path = "libgphoto2-sys", version = "2.5.10"}
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.0.0"}

@@ -1,10 +1,10 @@
 [package]
 name = "libgphoto2_sys"
-version = "2.5.10"
+version = "1.0.0"
 edition = "2021"
 description = "System bindings to libgphoto2"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
-license-file = "../LICENSE"
+license = "GPL-3.0-or-later"
 
 links = "gphoto2"
 build = "src/build.rs"
