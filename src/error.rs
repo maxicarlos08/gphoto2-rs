@@ -10,7 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub const GP_OK: c_int = libgphoto2_sys::GP_OK as c_int;
 
 /// Error type
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ErrorKind {
   /// GP_ERROR or something else
   Other,
@@ -71,7 +71,6 @@ pub enum ErrorKind {
 }
 
 /// General error
-#[derive(Debug)]
 pub struct Error {
   error: c_int,
   info: Option<String>,
@@ -137,6 +136,12 @@ impl fmt::Display for Error {
     }
 
     Ok(())
+  }
+}
+
+impl fmt::Debug for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    <Self as fmt::Display>::fmt(self, f)
   }
 }
 

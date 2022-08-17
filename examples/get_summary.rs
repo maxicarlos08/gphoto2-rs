@@ -1,8 +1,10 @@
-use gphoto2::Context;
+use gphoto2::{Context, Result};
 
-fn main() {
-  let context = Context::new().expect("Failed to create camera");
-  let camera = context.autodetect_camera().expect("Failed to auto detect camera");
+fn main() -> Result<()> {
+  let context = Context::new()?;
+  let camera = context.autodetect_camera()?;
 
-  println!("Camera summray: {}", camera.summary().unwrap());
+  println!("Camera summray: {}", camera.summary()?);
+
+  Ok(())
 }

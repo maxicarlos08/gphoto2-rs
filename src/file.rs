@@ -24,11 +24,14 @@ pub struct CameraFilePath {
 /// let file = camera.capture_image()?;
 /// let file_data = file.get_in_memory(&camera)?.get_data()?;
 /// ```
-pub struct File {
+pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
+  #[allow(dead_code)]
+  // The file must live as long as the camera file to keep the raw file descriptor alive
+  file: Option<fs::File>,
 }
 
-impl Drop for File {
+impl Drop for CameraFile {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_file_unref(self.inner);
@@ -50,13 +53,13 @@ impl CameraFilePath {
 
   /// Get the basename of the file (without the folder)
   pub fn name(&self) -> Cow<str> {
-    chars_to_cow(self.inner.folder.as_ptr())
+    chars_to_cow(self.inner.name.as_ptr())
   }
 
-  fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<File> {
+  fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<CameraFile> {
     let camera_file = match path {
-      Some(dest_path) => File::new_file(dest_path)?,
-      None => File::new()?,
+      Some(dest_path) => CameraFile::new_file(dest_path)?,
+      None => CameraFile::new()?,
     };
 
     try_gp_internal!(libgphoto2_sys::gp_camera_file_get(
@@ -72,23 +75,23 @@ impl CameraFilePath {
   }
 
   /// Creates a [`File`] which is downloaded to memory
-  pub fn get_in_memory(&self, camera: &Camera) -> Result<File> {
+  pub fn get_in_memory(&self, camera: &Camera) -> Result<CameraFile> {
     self.to_camera_file(camera, None)
   }
 
   /// Creates a [`File`] which is downloaded to a path on disk
-  pub fn download(&self, camera: &Camera, path: &Path) -> Result<File> {
+  pub fn download(&self, camera: &Camera, path: &Path) -> Result<CameraFile> {
     self.to_camera_file(camera, Some(path))
   }
 }
 
-impl File {
+impl CameraFile {
   pub(crate) fn new() -> Result<Self> {
     let mut camera_file_ptr = unsafe { uninit() };
 
     try_gp_internal!(libgphoto2_sys::gp_file_new(&mut camera_file_ptr))?;
 
-    Ok(Self { inner: camera_file_ptr })
+    Ok(Self { inner: camera_file_ptr, file: None })
   }
 
   pub(crate) fn new_file(path: &Path) -> Result<Self> {
@@ -96,12 +99,12 @@ impl File {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_FILE_EXISTS));
     }
 
-    let file = fs::File::create(path)?.as_raw_fd();
+    let file = fs::File::create(path)?;
 
     let mut camera_file_ptr = unsafe { uninit() };
 
-    try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, file))
-      .map(|_| Self { inner: camera_file_ptr })
+    try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, file.as_raw_fd()))
+      .map(|_| Self { inner: camera_file_ptr, file: Some(file) })
   }
 
   /// Get the data of the file
