@@ -2,6 +2,9 @@
 name = "libgphoto2_sys"
 version = "2.5.10"
 edition = "2021"
+description = "System bindings to libgphoto2"
+repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
+license-file = "../LICENSE"
 
 links = "gphoto2"
 build = "src/build.rs"
@@ -11,6 +14,3 @@ build = "src/build.rs"
 [build-dependencies]
 pkg-config = "0.3.25"
 bindgen = "0.60.1"
-
-[dependencies]
-pkg-config = "0.3.25"
