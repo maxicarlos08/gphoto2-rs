@@ -119,7 +119,9 @@ impl fmt::Debug for Widget<'_> {
     if let Ok(children) = self.children_iter() {
       let children: Vec<Widget> = children.collect();
 
-      widget_debug.field("children", &children);
+      if children.len() > 0 {
+        widget_debug.field("children", &children);
+      }
     }
 
     widget_debug.finish()
@@ -401,7 +403,6 @@ impl<'a> Iterator for WidgetChildrenIter<'a> {
   type Item = Widget<'a>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    println!("index: {}, count: {}", self.index, self.count);
     if self.index >= self.count {
       None
     } else {
