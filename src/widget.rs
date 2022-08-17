@@ -28,9 +28,12 @@ use std::{
 
 macro_rules! get_widget_value {
   ($widget:expr, $tp:ty) => {{
-    let value = unsafe { $crate::helper::uninit() };
-    $crate::try_gp_internal!(libgphoto2_sys::gp_widget_get_value($widget, value))?;
-    unsafe { *(value as *mut $tp) }
+    let mut value: $tp = unsafe { $crate::helper::uninit() };
+    $crate::try_gp_internal!(libgphoto2_sys::gp_widget_get_value(
+      $widget,
+      &mut value as *mut $tp as *mut c_void
+    ))?;
+    value
   }};
 }
 
@@ -127,7 +130,7 @@ impl fmt::Debug for Widget<'_> {
       widget_debug.field("type", &widget_type);
     }
 
-    if let Ok(widget_value) = self.value() {
+    if let Ok((Some(widget_value), _)) = self.value() {
       widget_debug.field("value", &widget_value);
     }
 
