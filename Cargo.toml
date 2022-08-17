@@ -1,6 +1,6 @@
 [package]
 name = "gphoto2"
-description = "Rust bindings for libgphoto2"
+description = "High-level wrapper for libgphoto2"
 version = "0.1.1"
 edition = "2021"
 keywords = ["gphoto2", "gphoto", "libgphoto", "camera", "ffi"]

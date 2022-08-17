@@ -4,7 +4,7 @@ Rust bindings to libgphoto2
 
 ### What about [gphoto-rs](https://crates.io/crates/gphoto)?
 
-I know about the other crate (gphoto and gphoto2-sys), but it is missing a lot of features which make the crate unusable for me, most notably the ability to change camera settings and in memory file download.  
+I know about the other crate ([gphoto](https://crates.io/crates/gphoto) and [gphoto2-sys](https://crates.io/crates/gphoto2-sys) which was created by [@dcuddeback](https://github.com/dcuddeback/), but it is missing a lot of features which make the crate unusable for me, most notably the ability to change camera settings and in memory file download.  
 The author hasn't been active since 2017 regardless of numerous pull- and feature requests, so I made a new project with a more up to date rust code and all the features from libgphoto2.
 
 ## Features
