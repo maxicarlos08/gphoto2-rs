@@ -1,4 +1,4 @@
-//! # Gphoto2-rs
+//! # GPhoto2-rs
 //!
 //! High lever abstractions for libgphoto2
 //!

@@ -1,4 +1,4 @@
-//! Gphoto device abilities
+//! Device abilities
 
 use crate::{context::Context, helper::uninit, try_gp_internal, Result};
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_int};

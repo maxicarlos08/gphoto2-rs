@@ -74,12 +74,12 @@ impl CameraFilePath {
     Ok(camera_file)
   }
 
-  /// Creates a [`File`] which is downloaded to memory
+  /// Creates a [`CameraFile`] which is downloaded to memory
   pub fn get_in_memory(&self, camera: &Camera) -> Result<CameraFile> {
     self.to_camera_file(camera, None)
   }
 
-  /// Creates a [`File`] which is downloaded to a path on disk
+  /// Creates a [`CameraFile`] which is downloaded to a path on disk
   pub fn download(&self, camera: &Camera, path: &Path) -> Result<CameraFile> {
     self.to_camera_file(camera, Some(path))
   }

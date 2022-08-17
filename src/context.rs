@@ -1,4 +1,4 @@
-//! Gphoto library context
+//! Library context
 use crate::{
   abilities::AbilitiesList, camera::Camera, helper::uninit, list::CameraList, port::PortInfoList,
   try_gp_internal, Error, Result,

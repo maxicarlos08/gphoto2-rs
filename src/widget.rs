@@ -1,4 +1,4 @@
-//! Widgets are used to configure the camera
+//! Camera configuration
 
 use crate::{
   helper::{chars_to_cow, uninit},
@@ -6,7 +6,7 @@ use crate::{
 };
 use std::{
   borrow::Cow,
-  ffi,
+  ffi, fmt,
   marker::PhantomData,
   os::raw::{c_char, c_float, c_int, c_void},
 };
@@ -20,6 +20,7 @@ macro_rules! get_widget_value {
 }
 
 /// Value of a widget
+#[derive(Debug, PartialEq)]
 pub enum WidgetValue {
   /// Textual data
   Text(String),
@@ -34,6 +35,7 @@ pub enum WidgetValue {
 }
 
 /// Type of a widget
+#[derive(Debug, PartialEq)]
 pub enum WidgetType {
   /// Top-level configuration object
   Window,
@@ -86,8 +88,48 @@ impl Drop for Widget<'_> {
   }
 }
 
+impl fmt::Debug for Widget<'_> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let mut widget_debug = f.debug_struct("Widget");
+
+    if let Ok(name) = self.name() {
+      widget_debug.field("name", &name);
+    }
+
+    if let Ok(id) = self.id() {
+      widget_debug.field("id", &id);
+    }
+
+    if let Ok(label) = self.label() {
+      widget_debug.field("label", &label);
+    }
+
+    if let Ok(readonly) = self.readonly() {
+      widget_debug.field("readonly", &readonly);
+    }
+
+    if let Ok(widget_type) = self.widget_type() {
+      widget_debug.field("type", &widget_type);
+    }
+
+    if let Ok(widget_value) = self.value() {
+      widget_debug.field("value", &widget_value);
+    }
+
+    if let Ok(children) = self.children_iter() {
+      let children: Vec<Widget> = children.collect();
+
+      widget_debug.field("children", &children);
+    }
+
+    widget_debug.finish()
+  }
+}
+
 impl<'a> Widget<'a> {
   pub(crate) fn new(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
+    unsafe { libgphoto2_sys::gp_widget_ref(widget) };
+
     Self { inner: widget, _phantom: PhantomData }
   }
 
@@ -246,7 +288,7 @@ impl<'a> Widget<'a> {
   }
 
   /// Get the widget value and type
-  pub fn get_value(&self) -> Result<(Option<WidgetValue>, WidgetType)> {
+  pub fn value(&self) -> Result<(Option<WidgetValue>, WidgetType)> {
     let widget_type = self.widget_type()?;
 
     Ok((
@@ -359,7 +401,8 @@ impl<'a> Iterator for WidgetChildrenIter<'a> {
   type Item = Widget<'a>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if self.count >= self.index {
+    println!("index: {}, count: {}", self.index, self.count);
+    if self.index >= self.count {
       None
     } else {
       let child = self.parent_widget.get_child(self.index).ok();
