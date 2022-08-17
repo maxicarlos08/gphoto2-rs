@@ -1,7 +1,7 @@
 use crate::{
   abilities::Abilities,
   file::CameraFilePath,
-  filesys::StorageInfo,
+  filesys::{CameraFS, StorageInfo},
   helper::{camera_text_to_str, uninit},
   port::PortInfo,
   try_gp_internal,
@@ -186,5 +186,10 @@ impl<'a> Camera<'a> {
         .map(StorageInfo::new)
         .collect(),
     )
+  }
+
+  /// Filesystem actions of the camera
+  pub fn fs(&'a self) -> CameraFS<'a> {
+    CameraFS::new(self)
   }
 }

@@ -6,11 +6,32 @@ use crate::{
   helper::{chars_to_cow, uninit},
   try_gp_internal, Result,
 };
-use std::{borrow::Cow, fs, os::unix::io::AsRawFd, path::Path};
+use std::{
+  borrow::Cow,
+  fs,
+  os::{raw::{c_char}, unix::io::AsRawFd},
+  path::Path,
+};
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
   pub(crate) inner: libgphoto2_sys::CameraFilePath,
+}
+
+/// Type of a file
+pub enum FileType {
+  /// Preview of an image
+  Preview,
+  /// Normal fil
+  Normal,
+  /// Raw data before postprocessing of driver, RAW image files are usually [`FileType::Normal`]
+  Raw,
+  /// Audio contained in file
+  Audio,
+  /// Embedded EXIF data of an image
+  Exif,
+  /// Metadata of a file
+  Metadata,
 }
 
 /// File on a camera
@@ -47,6 +68,36 @@ impl Drop for CameraFile {
 impl From<libgphoto2_sys::CameraFilePath> for CameraFilePath {
   fn from(file_path: libgphoto2_sys::CameraFilePath) -> Self {
     Self { inner: file_path }
+  }
+}
+
+impl From<libgphoto2_sys::CameraFileType> for FileType {
+  fn from(file_type: libgphoto2_sys::CameraFileType) -> Self {
+    use libgphoto2_sys::CameraFileType as GPFileType;
+
+    match file_type {
+      GPFileType::GP_FILE_TYPE_PREVIEW => Self::Preview,
+      GPFileType::GP_FILE_TYPE_NORMAL => Self::Normal,
+      GPFileType::GP_FILE_TYPE_RAW => Self::Raw,
+      GPFileType::GP_FILE_TYPE_AUDIO => Self::Audio,
+      GPFileType::GP_FILE_TYPE_EXIF => Self::Exif,
+      GPFileType::GP_FILE_TYPE_METADATA => Self::Metadata,
+    }
+  }
+}
+
+impl Into<libgphoto2_sys::CameraFileType> for FileType {
+  fn into(self) -> libgphoto2_sys::CameraFileType {
+    use libgphoto2_sys::CameraFileType as GPFileType;
+
+    match self {
+      Self::Preview => GPFileType::GP_FILE_TYPE_PREVIEW,
+      Self::Normal => GPFileType::GP_FILE_TYPE_NORMAL,
+      Self::Raw => GPFileType::GP_FILE_TYPE_RAW,
+      Self::Audio => GPFileType::GP_FILE_TYPE_AUDIO,
+      Self::Exif => GPFileType::GP_FILE_TYPE_EXIF,
+      Self::Metadata => GPFileType::GP_FILE_TYPE_METADATA,
+    }
   }
 }
 
@@ -112,6 +163,19 @@ impl CameraFile {
       .map(|_| Self { inner: camera_file_ptr, file: Some(file) })
   }
 
+  /// Creates a new camera file from disk
+  pub fn new_from_disk(path: &Path) -> Result<Self> {
+    let mut camera_file_ptr = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, -1))?;
+    try_gp_internal!(libgphoto2_sys::gp_file_open(
+      camera_file_ptr,
+      path.to_str().ok_or("File path invalid")?.as_ptr() as *const c_char
+    ))?;
+
+    Ok(Self { inner: camera_file_ptr, file: None })
+  }
+
   /// Get the data of the file
   pub fn get_data(&self) -> Result<Box<[u8]>> {
     let mut size = unsafe { uninit() };
@@ -123,5 +187,23 @@ impl CameraFile {
       unsafe { std::slice::from_raw_parts(data as *const u8, size as usize) }.into();
 
     Ok(data_slice)
+  }
+
+  /// File name
+  pub fn name(&self) -> Result<Cow<str>> {
+    let mut file_name = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_file_get_name(self.inner, &mut file_name))?;
+
+    Ok(chars_to_cow(file_name))
+  }
+
+  /// File mime type
+  pub fn mime(&self) -> Result<Cow<str>> {
+    let mut mime = unsafe { uninit() };
+
+    try_gp_internal!(libgphoto2_sys::gp_file_get_mime_type(self.inner, &mut mime))?;
+
+    Ok(chars_to_cow(mime))
   }
 }

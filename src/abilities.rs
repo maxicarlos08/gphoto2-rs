@@ -240,7 +240,7 @@ impl FileOperations {
   );
 
   impl_bitmask_check!(
-    /// Files cam be previewed
+    /// Previews of images
     ,preview,
     libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_PREVIEW
   );
@@ -252,7 +252,7 @@ impl FileOperations {
   );
 
   impl_bitmask_check!(
-    /// Audio filed
+    /// Get audio of file
     ,audio,
     libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_AUDIO
   );
