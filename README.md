@@ -9,7 +9,7 @@ The author hasn't been active since 2017 regardless of numerous pull- and featur
 
 ## Features
 
-- [ ] Camera
+- [x] Camera
   - [x] Capture images
   - [x] Download images
   - [x] Get port information

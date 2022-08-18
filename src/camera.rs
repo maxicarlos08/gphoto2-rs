@@ -39,7 +39,9 @@ pub enum CameraEvent {
 /// automatically choose a camera or [`Context::get_camera`](crate::Context::get_camera)
 /// to get a specific camera.
 ///
-/// # Basic usage
+/// ## Capturing images
+///
+/// This example captures an image without downloading it to disk
 ///
 /// ```no_run
 /// use gphoto2::{Context, Result};
@@ -59,6 +61,24 @@ pub enum CameraEvent {
 /// # Ok(())
 /// # }
 /// ```
+///
+/// ## Configuring the camera
+///
+/// Each camera has its own configuration, this is an example configuration
+/// for my Nikon D3400 (set the iso to 400).
+///
+/// ```no_run
+/// use gphoto2::{Context, Result, widget::WidgetValue};
+///
+/// # fn main() -> Result<()> {
+/// let context = Context::new()?;
+/// let camera = context.autodetect_camera()?;
+///
+/// let mut iso = camera.config_key("iso")?;
+/// iso.set_value(WidgetValue::Menu("400".into()))?;
+/// camera.set_config(&iso)?;
+/// # Ok(())
+/// # }
 pub struct Camera<'a> {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
   pub(crate) context: *mut libgphoto2_sys::GPContext,
@@ -83,10 +103,6 @@ impl<'a> Camera<'a> {
   }
 
   /// Capture image
-  ///
-  /// ## Returns
-  ///
-  /// A [`CameraFilePath`] which can be downloaded to the host system
   pub fn capture_image(&self) -> Result<CameraFilePath> {
     let mut file_path_ptr = unsafe { uninit() };
 
@@ -101,6 +117,8 @@ impl<'a> Camera<'a> {
   }
 
   /// Get the camera's [`Abilities`]
+  ///
+  /// The abilities contain information about the driver used, permissions and camera model
   pub fn abilities(&self) -> Result<Abilities> {
     let mut abilities = unsafe { uninit() };
 
@@ -162,7 +180,7 @@ impl<'a> Camera<'a> {
     )
   }
 
-  /// Filesystem actions of the camera
+  /// Filesystem actions
   pub fn fs(&'a self) -> CameraFS<'a> {
     CameraFS::new(self)
   }
@@ -229,7 +247,6 @@ impl<'a> Camera<'a> {
   }
 
   /// Get a single configuration by name
-  // FIXME: Is always returning BAD_PARAMETERS
   pub fn config_key(&self, key: &str) -> Result<Widget<'a>> {
     let mut widget = unsafe { uninit() };
 
@@ -246,7 +263,8 @@ impl<'a> Camera<'a> {
   }
 
   /// Apply a full config object to the camera.
-  /// The configuration must be of type Window
+  ///
+  /// The configuration widget must be of type [`Window`](crate::widget::WidgetType::Window)
   pub fn set_all_config(&self, config: &Widget) -> Result<()> {
     if !matches!(config.widget_type()?, WidgetType::Window) {
       Err("Full config object must be of type Window")?;
@@ -261,7 +279,7 @@ impl<'a> Camera<'a> {
     Ok(())
   }
 
-  /// Set a single config to the camera
+  /// Set a single configuration widget to the camera
   pub fn set_config(&self, config: &Widget) -> Result<()> {
     let name = ffi::CString::new(&config.name()?[..])?;
 

@@ -28,6 +28,20 @@ pub struct Abilities {
   pub(crate) inner: libgphoto2_sys::CameraAbilities,
 }
 
+/// Camera USB information
+pub struct UsbInfo {
+  /// Vendor ID
+  pub vendor: usize,
+  /// Product ID
+  pub product: usize,
+  /// Device class
+  pub class: usize,
+  /// Device subclass
+  pub subclass: usize,
+  /// Device protocol
+  pub protocol: usize,
+}
+
 /// Status of the gphoto driver used
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum CameraDriverStatus {
@@ -181,6 +195,17 @@ impl Abilities {
   /// Get the [device type](DeviceType) of the device
   pub fn device_type(&self) -> DeviceType {
     self.inner.device_type.into()
+  }
+
+  /// Get USB information
+  pub fn usb_info(&self) -> UsbInfo {
+    UsbInfo {
+      vendor: self.inner.usb_vendor as usize,
+      product: self.inner.usb_product as usize,
+      class: self.inner.usb_class as usize,
+      subclass: self.inner.usb_subclass as usize,
+      protocol: self.inner.usb_protocol as usize,
+    }
   }
 }
 

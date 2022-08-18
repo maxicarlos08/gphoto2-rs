@@ -49,6 +49,8 @@ impl Context {
   }
 
   /// Lists all available cameras and their ports
+  ///
+  /// Returns list of cameras which can be used with [`Context::get_camera`].
   pub fn list_cameras(&self) -> Result<CameraList> {
     let camera_list = CameraList::new()?;
 
@@ -58,6 +60,20 @@ impl Context {
   }
 
   /// Auto chooses a camera
+  ///
+  /// ```no_run
+  /// use gphoto2::{Context, Result};
+  ///
+  /// # fn main() -> Result<()> {
+  /// let context = Context::new()?;
+  /// if let Ok(camera) = context.autodetect_camera() {
+  ///   println!("Successfully autodetected camera '{}'", camera.abilities()?.model());
+  /// } else {
+  ///   println!("Could not autodetect camera");
+  /// }
+  /// # Ok(())
+  /// # }
+  /// ```
   pub fn autodetect_camera(&self) -> Result<Camera> {
     let mut camera_ptr = unsafe { uninit() };
 
@@ -68,6 +84,22 @@ impl Context {
   }
 
   /// Initialize a camera knowing its model name and port
+  ///
+  /// ```no_run
+  /// use gphoto2::{Context, Result};
+  ///
+  /// # fn main() -> Result<()> {
+  /// let context = Context::new()?;
+  /// let camera_list = context.list_cameras()?;
+  /// let camera_list = camera_list.to_vec()?;
+  ///
+  /// if camera_list.len() < 1 {
+  ///   Err("No cameras found")?
+  /// }
+  ///
+  /// let camera = context.get_camera(&camera_list[0].0[..], &camera_list[0].1[..])?;
+  /// # Ok(())
+  /// # }
   pub fn get_camera(&self, model: &str, port: &str) -> Result<Camera> {
     let mut model_abilities = unsafe { uninit() };
     let mut camera = unsafe { uninit() };

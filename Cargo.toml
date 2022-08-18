@@ -1,20 +1,20 @@
 [package]
 name = "gphoto2"
 description = "High-level wrapper for libgphoto2"
-version = "0.3.1"
+version = "1.0.0-rc1"
 edition = "2021"
 keywords = ["gphoto2", "gphoto", "libgphoto", "camera", "ffi"]
 authors = ["Maxicarlos08 <maxicarlos08@gmail.com>"]
 license = "GPL-3.0-or-later"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
 homepage = "https://github.com/maxicarlos08/gphoto2-rs"
+documentation = "https://docs.rs/gphoto2/latest/gphoto2/"
 readme = "README.md"
 
-# TODO: Host documentation somewhere
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
 members = ["libgphoto2-sys"]
 
 [dependencies]
-libgphoto2_sys = { path = "libgphoto2-sys", version = "1.0.0"}
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.0.0" }

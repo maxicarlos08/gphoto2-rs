@@ -55,7 +55,7 @@ pub enum WidgetValue {
 /// Type of a widget
 #[derive(Debug, PartialEq)]
 pub enum WidgetType {
-  /// Top-level configuration object
+  /// Root configuration object
   Window,
   /// Configuration section
   Section,

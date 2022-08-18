@@ -14,58 +14,40 @@ pub const GP_OK: c_int = libgphoto2_sys::GP_OK as c_int;
 pub enum ErrorKind {
   /// GP_ERROR or something else
   Other,
-
   /// Bad parameters were used
   BadParameters,
-
   /// The camera is bsy
   CameraBusy,
-
   /// The camera returned an error
   CameraError,
-
   /// Corrupted data
   CorruptedData,
-
   /// The directory already exists
   DirectoryExists,
-
   /// The directory was not found
   DirectoryNotFound,
-
   /// The file already exists
   FileExists,
-
   /// The file was not found
   FileNotFound,
-
   /// Limit exceeded
   FixedLimitExceeded,
-
   /// Camera model not found
   ModelNotFound,
-
   /// Action not supported
   NotSupported,
-
   /// Memory error
   NoMemory,
-
   /// Not enough space
   NoSpace,
-
   /// Io error
   Io,
-
   /// OS error
   OsFailure,
-
   /// Path is not absolute
   PathNotAbsolute,
-
   /// Timeout
   Timeout,
-
   /// Port is not known
   UnknownPort,
 }
