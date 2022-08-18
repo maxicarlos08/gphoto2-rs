@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::CameraFilePath,
   filesys::{CameraFS, StorageInfo},
-  helper::{camera_text_to_str, uninit},
+  helper::{camera_text_to_str, chars_to_cow, uninit},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
@@ -13,9 +13,10 @@ use crate::{
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char, time::Duration};
 
 /// Event from camera
+#[derive(Debug)]
 pub enum CameraEvent {
   /// Unknown event
-  Unknown,
+  Unknown(String),
   /// Timeout, no event,
   Timeout,
   /// New file was added
@@ -184,7 +185,10 @@ impl<'a> Camera<'a> {
     ))?;
 
     Ok(match event_type {
-      CameraEventType::GP_EVENT_UNKNOWN => CameraEvent::Unknown,
+      CameraEventType::GP_EVENT_UNKNOWN => {
+        let data = chars_to_cow(event_data as *const c_char);
+        CameraEvent::Unknown(data.to_string())
+      }
       CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
       CameraEventType::GP_EVENT_FILE_ADDED => {
         let file = event_data as *const libgphoto2_sys::CameraFilePath;
@@ -225,8 +229,11 @@ impl<'a> Camera<'a> {
   }
 
   /// Get a single configuration by name
+  // FIXME: Is always returning BAD_PARAMETERS
   pub fn config_key(&self, key: &str) -> Result<Widget<'a>> {
     let mut widget = unsafe { uninit() };
+
+    let key = ffi::CString::new(key)?;
 
     try_gp_internal!(libgphoto2_sys::gp_camera_get_single_config(
       self.camera,
@@ -256,9 +263,11 @@ impl<'a> Camera<'a> {
 
   /// Set a single config to the camera
   pub fn set_config(&self, config: &Widget) -> Result<()> {
+    let name = ffi::CString::new(&config.name()?[..])?;
+
     try_gp_internal!(libgphoto2_sys::gp_camera_set_single_config(
       self.camera,
-      config.name()?.as_ptr() as *const c_char,
+      name.as_ptr() as *const c_char,
       config.inner,
       self.context
     ))?;

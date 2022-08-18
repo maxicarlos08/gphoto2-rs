@@ -1,15 +1,15 @@
 //! Camera filesystem and storages
 
-use std::{
-  borrow::Cow,
-  os::raw::{c_char, c_int},
-};
-
 use crate::{
   file::{CameraFile, FileType},
-  helper::{chars_to_cow, uninit},
+  helper::{chars_to_cow, to_c_string, uninit},
   list::CameraList,
   try_gp_internal, Camera, Result,
+};
+use std::{
+  borrow::Cow,
+  ffi,
+  os::raw::{c_char, c_int},
 };
 
 macro_rules! storage_has_ability {
@@ -351,6 +351,9 @@ impl<'a> CameraFS<'a> {
 
   /// Delete a file
   pub fn delete_file(&self, folder: &str, file: &str) -> Result<()> {
+    to_c_string!(folder, folder);
+    to_c_string!(file, file);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_file_delete(
       self.camera.camera,
       folder.as_ptr() as *const c_char,
@@ -363,6 +366,9 @@ impl<'a> CameraFS<'a> {
   /// Get information of a file
   pub fn info(&self, folder: &str, file: &str) -> Result<FileInfo> {
     let mut file_info = unsafe { uninit() };
+
+    to_c_string!(folder);
+    to_c_string!(file);
 
     try_gp_internal!(libgphoto2_sys::gp_camera_file_get_info(
       self.camera.camera,
@@ -377,6 +383,9 @@ impl<'a> CameraFS<'a> {
 
   /// Upload a file to the camera
   pub fn upload_file(&self, folder: &str, filename: &str, file: CameraFile) -> Result<()> {
+    to_c_string!(folder);
+    to_c_string!(filename);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_put_file(
       self.camera.camera,
       folder.as_ptr() as *const c_char,
@@ -391,6 +400,8 @@ impl<'a> CameraFS<'a> {
 
   /// Delete all files in a folder
   pub fn folder_delete_all(&self, folder: &str) -> Result<()> {
+    to_c_string!(folder);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_delete_all(
       self.camera.camera,
       folder.as_ptr() as *const c_char,
@@ -402,6 +413,8 @@ impl<'a> CameraFS<'a> {
   /// List files in a folder
   pub fn ls_files(&self, folder: &str) -> Result<Vec<String>> {
     let file_list = CameraList::new()?;
+
+    to_c_string!(folder);
 
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_list_files(
       self.camera.camera,
@@ -417,6 +430,8 @@ impl<'a> CameraFS<'a> {
   pub fn ls_folder(&self, folder: &str) -> Result<Vec<String>> {
     let folder_list = CameraList::new()?;
 
+    to_c_string!(folder);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_list_files(
       self.camera.camera,
       folder.as_ptr() as *const c_char,
@@ -429,6 +444,9 @@ impl<'a> CameraFS<'a> {
 
   /// Creates a new folder
   pub fn mkdir(&self, parent_folder: &str, new_folder: &str) -> Result<()> {
+    to_c_string!(parent_folder);
+    to_c_string!(new_folder);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_make_dir(
       self.camera.camera,
       parent_folder.as_ptr() as *const c_char,
@@ -441,6 +459,9 @@ impl<'a> CameraFS<'a> {
 
   /// Removes a folder
   pub fn rmdir(&self, parent: &str, to_remove: &str) -> Result<()> {
+    to_c_string!(parent);
+    to_c_string!(to_remove);
+
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_remove_dir(
       self.camera.camera,
       parent.as_ptr() as *const c_char,

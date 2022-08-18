@@ -21,7 +21,7 @@ use std::ffi;
 ///
 /// let (model, port) = &camera_list.to_vec()?[0];
 /// context.get_camera(&model.to_string(), &port.to_string());
-/// 
+///
 /// # Ok(())
 /// # }
 ///

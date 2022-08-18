@@ -16,7 +16,7 @@
 //! ```
 
 use crate::{
-  helper::{chars_to_cow, uninit},
+  helper::{chars_to_cow, to_c_string, uninit},
   try_gp_internal, Result,
 };
 use std::{
@@ -234,6 +234,8 @@ impl<'a> Widget<'a> {
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget<'a>> {
     let mut child = unsafe { uninit() };
 
+    to_c_string!(label);
+
     try_gp_internal!(libgphoto2_sys::gp_widget_get_child_by_label(
       self.inner,
       label.as_ptr() as *const c_char,
@@ -246,6 +248,8 @@ impl<'a> Widget<'a> {
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget<'a>> {
     let mut child = unsafe { uninit() };
+
+    to_c_string!(name);
 
     try_gp_internal!(libgphoto2_sys::gp_widget_get_child_by_name(
       self.inner,
@@ -356,6 +360,7 @@ impl<'a> Widget<'a> {
       WidgetType::Button => Err("Button has no value")?,
       WidgetType::Text => {
         if let WidgetValue::Text(text) = value {
+          to_c_string!(text);
           try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
             self.inner,
             text.as_ptr() as *const c_void
@@ -404,6 +409,8 @@ impl<'a> Widget<'a> {
           if !choices.contains(&choice) {
             Err("Choice not in choices")?;
           }
+
+          to_c_string!(choice);
 
           try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
             self.inner,

@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-
 #![deny(unused_must_use)]
 #![deny(missing_docs)] // Force documentation on all public API's
 

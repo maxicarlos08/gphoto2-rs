@@ -8,8 +8,8 @@ use crate::{
 };
 use std::{
   borrow::Cow,
-  fs,
-  os::{raw::{c_char}, unix::io::AsRawFd},
+  ffi, fmt, fs,
+  os::{raw::c_char, unix::io::AsRawFd},
   path::Path,
 };
 
@@ -101,6 +101,15 @@ impl Into<libgphoto2_sys::CameraFileType> for FileType {
   }
 }
 
+impl fmt::Debug for CameraFilePath {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CameraFilePath")
+      .field("folder", &self.folder())
+      .field("name", &self.name())
+      .finish()
+  }
+}
+
 impl CameraFilePath {
   /// Get the name of the file's folder
   pub fn folder(&self) -> Cow<str> {
@@ -166,11 +175,12 @@ impl CameraFile {
   /// Creates a new camera file from disk
   pub fn new_from_disk(path: &Path) -> Result<Self> {
     let mut camera_file_ptr = unsafe { uninit() };
+    let path = ffi::CString::new(path.to_str().ok_or("File path invalid")?)?;
 
     try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, -1))?;
     try_gp_internal!(libgphoto2_sys::gp_file_open(
       camera_file_ptr,
-      path.to_str().ok_or("File path invalid")?.as_ptr() as *const c_char
+      path.as_ptr() as *const c_char
     ))?;
 
     Ok(Self { inner: camera_file_ptr, file: None })
