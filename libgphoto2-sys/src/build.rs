@@ -7,8 +7,6 @@ fn main() {
     .probe("libgphoto2")
     .expect("Could not find libgphoto2");
 
-  println!("cargo:rerun-if-changed=wrapper.h");
-
   let bindings = bindgen::Builder::default()
     .header("src/wrapper.h")
     .generate_comments(true)
