@@ -108,41 +108,21 @@ impl Drop for Widget<'_> {
 
 impl fmt::Debug for Widget<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let mut widget_debug = f.debug_struct("Widget");
-
-    if let Ok(name) = self.name() {
-      widget_debug.field("name", &name);
-    }
-
-    if let Ok(id) = self.id() {
-      widget_debug.field("id", &id);
-    }
-
-    if let Ok(label) = self.label() {
-      widget_debug.field("label", &label);
-    }
-
-    if let Ok(readonly) = self.readonly() {
-      widget_debug.field("readonly", &readonly);
-    }
-
-    if let Ok(widget_type) = self.widget_type() {
-      widget_debug.field("type", &widget_type);
-    }
-
-    if let Ok((Some(widget_value), _)) = self.value() {
-      widget_debug.field("value", &widget_value);
-    }
-
-    if let Ok(children) = self.children_iter() {
-      let children: Vec<Widget> = children.collect();
-
-      if children.len() > 0 {
-        widget_debug.field("children", &children);
-      }
-    }
-
-    widget_debug.finish()
+    f.debug_struct("Widget")
+      .field("id", &self.id().ok())
+      .field("name", &self.name().ok())
+      .field("label", &self.label().ok())
+      .field("readonly", &self.readonly().ok())
+      .field("widget_type", &self.widget_type().ok())
+      .field(
+        "value",
+        &match self.value() {
+          Ok((Some(value), _)) => Some(value),
+          _ => None,
+        },
+      )
+      .field("children", &self.children_iter().map(|iter| iter.collect::<Vec<Widget>>()))
+      .finish()
   }
 }
 

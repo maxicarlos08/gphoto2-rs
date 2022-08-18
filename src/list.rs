@@ -6,7 +6,7 @@ use crate::{
 };
 use std::{borrow::Cow, ffi, marker::PhantomData};
 
-/// List of tuples: (camere model, port)
+/// List of string tuples
 pub struct CameraList<'a> {
   pub(crate) inner: *mut libgphoto2_sys::CameraList,
   phantom: PhantomData<&'a ffi::c_void>,

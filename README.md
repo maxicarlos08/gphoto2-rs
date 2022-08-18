@@ -83,6 +83,11 @@ fn main() {
 
 You can find more examples [here](https://github.com/maxicarlos08/gphoto2-rs/tree/master/examples)
 
+## Stability
+
+In general all all APIs should be stable, I've tested the ones my camera supported and found no bugs so far.  
+If you encounter an error like `BAD_PARAMETERS` or found a bug, please create an issue on [GitHub](https://github.com/maxicarlos08/gphoto2-rs/issues).
+
 ## License
 
 Copyright © 2022 Maxicarlos08 <maxicarlos08@gmail.com>

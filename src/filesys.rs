@@ -8,7 +8,7 @@ use crate::{
 };
 use std::{
   borrow::Cow,
-  ffi,
+  ffi, fmt,
   os::raw::{c_char, c_int},
 };
 
@@ -242,6 +242,22 @@ impl From<libgphoto2_sys::CameraFileInfoAudio> for FileInfoAudio {
 impl From<libgphoto2_sys::CameraFileInfo> for FileInfo {
   fn from(info: libgphoto2_sys::CameraFileInfo) -> Self {
     Self { preview: info.preview.into(), file: info.file.into(), audio: info.audio.into() }
+  }
+}
+
+impl fmt::Debug for StorageInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("StorageInfo")
+      .field("label", &self.label())
+      .field("base_directory", &self.base_directory())
+      .field("description", &self.description())
+      .field("storage_type", &self.storage_type())
+      .field("filesystem_type", &self.filesystem_type())
+      .field("access_type", &self.access_type())
+      .field("capacity", &self.capacity())
+      .field("free", &self.free())
+      .field("free_images", &self.free_images())
+      .finish()
   }
 }
 

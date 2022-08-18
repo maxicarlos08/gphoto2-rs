@@ -29,6 +29,7 @@ pub struct Abilities {
 }
 
 /// Camera USB information
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsbInfo {
   /// Vendor ID
   pub vendor: usize,
@@ -143,6 +144,7 @@ impl fmt::Debug for Abilities {
       .field("file_operations", &self.file_operations())
       .field("folder_operations", &self.folder_operations())
       .field("device_type", &self.device_type())
+      .field("usb_info", &self.usb_info())
       .finish()
   }
 }

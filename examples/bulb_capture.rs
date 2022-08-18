@@ -1,4 +1,8 @@
-// This will only work for Nikon DSLR cameras
+//! This is an example of using gphoto action widgets
+//!
+//! There are also actions for capturing movies, changing liveview, etc.  
+//! This example will only work for Nikon DSLR cameras.
+
 use gphoto2::{camera::CameraEvent, widget::WidgetValue, Context, Result};
 use std::{thread::sleep, time::Duration};
 

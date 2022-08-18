@@ -50,7 +50,8 @@ impl Context {
 
   /// Lists all available cameras and their ports
   ///
-  /// Returns list of cameras which can be used with [`Context::get_camera`].
+  /// Returns a list of (camera_name, port_path)
+  /// which can be used in [`Context::get_camera`].
   pub fn list_cameras(&self) -> Result<CameraList> {
     let camera_list = CameraList::new()?;
 
@@ -83,7 +84,7 @@ impl Context {
     Ok(Camera::new(camera_ptr, self.inner))
   }
 
-  /// Initialize a camera knowing its model name and port
+  /// Initialize a camera knowing its model name and port path
   ///
   /// ```no_run
   /// use gphoto2::{Context, Result};
@@ -100,7 +101,7 @@ impl Context {
   /// let camera = context.get_camera(&camera_list[0].0[..], &camera_list[0].1[..])?;
   /// # Ok(())
   /// # }
-  pub fn get_camera(&self, model: &str, port: &str) -> Result<Camera> {
+  pub fn get_camera(&self, model: &str, port_path: &str) -> Result<Camera> {
     let mut model_abilities = unsafe { uninit() };
     let mut camera = unsafe { uninit() };
     let abilities_list = AbilitiesList::new(self)?;
@@ -122,7 +123,7 @@ impl Context {
 
     let p = try_gp_internal!(libgphoto2_sys::gp_port_info_list_lookup_path(
       port_info_list.inner,
-      ffi::CString::new(port)?.as_ptr()
+      ffi::CString::new(port_path)?.as_ptr()
     ))?;
     let port_info = port_info_list.get_port_info(p)?;
     try_gp_internal!(libgphoto2_sys::gp_camera_set_port_info(camera, port_info.inner))?;

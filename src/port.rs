@@ -20,7 +20,7 @@ use crate::{
   helper::{chars_to_cow, uninit},
   try_gp_internal, Result,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt};
 
 /// Type of the port
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -70,6 +70,16 @@ impl Drop for PortInfoList {
 impl From<libgphoto2_sys::GPPortInfo> for PortInfo {
   fn from(inner: libgphoto2_sys::GPPortInfo) -> Self {
     Self { inner }
+  }
+}
+
+impl fmt::Debug for PortInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("PortInfo")
+      .field("name", &self.name().ok())
+      .field("path", &self.path().ok())
+      .field("port_type", &self.port_type().ok().flatten())
+      .finish()
   }
 }
 
