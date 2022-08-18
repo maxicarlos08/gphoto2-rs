@@ -17,9 +17,8 @@ The author hasn't been active since 2017 regardless of numerous pull- and featur
   - [x] Read configuration
   - [x] Set configuration
   - [x] Interact with filesystem on camera (TODO)
+  - [x] Camera events
   - [ ] Usb port information (TODO)
-  - [ ] Different capture modes (movie, sound)
-  - [ ] GPhoto actions (widget toggle/button type)
 - [x] Context
   - [x] Autodetect camera
   - [x] Get list of available cameras

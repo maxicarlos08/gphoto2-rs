@@ -4,7 +4,7 @@
 #![deny(missing_docs)] // Force documentation on all public API's
 
 pub mod abilities;
-pub(crate) mod camera;
+pub mod camera;
 pub mod context;
 pub mod error;
 pub mod file;
