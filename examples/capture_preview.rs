@@ -7,10 +7,10 @@ fn main() -> Result<()> {
   let context = Context::new()?;
   let camera = context.autodetect_camera()?;
 
-  let mut file = fs::File::create("/tmp/preview_image").unwrap();
+  let mut file = fs::File::create("/tmp/preview_image")?;
 
-  let preview = camera.capture_preview().unwrap();
-  let data = preview.get_data().unwrap();
+  let preview = camera.capture_preview()?;
+  let data = preview.get_data()?;
   println!("Data size: {}", data.len());
 
   file.write_all(&data)?;
