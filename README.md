@@ -11,14 +11,15 @@ The author hasn't been active since 2017 regardless of numerous pull- and featur
 
 - [x] Camera
   - [x] Capture images
+  - [x] Capture preview images
   - [x] Download images
   - [x] Get port information
   - [x] Get abilities (model, driver stability, permissions, ...)
   - [x] Read configuration
   - [x] Set configuration
-  - [x] Interact with filesystem on camera (TODO)
+  - [x] Interact with filesystem on camera
   - [x] Camera events
-  - [ ] Usb port information (TODO)
+  - [x] Usb port information
 - [x] Context
   - [x] Autodetect camera
   - [x] Get list of available cameras
@@ -51,7 +52,7 @@ On Arch systems run:
 sudo pacman -S libgphoto2
 ```
 
-On MacOs systems with Homebrew run:
+On MacOS systems with Homebrew run:
 
 ```sh
 homebrew install libgphoto2

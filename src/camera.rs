@@ -2,7 +2,7 @@
 
 use crate::{
   abilities::Abilities,
-  file::CameraFilePath,
+  file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
   helper::{camera_text_to_str, chars_to_cow, uninit},
   port::PortInfo,
@@ -116,6 +116,32 @@ impl<'a> Camera<'a> {
     Ok(file_path_ptr.into())
   }
 
+  /// Capture a preview image
+  ///
+  /// ```no_run
+  /// use gphoto2::{Context, Result};
+  ///
+  /// # fn main() -> Result<()> {
+  /// let context = Context::new()?;
+  /// let camera = context.autodetect_camera()?;
+  ///
+  /// let image_preview = camera.capture_preview()?;
+  /// println!("Preview name: {}", image_preview.name()?);
+  /// # Ok(())
+  /// # }
+  /// ```
+  pub fn capture_preview(&self) -> Result<CameraFile> {
+    let camera_file = CameraFile::new()?;
+
+    try_gp_internal!(libgphoto2_sys::gp_camera_capture_preview(
+      self.camera,
+      camera_file.inner,
+      self.context
+    ))?;
+
+    Ok(camera_file)
+  }
+
   /// Get the camera's [`Abilities`]
   ///
   /// The abilities contain information about the driver used, permissions and camera model
@@ -185,11 +211,11 @@ impl<'a> Camera<'a> {
     CameraFS::new(self)
   }
 
-  /// Waits for an event on the camera
-  pub fn wait_event(&self, duration: Duration) -> Result<CameraEvent> {
+  /// Waits for an event on the camera until timeout
+  pub fn wait_event(&self, timeout: Duration) -> Result<CameraEvent> {
     use libgphoto2_sys::CameraEventType;
 
-    let duration_milliseconds = duration.as_millis();
+    let duration_milliseconds = timeout.as_millis();
 
     let mut event_type = unsafe { uninit() };
     let mut event_data = unsafe { uninit() };
