@@ -1,6 +1,6 @@
-use std::{borrow::Cow, ffi, mem::MaybeUninit};
+use std::{borrow::Cow, ffi, mem::MaybeUninit, os::raw::c_char};
 
-pub fn chars_to_cow<'a>(chars: *const i8) -> Cow<'a, str> {
+pub fn chars_to_cow<'a>(chars: *const c_char) -> Cow<'a, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }
 }
 

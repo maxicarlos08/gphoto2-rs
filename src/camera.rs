@@ -89,7 +89,6 @@ impl Drop for Camera<'_> {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_camera_unref(self.camera);
-      libgphoto2_sys::gp_context_unref(self.context);
     }
   }
 }
