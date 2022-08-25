@@ -374,7 +374,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       folder.as_ptr() as *const c_char,
       file.as_ptr() as *const c_char,
-      self.camera.context
+      self.camera.context.inner
     ))?;
     Ok(())
   }
@@ -391,7 +391,7 @@ impl<'a> CameraFS<'a> {
       folder.as_ptr() as *const c_char,
       file.as_ptr() as *const c_char,
       &mut file_info,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(file_info.into())
@@ -408,7 +408,7 @@ impl<'a> CameraFS<'a> {
       filename.as_ptr() as *const c_char,
       FileType::Normal.into(),
       file.inner,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(())
@@ -421,7 +421,7 @@ impl<'a> CameraFS<'a> {
     try_gp_internal!(libgphoto2_sys::gp_camera_folder_delete_all(
       self.camera.camera,
       folder.as_ptr() as *const c_char,
-      self.camera.context
+      self.camera.context.inner
     ))?;
     Ok(())
   }
@@ -436,7 +436,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       folder.as_ptr() as *const c_char,
       file_list.inner,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(file_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
@@ -452,7 +452,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       folder.as_ptr() as *const c_char,
       folder_list.inner,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(folder_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
@@ -467,7 +467,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       parent_folder.as_ptr() as *const c_char,
       new_folder.as_ptr() as *const c_char,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(())
@@ -482,7 +482,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       parent.as_ptr() as *const c_char,
       to_remove.as_ptr() as *const c_char,
-      self.camera.context
+      self.camera.context.inner
     ))?;
 
     Ok(())

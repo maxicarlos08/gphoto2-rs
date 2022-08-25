@@ -53,6 +53,7 @@ pub enum ErrorKind {
 }
 
 /// General error
+#[derive(PartialEq)]
 pub struct Error {
   error: c_int,
   info: Option<String>,

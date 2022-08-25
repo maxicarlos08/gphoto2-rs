@@ -3,7 +3,7 @@ use crate::{
   abilities::AbilitiesList, camera::Camera, helper::uninit, list::CameraList, port::PortInfoList,
   try_gp_internal, Error, Result,
 };
-use std::ffi;
+use std::{ffi, marker::PhantomData};
 
 /// Context used internally by gphoto
 ///
@@ -26,17 +26,18 @@ use std::ffi;
 /// # }
 ///
 /// ```
-pub struct Context {
+pub struct Context<'a> {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
+  _phantom: PhantomData<&'a libgphoto2_sys::GPContext>,
 }
 
-impl Drop for Context {
+impl Drop for Context<'_> {
   fn drop(&mut self) {
     unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
   }
 }
 
-impl Context {
+impl<'a> Context<'a> {
   /// Create a new context
   pub fn new() -> Result<Self> {
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
@@ -44,7 +45,7 @@ impl Context {
     if context_ptr.is_null() {
       Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY))
     } else {
-      Ok(Self { inner: context_ptr })
+      Ok(Self { inner: context_ptr, _phantom: PhantomData })
     }
   }
 
@@ -81,7 +82,7 @@ impl Context {
     try_gp_internal!(libgphoto2_sys::gp_camera_new(&mut camera_ptr))?;
     try_gp_internal!(libgphoto2_sys::gp_camera_init(camera_ptr, self.inner))?;
 
-    Ok(Camera::new(camera_ptr, self.inner))
+    Ok(Camera::new(camera_ptr, self))
   }
 
   /// Initialize a camera knowing its model name and port path
@@ -128,6 +129,6 @@ impl Context {
     let port_info = port_info_list.get_port_info(p)?;
     try_gp_internal!(libgphoto2_sys::gp_camera_set_port_info(camera, port_info.inner))?;
 
-    Ok(Camera::new(camera, self.inner))
+    Ok(Camera::new(camera, self))
   }
 }

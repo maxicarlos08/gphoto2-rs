@@ -8,7 +8,7 @@ use crate::{
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
-  Result,
+  Context, Result,
 };
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char, time::Duration};
 
@@ -81,7 +81,7 @@ pub enum CameraEvent {
 /// # }
 pub struct Camera<'a> {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
-  pub(crate) context: *mut libgphoto2_sys::GPContext,
+  pub(crate) context: &'a Context<'a>,
   _phantom: PhantomData<&'a ffi::c_void>,
 }
 
@@ -94,10 +94,7 @@ impl Drop for Camera<'_> {
 }
 
 impl<'a> Camera<'a> {
-  pub(crate) fn new(
-    camera: *mut libgphoto2_sys::Camera,
-    context: *mut libgphoto2_sys::GPContext,
-  ) -> Self {
+  pub(crate) fn new(camera: *mut libgphoto2_sys::Camera, context: &'a Context) -> Self {
     Self { camera, context, _phantom: PhantomData }
   }
 
@@ -109,7 +106,7 @@ impl<'a> Camera<'a> {
       self.camera,
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
       &mut file_path_ptr,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(file_path_ptr.into())
@@ -135,7 +132,7 @@ impl<'a> Camera<'a> {
     try_gp_internal!(libgphoto2_sys::gp_camera_capture_preview(
       self.camera,
       camera_file.inner,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(camera_file)
@@ -159,7 +156,7 @@ impl<'a> Camera<'a> {
     try_gp_internal!(libgphoto2_sys::gp_camera_get_summary(
       self.camera,
       &mut summary,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(camera_text_to_str(summary))
@@ -169,7 +166,11 @@ impl<'a> Camera<'a> {
   pub fn about(&self) -> Result<Cow<str>> {
     let mut about = unsafe { uninit() };
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_about(self.camera, &mut about, self.context))?;
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_about(
+      self.camera,
+      &mut about,
+      self.context.inner
+    ))?;
 
     Ok(camera_text_to_str(about))
   }
@@ -180,7 +181,11 @@ impl<'a> Camera<'a> {
   pub fn manual(&self) -> Result<Cow<str>> {
     let mut manual = unsafe { uninit() };
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_manual(self.camera, &mut manual, self.context))?;
+    try_gp_internal!(libgphoto2_sys::gp_camera_get_manual(
+      self.camera,
+      &mut manual,
+      self.context.inner
+    ))?;
 
     Ok(camera_text_to_str(manual))
   }
@@ -194,7 +199,7 @@ impl<'a> Camera<'a> {
       self.camera,
       &mut storages_ptr,
       &mut storages_len,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(
@@ -224,7 +229,7 @@ impl<'a> Camera<'a> {
       duration_milliseconds as i32,
       &mut event_type,
       &mut event_data,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(match event_type {
@@ -265,7 +270,7 @@ impl<'a> Camera<'a> {
     try_gp_internal!(libgphoto2_sys::gp_camera_get_config(
       self.camera,
       &mut root_widget,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(Widget::new(root_widget))
@@ -281,7 +286,7 @@ impl<'a> Camera<'a> {
       self.camera,
       key.as_ptr() as *const c_char,
       &mut widget,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(Widget::new(widget))
@@ -298,7 +303,7 @@ impl<'a> Camera<'a> {
     try_gp_internal!(libgphoto2_sys::gp_camera_set_config(
       self.camera,
       config.inner,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(())
@@ -312,7 +317,7 @@ impl<'a> Camera<'a> {
       self.camera,
       name.as_ptr() as *const c_char,
       config.inner,
-      self.context
+      self.context.inner
     ))?;
 
     Ok(())
