@@ -296,8 +296,8 @@ impl<'a> Camera<'a> {
   ///
   /// The configuration widget must be of type [`Window`](crate::widget::WidgetType::Window)
   pub fn set_all_config(&self, config: &Widget) -> Result<()> {
-    if !matches!(config.widget_type()?, WidgetType::Window) {
-      Err("Full config object must be of type Window")?;
+    if !matches!(config.widget_type()?, WidgetType::Window | WidgetType::Section) {
+      Err("Full config object must be of type Window or section")?;
     }
 
     try_gp_internal!(libgphoto2_sys::gp_camera_set_config(

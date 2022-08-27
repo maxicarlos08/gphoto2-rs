@@ -53,7 +53,7 @@ pub enum ErrorKind {
 }
 
 /// General error
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct Error {
   error: c_int,
   info: Option<String>,
@@ -87,7 +87,8 @@ impl Error {
       libgphoto2_sys::GP_ERROR_TIMEOUT => ErrorKind::Timeout,
       libgphoto2_sys::GP_ERROR_UNKNOWN_PORT => ErrorKind::UnknownPort,
 
-      libgphoto2_sys::GP_ERROR | _ => ErrorKind::Other,
+      libgphoto2_sys::GP_ERROR => ErrorKind::Other,
+      _ => ErrorKind::Other,
     }
   }
 }

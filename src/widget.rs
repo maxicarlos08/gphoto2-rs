@@ -281,10 +281,7 @@ impl<'a> Widget<'a> {
           choices.push(chars_to_cow(choice).to_string());
         }
 
-        WidgetType::Menu {
-          choices: choices,
-          radio: widget_type == CameraWidgetType::GP_WIDGET_RADIO,
-        }
+        WidgetType::Menu { choices, radio: widget_type == CameraWidgetType::GP_WIDGET_RADIO }
       }
       CameraWidgetType::GP_WIDGET_BUTTON => WidgetType::Button,
       CameraWidgetType::GP_WIDGET_DATE => WidgetType::Date,
