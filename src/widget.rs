@@ -38,7 +38,7 @@ macro_rules! get_widget_value {
 }
 
 /// Value of a widget
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum WidgetValue {
   /// Textual data
   Text(String),
@@ -53,7 +53,7 @@ pub enum WidgetValue {
 }
 
 /// Type of a widget
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum WidgetType {
   /// Root configuration object
   Window,

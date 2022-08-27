@@ -5,9 +5,10 @@ use gphoto2::{widget::Widget, Context, Result};
 
 fn display_widget_recursive(widget: &Widget, prefix: &str) -> Result<()> {
   let name = widget.name()?;
+  let id = widget.id()?;
   let new_prefix = format!("{prefix}/{name}");
 
-  println!("{}", new_prefix);
+  println!("{} ({})", new_prefix, id);
   println!("LABEL: {}", widget.label()?);
   println!("READONLY: {}", widget.readonly()?);
   println!("TYPE: {:#?}", widget.widget_type()?);
