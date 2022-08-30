@@ -2,12 +2,13 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-  pkg_config::Config::new()
+  let lib = pkg_config::Config::new()
     .atleast_version("2.5.10")
     .probe("libgphoto2")
     .expect("Could not find libgphoto2");
 
   let bindings = bindgen::Builder::default()
+    .clang_args(lib.include_paths.iter().map(|path| format!("-I{}", path.to_string_lossy())))
     .header("src/wrapper.h")
     .generate_comments(true)
     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
