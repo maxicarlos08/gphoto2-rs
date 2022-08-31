@@ -58,6 +58,10 @@ On MacOS systems with Homebrew run:
 homebrew install libgphoto2
 ```
 
+##### Windows
+
+There is no official way to install libgphoto2 on windows, but you can install it with [MSYS2](https://www.msys2.org/) (link to the package: [mingw-w64-libgphoto2](https://packages.msys2.org/package/mingw-w64-x86_64-libgphoto2)).
+
 ## Basic Usage
 
 This example takes a picture and saves it to disk
