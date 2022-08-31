@@ -18,7 +18,7 @@
 
 use crate::{
   helper::{chars_to_cow, uninit},
-  try_gp_internal, Result,
+  try_gp_internal, Inner, InnerPtr, Result,
 };
 use std::{borrow::Cow, fmt};
 
@@ -80,6 +80,18 @@ impl fmt::Debug for PortInfo {
       .field("path", &self.path().ok())
       .field("port_type", &self.port_type().ok().flatten())
       .finish()
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::GPPortInfoList> for PortInfoList {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::GPPortInfoList {
+    &self.inner
+  }
+}
+
+impl<'a> Inner<'a, libgphoto2_sys::GPPortInfo> for PortInfo {
+  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::GPPortInfo {
+    &self.inner
   }
 }
 

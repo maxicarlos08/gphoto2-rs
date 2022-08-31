@@ -8,7 +8,7 @@ use crate::{
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
-  Context, Result,
+  Context, InnerPtr, Result,
 };
 use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char, time::Duration};
 
@@ -90,6 +90,12 @@ impl Drop for Camera<'_> {
     unsafe {
       libgphoto2_sys::gp_camera_unref(self.camera);
     }
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::Camera> for Camera<'a> {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::Camera {
+    &self.camera
   }
 }
 

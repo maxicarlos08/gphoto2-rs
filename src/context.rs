@@ -1,7 +1,7 @@
 //! Library context
 use crate::{
   abilities::AbilitiesList, camera::Camera, helper::uninit, list::CameraList, port::PortInfoList,
-  try_gp_internal, Error, Result,
+  try_gp_internal, Error, InnerPtr, Result,
 };
 use std::{ffi, marker::PhantomData};
 
@@ -34,6 +34,12 @@ pub struct Context<'a> {
 impl Drop for Context<'_> {
   fn drop(&mut self) {
     unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::GPContext> for Context<'a> {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::GPContext {
+    &self.inner
   }
 }
 

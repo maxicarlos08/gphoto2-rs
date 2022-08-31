@@ -17,7 +17,7 @@
 
 use crate::{
   helper::{chars_to_cow, to_c_string, uninit},
-  try_gp_internal, Result,
+  try_gp_internal, InnerPtr, Result,
 };
 use std::{
   borrow::Cow,
@@ -123,6 +123,12 @@ impl fmt::Debug for Widget<'_> {
       )
       .field("children", &self.children_iter().map(|iter| iter.collect::<Vec<Widget>>()))
       .finish()
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::CameraWidget> for Widget<'a> {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraWidget {
+    &self.inner
   }
 }
 

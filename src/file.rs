@@ -4,7 +4,7 @@ use crate::{
   camera::Camera,
   error::Error,
   helper::{chars_to_cow, uninit},
-  try_gp_internal, Result,
+  try_gp_internal, Inner, InnerPtr, Result,
 };
 use std::{
   borrow::Cow,
@@ -86,6 +86,7 @@ impl From<libgphoto2_sys::CameraFileType> for FileType {
   }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<libgphoto2_sys::CameraFileType> for FileType {
   fn into(self) -> libgphoto2_sys::CameraFileType {
     use libgphoto2_sys::CameraFileType as GPFileType;
@@ -107,6 +108,18 @@ impl fmt::Debug for CameraFilePath {
       .field("folder", &self.folder())
       .field("name", &self.name())
       .finish()
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::CameraFile> for CameraFile {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraFile {
+    &self.inner
+  }
+}
+
+impl<'a> Inner<'a, libgphoto2_sys::CameraFilePath> for CameraFilePath {
+  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::CameraFilePath {
+    &self.inner
   }
 }
 

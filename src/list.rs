@@ -2,7 +2,7 @@
 
 use crate::{
   helper::{chars_to_cow, uninit},
-  try_gp_internal, Result,
+  try_gp_internal, InnerPtr, Result,
 };
 use std::{borrow::Cow, ffi, marker::PhantomData};
 
@@ -17,6 +17,12 @@ impl Drop for CameraList<'_> {
     unsafe {
       libgphoto2_sys::gp_list_unref(self.inner);
     }
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::CameraList> for CameraList<'a> {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraList {
+    &self.inner
   }
 }
 

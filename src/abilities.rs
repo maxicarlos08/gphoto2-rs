@@ -5,7 +5,7 @@
 use crate::{
   context::Context,
   helper::{chars_to_cow, uninit},
-  try_gp_internal, Result,
+  try_gp_internal, Inner, InnerPtr, Result,
 };
 use std::{borrow::Cow, ffi, fmt, marker::PhantomData, os::raw::c_int};
 
@@ -146,6 +146,18 @@ impl fmt::Debug for Abilities {
       .field("device_type", &self.device_type())
       .field("usb_info", &self.usb_info())
       .finish()
+  }
+}
+
+impl<'a> InnerPtr<'a, libgphoto2_sys::CameraAbilitiesList> for AbilitiesList<'a> {
+  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraAbilitiesList {
+    &self.inner
+  }
+}
+
+impl<'a> Inner<'a, libgphoto2_sys::CameraAbilities> for Abilities {
+  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::CameraAbilities {
+    &self.inner
   }
 }
 
