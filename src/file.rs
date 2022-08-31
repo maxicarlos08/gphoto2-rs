@@ -6,12 +6,65 @@ use crate::{
   helper::{chars_to_cow, uninit},
   try_gp_internal, Result,
 };
-use std::{
-  borrow::Cow,
-  ffi, fmt, fs,
-  os::{raw::c_char, unix::io::AsRawFd},
-  path::Path,
-};
+use std::{borrow::Cow, ffi, fmt, fs, os::raw::c_char, path::Path};
+
+#[cfg(unix)]
+mod owned_fd_impl {
+  use std::fs::File;
+  use std::os::raw::c_int;
+  use std::os::unix::io::AsRawFd;
+
+  pub struct OwnedFd(File);
+
+  impl From<File> for OwnedFd {
+    fn from(file: File) -> Self {
+      OwnedFd(file)
+    }
+  }
+
+  impl OwnedFd {
+    pub fn as_raw_fd(&self) -> c_int {
+      self.0.as_raw_fd()
+    }
+  }
+}
+
+#[cfg(windows)]
+mod owned_fd_impl {
+  use std::fs::File;
+  use std::os::raw::c_int;
+  use std::os::windows::io::IntoRawHandle;
+
+  pub struct OwnedFd {
+    fd: c_int,
+  }
+
+  impl From<File> for OwnedFd {
+    fn from(file: File) -> Self {
+      let handle = file.into_raw_handle();
+      // libgphoto2 expects libc-style file descriptors, not Windows handles,
+      // so we need to convert one into another.
+      let fd = unsafe { libc::open_osfhandle(handle as _, 0) };
+      Self { fd }
+    }
+  }
+
+  impl OwnedFd {
+    pub fn as_raw_fd(&self) -> c_int {
+      self.fd
+    }
+  }
+
+  impl Drop for OwnedFd {
+    fn drop(&mut self) {
+      // libc file descriptors must be closed via libc API too,
+      // not via Windows APIs which Rust uses in File implementation.
+      unsafe { libc::close(self.fd) };
+    }
+  }
+}
+
+use owned_fd_impl::OwnedFd;
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
@@ -54,7 +107,7 @@ pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
   #[allow(dead_code)]
   // The file must live as long as the camera file to keep the raw file descriptor alive
-  file: Option<fs::File>,
+  file: Option<OwnedFd>,
 }
 
 impl Drop for CameraFile {
@@ -164,7 +217,7 @@ impl CameraFile {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_FILE_EXISTS));
     }
 
-    let file = fs::File::create(path)?;
+    let file = OwnedFd::from(fs::File::create(path)?);
 
     let mut camera_file_ptr = unsafe { uninit() };
 
