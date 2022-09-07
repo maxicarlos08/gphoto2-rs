@@ -155,6 +155,12 @@ impl Into<libgphoto2_sys::CameraFileType> for FileType {
   }
 }
 
+impl From<*mut libgphoto2_sys::CameraFile> for CameraFile {
+  fn from(raw_file: *mut libgphoto2_sys::CameraFile) -> Self {
+    Self { file: None, inner: raw_file }
+  }
+}
+
 impl fmt::Debug for CameraFilePath {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("CameraFilePath")
