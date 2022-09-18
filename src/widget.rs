@@ -23,15 +23,8 @@ use std::{
   borrow::Cow,
   ffi, fmt,
   marker::PhantomData,
-  os::raw::{c_char, c_float, c_int, c_void},
+  os::raw::{c_int, c_void},
 };
-
-macro_rules! get_widget_value {
-  ($widget:expr, $tp:ty) => {{
-    $crate::try_gp_internal!(gp_widget_get_value($widget, &out value as *mut $tp as *mut c_void));
-    value
-  }};
-}
 
 /// Value of a widget
 #[derive(Debug, PartialEq, Clone)]
@@ -241,6 +234,15 @@ impl<'a> Widget<'a> {
     })
   }
 
+  fn raw_value<T>(&self) -> Result<T> {
+    try_gp_internal!(gp_widget_get_value(self.inner, &out value as *mut T as *mut c_void));
+    Ok(value)
+  }
+
+  fn str_value(&self) -> Result<String> {
+    Ok(chars_to_cow(self.raw_value()?).into_owned())
+  }
+
   /// Get the widget value and type
   pub fn value(&self) -> Result<(Option<WidgetValue>, WidgetType)> {
     let widget_type = self.widget_type()?;
@@ -248,31 +250,11 @@ impl<'a> Widget<'a> {
     Ok((
       match widget_type {
         WidgetType::Window | WidgetType::Button | WidgetType::Section => None,
-        WidgetType::Text => {
-          let text = chars_to_cow(get_widget_value!(self.inner, *const c_char));
-
-          Some(WidgetValue::Text(text.to_string()))
-        }
-        WidgetType::Range { .. } => {
-          let range_value = get_widget_value!(self.inner, c_float);
-
-          Some(WidgetValue::Range(range_value))
-        }
-        WidgetType::Toggle => {
-          let boolean = get_widget_value!(self.inner, c_int);
-
-          Some(WidgetValue::Toggle(boolean == 0))
-        }
-        WidgetType::Date => {
-          let date_int = get_widget_value!(self.inner, c_int);
-
-          Some(WidgetValue::Date(date_int))
-        }
-        WidgetType::Menu { .. } => {
-          let choice = chars_to_cow(get_widget_value!(self.inner, *const c_char));
-
-          Some(WidgetValue::Menu(choice.to_string()))
-        }
+        WidgetType::Text => Some(WidgetValue::Text(self.str_value()?)),
+        WidgetType::Range { .. } => Some(WidgetValue::Range(self.raw_value()?)),
+        WidgetType::Toggle => Some(WidgetValue::Toggle(self.raw_value::<c_int>()? == 0)),
+        WidgetType::Date => Some(WidgetValue::Date(self.raw_value()?)),
+        WidgetType::Menu { .. } => Some(WidgetValue::Menu(self.str_value()?)),
       },
       widget_type,
     ))
