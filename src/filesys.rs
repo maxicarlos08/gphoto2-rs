@@ -68,6 +68,8 @@ pub enum AccessType {
 }
 
 /// Information about a storage on the camera
+#[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct StorageInfo {
   pub(crate) inner: libgphoto2_sys::CameraStorageInformation,
 }
@@ -274,10 +276,6 @@ impl FilePermissions {
 }
 
 impl StorageInfo {
-  pub(crate) fn new(info: libgphoto2_sys::CameraStorageInformation) -> Self {
-    Self { inner: info }
-  }
-
   /// Base directory of the storage. If there is only 1 storage on the camera it will be "/"
   pub fn base_directory(&self) -> Option<Cow<str>> {
     if storage_has_ability!(self.inner, GP_STORAGEINFO_BASE) {

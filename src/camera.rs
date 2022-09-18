@@ -208,12 +208,22 @@ impl<'a> Camera<'a> {
       self.context.inner
     ))?;
 
-    Ok(
-      unsafe { Vec::from_raw_parts(storages_ptr, storages_len as usize, storages_len as usize) }
-        .into_iter()
-        .map(StorageInfo::new)
-        .collect(),
-    )
+    let storages = unsafe {
+      std::slice::from_raw_parts(
+        // We can cast pointer safely because StorageInfo is repr(transparent).
+        storages_ptr.cast::<StorageInfo>(),
+        storages_len as usize,
+      )
+    };
+
+    let result = storages.to_vec();
+
+    unsafe {
+      // Must be freed using libc deallocator rather than Rust one.
+      libc::free(storages_ptr.cast());
+    }
+
+    Ok(result)
   }
 
   /// Filesystem actions
