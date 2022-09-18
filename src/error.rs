@@ -137,13 +137,33 @@ impl error::Error for Error {}
 /// otherwise the result of the function
 #[macro_export]
 macro_rules! try_gp_internal {
-  ($x:expr) => {{
-    let v = unsafe { $x };
+  (@ $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
+    try_gp_internal!(@ $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
+  };
 
-    if v >= 0 {
-      Ok(v)
-    } else {
-      Err($crate::Error::new(v))
-    }
-  }};
+  (@ $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
+    try_gp_internal!(@ $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
+  };
+
+  (@ $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
+    let ($status, $($out),*) = unsafe {
+      $(let mut $out = std::mem::MaybeUninit::uninit();)*
+
+      let status: std::os::raw::c_int = libgphoto2_sys::$func $args;
+
+      if status < 0 {
+        return Err($crate::Error::new(status));
+      }
+
+      (status, $($out.assume_init()),*)
+    };
+  };
+
+  (let $status:tt = $func:ident ( $($args:tt)* )) => {
+    try_gp_internal!(@ $status [] $func () $($args)*)
+  };
+
+  ($func:ident ( $($args:tt)* )) => {
+    try_gp_internal!(@ _ [] $func () $($args)*)
+  };
 }

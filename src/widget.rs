@@ -16,7 +16,7 @@
 //! ```
 
 use crate::{
-  helper::{chars_to_cow, to_c_string, uninit},
+  helper::{chars_to_cow, to_c_string},
   try_gp_internal, InnerPtr, Result,
 };
 use std::{
@@ -28,11 +28,7 @@ use std::{
 
 macro_rules! get_widget_value {
   ($widget:expr, $tp:ty) => {{
-    let mut value: $tp = unsafe { $crate::helper::uninit() };
-    $crate::try_gp_internal!(libgphoto2_sys::gp_widget_get_value(
-      $widget,
-      &mut value as *mut $tp as *mut c_void
-    ))?;
+    $crate::try_gp_internal!(gp_widget_get_value($widget, &out value as *mut $tp as *mut c_void));
     value
   }};
 }
@@ -141,44 +137,34 @@ impl<'a> Widget<'a> {
 
   /// If true, the widget cannot be written
   pub fn readonly(&self) -> Result<bool> {
-    let mut readonly = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_readonly(self.inner, &mut readonly))?;
+    try_gp_internal!(gp_widget_get_readonly(self.inner, &out readonly));
 
     Ok(readonly == 1)
   }
 
   /// Get the widget label
   pub fn label(&self) -> Result<Cow<str>> {
-    let mut label = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_label(self.inner, &mut label))?;
+    try_gp_internal!(gp_widget_get_label(self.inner, &out label));
 
     Ok(chars_to_cow(label))
   }
 
   /// Get the widget name
   pub fn name(&self) -> Result<Cow<str>> {
-    let mut name = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_name(self.inner, &mut name))?;
+    try_gp_internal!(gp_widget_get_name(self.inner, &out name));
     Ok(chars_to_cow(name))
   }
 
   /// Get the widget id
   pub fn id(&self) -> Result<i32> {
-    let mut id = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_id(self.inner, &mut id))?;
+    try_gp_internal!(gp_widget_get_id(self.inner, &out id));
 
     Ok(id)
   }
 
   /// Get information about the widget
   pub fn info(&self) -> Result<Cow<str>> {
-    let mut info = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_info(self.inner, &mut info))?;
+    try_gp_internal!(gp_widget_get_info(self.inner, &out info));
 
     Ok(chars_to_cow(info))
   }
@@ -190,58 +176,34 @@ impl<'a> Widget<'a> {
 
   /// Counts the children of the widget
   pub fn children_count(&self) -> Result<usize> {
-    try_gp_internal!(libgphoto2_sys::gp_widget_count_children(self.inner))
-      .map(|count| count as usize)
+    try_gp_internal!(let count = gp_widget_count_children(self.inner));
+    Ok(count as usize)
   }
 
   /// Gets a child by its index
   pub fn get_child(&self, index: usize) -> Result<Widget<'a>> {
-    let mut child = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_child(self.inner, index as c_int, &mut child))?;
+    try_gp_internal!(gp_widget_get_child(self.inner, index as c_int, &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget<'a>> {
-    let mut child = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_child_by_id(
-      self.inner,
-      id as c_int,
-      &mut child
-    ))?;
+    try_gp_internal!(gp_widget_get_child_by_id(self.inner, id as c_int, &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its label
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget<'a>> {
-    let mut child = unsafe { uninit() };
-
-    to_c_string!(label);
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_child_by_label(
-      self.inner,
-      label.as_ptr() as *const c_char,
-      &mut child
-    ))?;
+    try_gp_internal!(gp_widget_get_child_by_label(self.inner, to_c_string!(label), &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget<'a>> {
-    let mut child = unsafe { uninit() };
-
-    to_c_string!(name);
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_child_by_name(
-      self.inner,
-      name.as_ptr() as *const c_char,
-      &mut child
-    ))?;
+    try_gp_internal!(gp_widget_get_child_by_name(self.inner, to_c_string!(name), &out child));
 
     Ok(Self::new(child))
   }
@@ -250,39 +212,24 @@ impl<'a> Widget<'a> {
   pub fn widget_type(&self) -> Result<WidgetType> {
     use libgphoto2_sys::CameraWidgetType;
 
-    let mut widget_type = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_widget_get_type(self.inner, &mut widget_type))?;
+    try_gp_internal!(gp_widget_get_type(self.inner, &out widget_type));
 
     Ok(match widget_type {
       CameraWidgetType::GP_WIDGET_WINDOW => WidgetType::Window,
       CameraWidgetType::GP_WIDGET_SECTION => WidgetType::Section,
       CameraWidgetType::GP_WIDGET_TEXT => WidgetType::Text,
       CameraWidgetType::GP_WIDGET_RANGE => {
-        let (mut min, mut max, mut increment) = unsafe { (uninit(), uninit(), uninit()) };
-
-        try_gp_internal!(libgphoto2_sys::gp_widget_get_range(
-          self.inner,
-          &mut min,
-          &mut max,
-          &mut increment
-        ))?;
+        try_gp_internal!(gp_widget_get_range(self.inner, &out min, &out max, &out increment));
 
         WidgetType::Range { min, max, increment }
       }
       CameraWidgetType::GP_WIDGET_TOGGLE => WidgetType::Toggle,
       CameraWidgetType::GP_WIDGET_MENU | CameraWidgetType::GP_WIDGET_RADIO => {
-        let choice_count = try_gp_internal!(libgphoto2_sys::gp_widget_count_choices(self.inner))?;
+        try_gp_internal!(let choice_count = gp_widget_count_choices(self.inner));
         let mut choices = Vec::with_capacity(choice_count as usize);
 
         for choice_i in 0..choice_count {
-          let mut choice = unsafe { uninit() };
-
-          try_gp_internal!(libgphoto2_sys::gp_widget_get_choice(
-            self.inner,
-            choice_i,
-            &mut choice
-          ))?;
+          try_gp_internal!(gp_widget_get_choice(self.inner, choice_i, &out choice));
 
           choices.push(chars_to_cow(choice).to_string());
         }
@@ -343,11 +290,7 @@ impl<'a> Widget<'a> {
       WidgetType::Button => Err("Button has no value")?,
       WidgetType::Text => {
         if let WidgetValue::Text(text) = value {
-          to_c_string!(text);
-          try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
-            self.inner,
-            text.as_ptr() as *const c_void
-          ))?;
+          try_gp_internal!(gp_widget_set_value(self.inner, to_c_string!(text).cast::<c_void>()));
         } else {
           Err("Expected value to be a string")?;
         }
@@ -358,10 +301,10 @@ impl<'a> Widget<'a> {
             Err("Value out of range")?;
           }
 
-          try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
+          try_gp_internal!(gp_widget_set_value(
             self.inner,
             &range_value as *const f32 as *const c_void
-          ))?;
+          ));
         } else {
           Err("Expected value to be Range")?;
         }
@@ -369,20 +312,20 @@ impl<'a> Widget<'a> {
       WidgetType::Toggle => {
         if let WidgetValue::Toggle(toggle_value) = value {
           let toggle_value = if toggle_value { 1 } else { 0 };
-          try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
+          try_gp_internal!(gp_widget_set_value(
             self.inner,
             &toggle_value as *const c_int as *const c_void
-          ))?;
+          ));
         } else {
           Err("Expected value to be Toggle")?;
         }
       }
       WidgetType::Date => {
         if let WidgetValue::Date(unix_date) = value {
-          try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
+          try_gp_internal!(gp_widget_set_value(
             self.inner,
             &unix_date as *const c_int as *const c_void
-          ))?;
+          ));
         } else {
           Err("Expected value to be Date")?;
         }
@@ -393,12 +336,7 @@ impl<'a> Widget<'a> {
             Err("Choice not in choices")?;
           }
 
-          to_c_string!(choice);
-
-          try_gp_internal!(libgphoto2_sys::gp_widget_set_value(
-            self.inner,
-            choice.as_ptr() as *const c_void
-          ))?;
+          try_gp_internal!(gp_widget_set_value(self.inner, to_c_string!(choice).cast::<c_void>()));
         } else {
           Err("Expected value to be Menu")?;
         }

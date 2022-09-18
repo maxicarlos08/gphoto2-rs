@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ffi, mem::MaybeUninit, os::raw::c_char};
+use std::{borrow::Cow, ffi, os::raw::c_char};
 
 pub fn chars_to_cow<'a>(chars: *const c_char) -> Cow<'a, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }
@@ -9,17 +9,9 @@ pub fn camera_text_to_str<'a>(text: libgphoto2_sys::CameraText) -> Cow<'a, str> 
 }
 
 macro_rules! to_c_string {
-  ($v: expr, $name:ident) => {
-    let $name = ffi::CString::new($v)?;
+  ($v:expr) => {
+    ffi::CString::new($v)?.as_ptr().cast::<std::os::raw::c_char>()
   };
-  ($name:ident) => {
-    to_c_string!($name, $name);
-  };
-}
-
-#[inline]
-pub unsafe fn uninit<T>() -> T {
-  MaybeUninit::zeroed().assume_init()
 }
 
 pub(crate) use to_c_string;

@@ -1,9 +1,6 @@
 //! List of cameras and ports
 
-use crate::{
-  helper::{chars_to_cow, uninit},
-  try_gp_internal, InnerPtr, Result,
-};
+use crate::{helper::chars_to_cow, try_gp_internal, InnerPtr, Result};
 use std::{borrow::Cow, ffi, marker::PhantomData};
 
 /// List of string tuples
@@ -28,9 +25,7 @@ impl<'a> InnerPtr<'a, libgphoto2_sys::CameraList> for CameraList<'a> {
 
 impl CameraList<'_> {
   pub(crate) fn new() -> Result<Self> {
-    let mut list = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_list_new(&mut list))?;
+    try_gp_internal!(gp_list_new(&out list));
 
     Ok(Self { inner: list, phantom: PhantomData })
   }
@@ -42,10 +37,8 @@ impl CameraList<'_> {
     let mut res = Vec::with_capacity(length as usize);
 
     for list_index in 0..length {
-      let (mut name, mut value) = unsafe { (uninit(), uninit()) };
-
-      try_gp_internal!(libgphoto2_sys::gp_list_get_name(self.inner, list_index, &mut name))?;
-      try_gp_internal!(libgphoto2_sys::gp_list_get_value(self.inner, list_index, &mut value))?;
+      try_gp_internal!(gp_list_get_name(self.inner, list_index, &out name));
+      try_gp_internal!(gp_list_get_value(self.inner, list_index, &out value));
 
       res.push((chars_to_cow(name), chars_to_cow(value)));
     }
