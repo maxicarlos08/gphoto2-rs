@@ -7,8 +7,7 @@ use gphoto2::{camera::CameraEvent, widget::WidgetValue, Context, Result};
 use std::{thread::sleep, time::Duration};
 
 fn main() -> Result<()> {
-  let context = Context::new()?;
-  let camera = context.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera()?;
 
   let mut shutter_speed = camera.config_key("shutterspeed")?;
   let mut bulb_setting = camera.config_key("bulb")?;

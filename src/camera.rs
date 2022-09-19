@@ -8,7 +8,7 @@ use crate::{
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
-  Context, InnerPtr, Result,
+  InnerPtr, Result,
 };
 use std::{borrow::Cow, ffi, os::raw::c_char, time::Duration};
 
@@ -79,27 +79,33 @@ pub enum CameraEvent {
 /// camera.set_config(&iso)?;
 /// # Ok(())
 /// # }
-pub struct Camera<'a> {
+pub struct Camera {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
-  pub(crate) context: &'a Context,
+  pub(crate) context: *mut libgphoto2_sys::GPContext,
 }
 
-impl Drop for Camera<'_> {
+impl Drop for Camera {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_camera_unref(self.camera);
+      libgphoto2_sys::gp_context_unref(self.context);
     }
   }
 }
 
-impl InnerPtr<libgphoto2_sys::Camera> for Camera<'_> {
+impl InnerPtr<libgphoto2_sys::Camera> for Camera {
   unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::Camera {
     &self.camera
   }
 }
 
-impl<'a> Camera<'a> {
-  pub(crate) fn new(camera: *mut libgphoto2_sys::Camera, context: &'a Context) -> Self {
+impl Camera {
+  pub(crate) fn new(
+    camera: *mut libgphoto2_sys::Camera,
+    context: *mut libgphoto2_sys::GPContext,
+  ) -> Self {
+    unsafe { libgphoto2_sys::gp_context_ref(context) }
+
     Self { camera, context }
   }
 
@@ -109,7 +115,7 @@ impl<'a> Camera<'a> {
       self.camera,
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
       &out file_path_ptr,
-      self.context.inner
+      self.context
     ));
 
     Ok(file_path_ptr.into())
@@ -132,7 +138,7 @@ impl<'a> Camera<'a> {
   pub fn capture_preview(&self) -> Result<CameraFile> {
     let camera_file = CameraFile::new()?;
 
-    try_gp_internal!(gp_camera_capture_preview(self.camera, camera_file.inner, self.context.inner));
+    try_gp_internal!(gp_camera_capture_preview(self.camera, camera_file.inner, self.context));
 
     Ok(camera_file)
   }
@@ -148,14 +154,14 @@ impl<'a> Camera<'a> {
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<Cow<str>> {
-    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context.inner));
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context));
 
     Ok(camera_text_to_str(summary))
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<Cow<str>> {
-    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context.inner));
+    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context));
 
     Ok(camera_text_to_str(about))
   }
@@ -164,7 +170,7 @@ impl<'a> Camera<'a> {
   ///
   /// Not all cameras support this, and will return NotSupported
   pub fn manual(&self) -> Result<Cow<str>> {
-    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context.inner));
+    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context));
 
     Ok(camera_text_to_str(manual))
   }
@@ -175,7 +181,7 @@ impl<'a> Camera<'a> {
       self.camera,
       &out storages_ptr,
       &out storages_len,
-      self.context.inner
+      self.context
     ));
 
     let storages = unsafe {
@@ -197,7 +203,7 @@ impl<'a> Camera<'a> {
   }
 
   /// Filesystem actions
-  pub fn fs(&'a self) -> CameraFS<'a> {
+  pub fn fs(&self) -> CameraFS<'_> {
     CameraFS::new(self)
   }
 
@@ -212,7 +218,7 @@ impl<'a> Camera<'a> {
       duration_milliseconds as i32,
       &out event_type,
       &out event_data,
-      self.context.inner
+      self.context
     ));
 
     Ok(match event_type {
@@ -246,7 +252,7 @@ impl<'a> Camera<'a> {
 
   /// Get the camera configuration
   pub fn config(&self) -> Result<Widget> {
-    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context.inner));
+    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context));
 
     Ok(Widget::new(root_widget))
   }
@@ -257,7 +263,7 @@ impl<'a> Camera<'a> {
       self.camera,
       to_c_string!(key),
       &out widget,
-      self.context.inner
+      self.context
     ));
 
     Ok(Widget::new(widget))
@@ -271,7 +277,7 @@ impl<'a> Camera<'a> {
       Err("Full config object must be of type Window or section")?;
     }
 
-    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context.inner));
+    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context));
 
     Ok(())
   }
@@ -282,7 +288,7 @@ impl<'a> Camera<'a> {
       self.camera,
       to_c_string!(config.name()?.as_ref()),
       config.inner,
-      self.context.inner
+      self.context
     ));
 
     Ok(())

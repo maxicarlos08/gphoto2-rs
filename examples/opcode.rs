@@ -8,8 +8,7 @@ use gphoto2::{widget::WidgetValue, Context, Result};
 use std::{thread, time::Duration};
 
 fn main() -> Result<()> {
-  let context = Context::new()?;
-  let camera = context.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera()?;
 
   let mut opcode = camera.config_key("opcode")?;
 

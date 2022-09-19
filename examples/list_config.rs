@@ -27,8 +27,7 @@ fn display_widget_recursive(widget: &Widget, prefix: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-  let context = Context::new()?;
-  let camera = context.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera()?;
 
   display_widget_recursive(&camera.config()?, "")?;
 

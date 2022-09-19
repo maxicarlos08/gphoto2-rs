@@ -1,8 +1,7 @@
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  let context = Context::new()?;
-  let camera = context.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera()?;
 
   println!("==== SUMMARY   ====\n{}", camera.summary()?);
   println!("==== ABILITIES ====\n{:#?}", camera.abilities()?);

@@ -4,8 +4,7 @@ use gphoto2::{Context, Result};
 use std::{fs, io::Write};
 
 fn main() -> Result<()> {
-  let context = Context::new()?;
-  let camera = context.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera()?;
 
   let mut file = fs::File::create("/tmp/preview_image")?;
 

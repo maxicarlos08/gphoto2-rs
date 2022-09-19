@@ -203,7 +203,7 @@ impl CameraFilePath {
       self.inner.name.as_ptr(),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
       camera_file.inner,
-      camera.context.inner
+      camera.context
     ));
 
     Ok(camera_file)

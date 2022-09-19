@@ -135,7 +135,7 @@ pub struct FileInfo {
 
 /// File system actions for a camera
 pub struct CameraFS<'a> {
-  pub(crate) camera: &'a Camera<'a>,
+  pub(crate) camera: &'a Camera,
 }
 
 impl From<libgphoto2_sys::CameraStorageType> for StorageType {
@@ -365,7 +365,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       to_c_string!(file),
-      self.camera.context.inner
+      self.camera.context
     ));
     Ok(())
   }
@@ -377,7 +377,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(folder),
       to_c_string!(file),
       &out file_info,
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(file_info.into())
@@ -391,7 +391,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(filename),
       FileType::Normal.into(),
       file.inner,
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(())
@@ -402,7 +402,7 @@ impl<'a> CameraFS<'a> {
     try_gp_internal!(gp_camera_folder_delete_all(
       self.camera.camera,
       to_c_string!(folder),
-      self.camera.context.inner
+      self.camera.context
     ));
     Ok(())
   }
@@ -415,7 +415,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       file_list.inner,
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(file_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
@@ -429,7 +429,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       folder_list.inner,
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(folder_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
@@ -441,7 +441,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(parent_folder),
       to_c_string!(new_folder),
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(())
@@ -453,7 +453,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(parent),
       to_c_string!(to_remove),
-      self.camera.context.inner
+      self.camera.context
     ));
 
     Ok(())
