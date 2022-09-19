@@ -26,21 +26,21 @@ pub use crate::{
 pub use libgphoto2_sys;
 
 /// Trait to get the underlying libgphoto2 pointer of a wrapper
-pub trait InnerPtr<'a, T> {
+pub trait InnerPtr<T> {
   /// Get a reference to the inner *mut raw pointer
   ///
   /// # Safety
   ///
   /// Interacting with the underlying libgphoto2 pointers can be dangerous, **use this at your own risk**
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut T;
+  unsafe fn inner_mut_ptr(&self) -> &*mut T;
 }
 
 /// Trait to get the underlying libgphoto2 value of a wrapper
-pub trait Inner<'a, T> {
+pub trait Inner<T> {
   /// Get a reference to the inner value
   ///
   /// # Safety
   ///
   /// Interacting with the underlying libgphoto2 values can be dangerous, **use this at your own risk**
-  unsafe fn inner(&'a self) -> &'a T;
+  unsafe fn inner(&self) -> &T;
 }

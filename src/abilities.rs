@@ -3,11 +3,10 @@
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
 use crate::{context::Context, helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result};
-use std::{borrow::Cow, ffi, fmt, marker::PhantomData, os::raw::c_int};
+use std::{borrow::Cow, fmt, os::raw::c_int};
 
-pub(crate) struct AbilitiesList<'a> {
+pub(crate) struct AbilitiesList {
   pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
-  _phantom: PhantomData<&'a ffi::c_void>,
 }
 
 /// Provides functions to get device abilities
@@ -75,7 +74,7 @@ pub struct FileOperations(c_int);
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FolderOperations(c_int);
 
-impl Drop for AbilitiesList<'_> {
+impl Drop for AbilitiesList {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_abilities_list_free(self.inner);
@@ -145,24 +144,24 @@ impl fmt::Debug for Abilities {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::CameraAbilitiesList> for AbilitiesList<'a> {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraAbilitiesList {
+impl InnerPtr<libgphoto2_sys::CameraAbilitiesList> for AbilitiesList {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraAbilitiesList {
     &self.inner
   }
 }
 
-impl<'a> Inner<'a, libgphoto2_sys::CameraAbilities> for Abilities {
-  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::CameraAbilities {
+impl Inner<libgphoto2_sys::CameraAbilities> for Abilities {
+  unsafe fn inner(&self) -> &libgphoto2_sys::CameraAbilities {
     &self.inner
   }
 }
 
-impl<'a> AbilitiesList<'a> {
+impl AbilitiesList {
   pub(crate) fn new(context: &Context) -> Result<Self> {
     try_gp_internal!(gp_abilities_list_new(&out abilities_inner));
     try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner));
 
-    Ok(Self { inner: abilities_inner, _phantom: PhantomData })
+    Ok(Self { inner: abilities_inner })
   }
 }
 

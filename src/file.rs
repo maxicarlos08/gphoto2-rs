@@ -168,14 +168,14 @@ impl fmt::Debug for CameraFilePath {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::CameraFile> for CameraFile {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraFile {
+impl InnerPtr<libgphoto2_sys::CameraFile> for CameraFile {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraFile {
     &self.inner
   }
 }
 
-impl<'a> Inner<'a, libgphoto2_sys::CameraFilePath> for CameraFilePath {
-  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::CameraFilePath {
+impl Inner<libgphoto2_sys::CameraFilePath> for CameraFilePath {
+  unsafe fn inner(&self) -> &libgphoto2_sys::CameraFilePath {
     &self.inner
   }
 }

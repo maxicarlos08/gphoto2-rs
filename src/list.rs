@@ -1,15 +1,14 @@
 //! List of cameras and ports
 
 use crate::{helper::chars_to_cow, try_gp_internal, InnerPtr, Result};
-use std::{borrow::Cow, ffi, marker::PhantomData};
+use std::borrow::Cow;
 
 /// List of string tuples
-pub struct CameraList<'a> {
+pub struct CameraList {
   pub(crate) inner: *mut libgphoto2_sys::CameraList,
-  phantom: PhantomData<&'a ffi::c_void>,
 }
 
-impl Drop for CameraList<'_> {
+impl Drop for CameraList {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_list_unref(self.inner);
@@ -17,17 +16,17 @@ impl Drop for CameraList<'_> {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::CameraList> for CameraList<'a> {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraList {
+impl InnerPtr<libgphoto2_sys::CameraList> for CameraList {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraList {
     &self.inner
   }
 }
 
-impl CameraList<'_> {
+impl CameraList {
   pub(crate) fn new() -> Result<Self> {
     try_gp_internal!(gp_list_new(&out list));
 
-    Ok(Self { inner: list, phantom: PhantomData })
+    Ok(Self { inner: list })
   }
 
   /// Converts the internal gphoto list to a rust vec

@@ -10,7 +10,7 @@ use crate::{
   widget::{Widget, WidgetType},
   Context, InnerPtr, Result,
 };
-use std::{borrow::Cow, ffi, marker::PhantomData, os::raw::c_char, time::Duration};
+use std::{borrow::Cow, ffi, os::raw::c_char, time::Duration};
 
 /// Event from camera
 #[derive(Debug)]
@@ -81,8 +81,7 @@ pub enum CameraEvent {
 /// # }
 pub struct Camera<'a> {
   pub(crate) camera: *mut libgphoto2_sys::Camera,
-  pub(crate) context: &'a Context<'a>,
-  _phantom: PhantomData<&'a ffi::c_void>,
+  pub(crate) context: &'a Context,
 }
 
 impl Drop for Camera<'_> {
@@ -93,15 +92,15 @@ impl Drop for Camera<'_> {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::Camera> for Camera<'a> {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::Camera {
+impl InnerPtr<libgphoto2_sys::Camera> for Camera<'_> {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::Camera {
     &self.camera
   }
 }
 
 impl<'a> Camera<'a> {
   pub(crate) fn new(camera: *mut libgphoto2_sys::Camera, context: &'a Context) -> Self {
-    Self { camera, context, _phantom: PhantomData }
+    Self { camera, context }
   }
 
   /// Capture image
@@ -246,14 +245,14 @@ impl<'a> Camera<'a> {
   }
 
   /// Get the camera configuration
-  pub fn config(&self) -> Result<Widget<'a>> {
+  pub fn config(&self) -> Result<Widget> {
     try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context.inner));
 
     Ok(Widget::new(root_widget))
   }
 
   /// Get a single configuration by name
-  pub fn config_key(&self, key: &str) -> Result<Widget<'a>> {
+  pub fn config_key(&self, key: &str) -> Result<Widget> {
     try_gp_internal!(gp_camera_get_single_config(
       self.camera,
       to_c_string!(key),

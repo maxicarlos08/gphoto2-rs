@@ -22,7 +22,6 @@ use crate::{
 use std::{
   borrow::Cow,
   ffi, fmt,
-  marker::PhantomData,
   os::raw::{c_int, c_void},
 };
 
@@ -76,18 +75,17 @@ pub enum WidgetType {
 
 /// Iterator over the children of a widget
 pub struct WidgetIterator<'a> {
-  parent_widget: &'a Widget<'a>,
+  parent_widget: &'a Widget,
   count: usize,
   index: usize,
 }
 
 /// A configuration widget
-pub struct Widget<'a> {
+pub struct Widget {
   pub(crate) inner: *mut libgphoto2_sys::CameraWidget,
-  _phantom: PhantomData<&'a ffi::c_void>,
 }
 
-impl Drop for Widget<'_> {
+impl Drop for Widget {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_widget_unref(self.inner);
@@ -95,7 +93,7 @@ impl Drop for Widget<'_> {
   }
 }
 
-impl fmt::Debug for Widget<'_> {
+impl fmt::Debug for Widget {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("Widget")
       .field("id", &self.id().ok())
@@ -115,17 +113,17 @@ impl fmt::Debug for Widget<'_> {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::CameraWidget> for Widget<'a> {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::CameraWidget {
+impl InnerPtr<libgphoto2_sys::CameraWidget> for Widget {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraWidget {
     &self.inner
   }
 }
 
-impl<'a> Widget<'a> {
+impl Widget {
   pub(crate) fn new(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
     unsafe { libgphoto2_sys::gp_widget_ref(widget) };
 
-    Self { inner: widget, _phantom: PhantomData }
+    Self { inner: widget }
   }
 
   /// If true, the widget cannot be written
@@ -163,7 +161,7 @@ impl<'a> Widget<'a> {
   }
 
   /// Creates a new [`WidgetIterator`]
-  pub fn children_iter(&'a self) -> Result<WidgetIterator<'a>> {
+  pub fn children_iter(&self) -> Result<WidgetIterator<'_>> {
     Ok(WidgetIterator { parent_widget: self, count: self.children_count()?, index: 0 })
   }
 
@@ -174,28 +172,28 @@ impl<'a> Widget<'a> {
   }
 
   /// Gets a child by its index
-  pub fn get_child(&self, index: usize) -> Result<Widget<'a>> {
+  pub fn get_child(&self, index: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child(self.inner, index as c_int, &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its id
-  pub fn get_child_by_id(&self, id: usize) -> Result<Widget<'a>> {
+  pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_id(self.inner, id as c_int, &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its label
-  pub fn get_child_by_label(&self, label: &str) -> Result<Widget<'a>> {
+  pub fn get_child_by_label(&self, label: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_label(self.inner, to_c_string!(label), &out child));
 
     Ok(Self::new(child))
   }
 
   /// Get a child by its name
-  pub fn get_child_by_name(&self, name: &str) -> Result<Widget<'a>> {
+  pub fn get_child_by_name(&self, name: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_name(self.inner, to_c_string!(name), &out child));
 
     Ok(Self::new(child))
@@ -330,7 +328,7 @@ impl<'a> Widget<'a> {
 }
 
 impl<'a> Iterator for WidgetIterator<'a> {
-  type Item = Widget<'a>;
+  type Item = Widget;
 
   fn next(&mut self) -> Option<Self::Item> {
     if self.index >= self.count {

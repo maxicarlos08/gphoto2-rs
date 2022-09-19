@@ -3,7 +3,7 @@ use crate::{
   abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
   Error, InnerPtr, Result,
 };
-use std::{ffi, marker::PhantomData};
+use std::ffi;
 
 /// Context used internally by gphoto
 ///
@@ -26,24 +26,23 @@ use std::{ffi, marker::PhantomData};
 /// # }
 ///
 /// ```
-pub struct Context<'a> {
+pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  _phantom: PhantomData<&'a libgphoto2_sys::GPContext>,
 }
 
-impl Drop for Context<'_> {
+impl Drop for Context {
   fn drop(&mut self) {
     unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::GPContext> for Context<'a> {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::GPContext {
+impl InnerPtr<libgphoto2_sys::GPContext> for Context {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::GPContext {
     &self.inner
   }
 }
 
-impl<'a> Context<'a> {
+impl Context {
   /// Create a new context
   pub fn new() -> Result<Self> {
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
@@ -51,7 +50,7 @@ impl<'a> Context<'a> {
     if context_ptr.is_null() {
       Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY))
     } else {
-      Ok(Self { inner: context_ptr, _phantom: PhantomData })
+      Ok(Self { inner: context_ptr })
     }
   }
 

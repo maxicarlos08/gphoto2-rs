@@ -80,14 +80,14 @@ impl fmt::Debug for PortInfo {
   }
 }
 
-impl<'a> InnerPtr<'a, libgphoto2_sys::GPPortInfoList> for PortInfoList {
-  unsafe fn inner_mut_ptr(&'a self) -> &'a *mut libgphoto2_sys::GPPortInfoList {
+impl InnerPtr<libgphoto2_sys::GPPortInfoList> for PortInfoList {
+  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::GPPortInfoList {
     &self.inner
   }
 }
 
-impl<'a> Inner<'a, libgphoto2_sys::GPPortInfo> for PortInfo {
-  unsafe fn inner(&'a self) -> &'a libgphoto2_sys::GPPortInfo {
+impl Inner<libgphoto2_sys::GPPortInfo> for PortInfo {
+  unsafe fn inner(&self) -> &libgphoto2_sys::GPPortInfo {
     &self.inner
   }
 }
