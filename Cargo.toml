@@ -18,6 +18,4 @@ members = ["libgphoto2-sys"]
 
 [dependencies]
 libgphoto2_sys = { path = "libgphoto2-sys", version = "1.0.1" }
-
-[target.'cfg(windows)'.dependencies]
 libc = "0.2"
