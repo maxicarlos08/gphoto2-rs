@@ -67,14 +67,12 @@ There is no official way to install libgphoto2 on windows, but you can install i
 This example takes a picture and saves it to disk
 
 ```rust no_run
-use gphoto2::Context;
+use gphoto2::{Context, Result};
 use std::path::Path;
 
-fn main() {
-  // Everything starts from a context
-  let context = Context::new().expect("Failed to create context");
-  // From the context you can detect cameras
-  let camera = context.autodetect_camera().expect("Failed to autodetect camera");
+fn main() -> Result<()> {
+  // Create a new context and detect the first camera from it
+  let camera = Context::new()?.autodetect_camera().expect("Failed to autodetect camera");
 
   // And take pictures
   let file_path = camera.capture_image().expect("Could not capture image");
@@ -82,7 +80,9 @@ fn main() {
     .download(&camera, Path::new(&file_path.name().to_string()))
     .expect("Failed to download image");
 
-  // For more advanced examples take a look at the examples/ foldeer
+  // For more advanced examples take a look at the examples/ folder
+
+  Ok(())
 }
 ```
 
