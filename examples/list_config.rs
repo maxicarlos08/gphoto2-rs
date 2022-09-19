@@ -17,7 +17,7 @@ fn display_widget_recursive(widget: &Widget, prefix: &str) -> Result<()> {
     println!("VALUE: {:?}", value)
   }
 
-  print!("\n");
+  println!();
 
   for child in widget.children_iter()? {
     display_widget_recursive(&child, &new_prefix)?;

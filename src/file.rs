@@ -1,12 +1,9 @@
 //! Files stored on camera
 
 use crate::{
-  camera::Camera,
-  error::Error,
-  helper::{chars_to_cow, uninit},
-  try_gp_internal, Inner, InnerPtr, Result,
+  camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result,
 };
-use std::{borrow::Cow, ffi, fmt, fs, os::raw::c_char, path::Path};
+use std::{borrow::Cow, ffi, fmt, fs, path::Path};
 
 #[cfg(unix)]
 mod owned_fd_impl {
@@ -64,6 +61,7 @@ mod owned_fd_impl {
   }
 }
 
+use crate::helper::to_c_string;
 use owned_fd_impl::OwnedFd;
 
 /// Represents a path of a file on a camera
@@ -199,14 +197,14 @@ impl CameraFilePath {
       None => CameraFile::new()?,
     };
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_file_get(
+    try_gp_internal!(gp_camera_file_get(
       camera.camera,
       self.inner.folder.as_ptr(),
       self.inner.name.as_ptr(),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
       camera_file.inner,
       camera.context.inner
-    ))?;
+    ));
 
     Ok(camera_file)
   }
@@ -224,9 +222,7 @@ impl CameraFilePath {
 
 impl CameraFile {
   pub(crate) fn new() -> Result<Self> {
-    let mut camera_file_ptr = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_file_new(&mut camera_file_ptr))?;
+    try_gp_internal!(gp_file_new(&out camera_file_ptr));
 
     Ok(Self { inner: camera_file_ptr, file: None })
   }
@@ -238,32 +234,24 @@ impl CameraFile {
 
     let file = OwnedFd::from(fs::File::create(path)?);
 
-    let mut camera_file_ptr = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, file.as_raw_fd()))
-      .map(|_| Self { inner: camera_file_ptr, file: Some(file) })
+    try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, file.as_raw_fd()));
+    Ok(Self { inner: camera_file_ptr, file: Some(file) })
   }
 
   /// Creates a new camera file from disk
   pub fn new_from_disk(path: &Path) -> Result<Self> {
-    let mut camera_file_ptr = unsafe { uninit() };
-    let path = ffi::CString::new(path.to_str().ok_or("File path invalid")?)?;
-
-    try_gp_internal!(libgphoto2_sys::gp_file_new_from_fd(&mut camera_file_ptr, -1))?;
-    try_gp_internal!(libgphoto2_sys::gp_file_open(
+    try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, -1));
+    try_gp_internal!(gp_file_open(
       camera_file_ptr,
-      path.as_ptr() as *const c_char
-    ))?;
+      to_c_string!(path.to_str().ok_or("File path invalid")?)
+    ));
 
     Ok(Self { inner: camera_file_ptr, file: None })
   }
 
   /// Get the data of the file
   pub fn get_data(&self) -> Result<Box<[u8]>> {
-    let mut size = unsafe { uninit() };
-    let mut data = unsafe { uninit() }; // data from gphoto is returned as i8, but we use it as u8. This might cause errors in future
-
-    try_gp_internal!(libgphoto2_sys::gp_file_get_data_and_size(self.inner, &mut data, &mut size))?;
+    try_gp_internal!(gp_file_get_data_and_size(self.inner, &out data, &out size));
 
     let data_slice: Box<[u8]> =
       unsafe { std::slice::from_raw_parts(data as *const u8, size as usize) }.into();
@@ -273,18 +261,14 @@ impl CameraFile {
 
   /// File name
   pub fn name(&self) -> Result<Cow<str>> {
-    let mut file_name = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_file_get_name(self.inner, &mut file_name))?;
+    try_gp_internal!(gp_file_get_name(self.inner, &out file_name));
 
     Ok(chars_to_cow(file_name))
   }
 
   /// File mime type
   pub fn mime(&self) -> Result<Cow<str>> {
-    let mut mime = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_file_get_mime_type(self.inner, &mut mime))?;
+    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime));
 
     Ok(chars_to_cow(mime))
   }

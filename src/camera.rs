@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{camera_text_to_str, chars_to_cow, uninit},
+  helper::{camera_text_to_str, chars_to_cow, to_c_string},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
@@ -106,14 +106,12 @@ impl<'a> Camera<'a> {
 
   /// Capture image
   pub fn capture_image(&self) -> Result<CameraFilePath> {
-    let mut file_path_ptr = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_capture(
+    try_gp_internal!(gp_camera_capture(
       self.camera,
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
-      &mut file_path_ptr,
+      &out file_path_ptr,
       self.context.inner
-    ))?;
+    ));
 
     Ok(file_path_ptr.into())
   }
@@ -135,11 +133,7 @@ impl<'a> Camera<'a> {
   pub fn capture_preview(&self) -> Result<CameraFile> {
     let camera_file = CameraFile::new()?;
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_capture_preview(
-      self.camera,
-      camera_file.inner,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_capture_preview(self.camera, camera_file.inner, self.context.inner));
 
     Ok(camera_file)
   }
@@ -148,35 +142,21 @@ impl<'a> Camera<'a> {
   ///
   /// The abilities contain information about the driver used, permissions and camera model
   pub fn abilities(&self) -> Result<Abilities> {
-    let mut abilities = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_abilities(self.camera, &mut abilities))?;
+    try_gp_internal!(gp_camera_get_abilities(self.camera, &out abilities));
 
     Ok(abilities.into())
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<Cow<str>> {
-    let mut summary = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_summary(
-      self.camera,
-      &mut summary,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context.inner));
 
     Ok(camera_text_to_str(summary))
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<Cow<str>> {
-    let mut about = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_about(
-      self.camera,
-      &mut about,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context.inner));
 
     Ok(camera_text_to_str(about))
   }
@@ -185,28 +165,19 @@ impl<'a> Camera<'a> {
   ///
   /// Not all cameras support this, and will return NotSupported
   pub fn manual(&self) -> Result<Cow<str>> {
-    let mut manual = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_manual(
-      self.camera,
-      &mut manual,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context.inner));
 
     Ok(camera_text_to_str(manual))
   }
 
   /// List of storages available on the camera
   pub fn storages(&self) -> Result<Vec<StorageInfo>> {
-    let mut storages_ptr = unsafe { uninit() };
-    let mut storages_len = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_storageinfo(
+    try_gp_internal!(gp_camera_get_storageinfo(
       self.camera,
-      &mut storages_ptr,
-      &mut storages_len,
+      &out storages_ptr,
+      &out storages_len,
       self.context.inner
-    ))?;
+    ));
 
     let storages = unsafe {
       std::slice::from_raw_parts(
@@ -237,16 +208,13 @@ impl<'a> Camera<'a> {
 
     let duration_milliseconds = timeout.as_millis();
 
-    let mut event_type = unsafe { uninit() };
-    let mut event_data = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_wait_for_event(
+    try_gp_internal!(gp_camera_wait_for_event(
       self.camera,
       duration_milliseconds as i32,
-      &mut event_type,
-      &mut event_data,
+      &out event_type,
+      &out event_data,
       self.context.inner
-    ))?;
+    ));
 
     Ok(match event_type {
       CameraEventType::GP_EVENT_UNKNOWN => {
@@ -272,38 +240,26 @@ impl<'a> Camera<'a> {
 
   /// Port used to connect to the camera
   pub fn port_info(&self) -> Result<PortInfo> {
-    let mut port_info = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_port_info(self.camera, &mut port_info))?;
+    try_gp_internal!(gp_camera_get_port_info(self.camera, &out port_info));
 
     Ok(PortInfo { inner: port_info })
   }
 
   /// Get the camera configuration
   pub fn config(&self) -> Result<Widget<'a>> {
-    let mut root_widget = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_config(
-      self.camera,
-      &mut root_widget,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context.inner));
 
     Ok(Widget::new(root_widget))
   }
 
   /// Get a single configuration by name
   pub fn config_key(&self, key: &str) -> Result<Widget<'a>> {
-    let mut widget = unsafe { uninit() };
-
-    let key = ffi::CString::new(key)?;
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_get_single_config(
+    try_gp_internal!(gp_camera_get_single_config(
       self.camera,
-      key.as_ptr() as *const c_char,
-      &mut widget,
+      to_c_string!(key),
+      &out widget,
       self.context.inner
-    ))?;
+    ));
 
     Ok(Widget::new(widget))
   }
@@ -316,25 +272,19 @@ impl<'a> Camera<'a> {
       Err("Full config object must be of type Window or section")?;
     }
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_set_config(
-      self.camera,
-      config.inner,
-      self.context.inner
-    ))?;
+    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context.inner));
 
     Ok(())
   }
 
   /// Set a single configuration widget to the camera
   pub fn set_config(&self, config: &Widget) -> Result<()> {
-    let name = ffi::CString::new(&config.name()?[..])?;
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_set_single_config(
+    try_gp_internal!(gp_camera_set_single_config(
       self.camera,
-      name.as_ptr() as *const c_char,
+      to_c_string!(config.name()?.as_ref()),
       config.inner,
       self.context.inner
-    ))?;
+    ));
 
     Ok(())
   }

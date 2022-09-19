@@ -1,7 +1,7 @@
 //! Library context
 use crate::{
-  abilities::AbilitiesList, camera::Camera, helper::uninit, list::CameraList, port::PortInfoList,
-  try_gp_internal, Error, InnerPtr, Result,
+  abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
+  Error, InnerPtr, Result,
 };
 use std::{ffi, marker::PhantomData};
 
@@ -62,7 +62,7 @@ impl<'a> Context<'a> {
   pub fn list_cameras(&self) -> Result<CameraList> {
     let camera_list = CameraList::new()?;
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_autodetect(camera_list.inner, self.inner))?;
+    try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner));
 
     Ok(camera_list)
   }
@@ -83,10 +83,8 @@ impl<'a> Context<'a> {
   /// # }
   /// ```
   pub fn autodetect_camera(&self) -> Result<Camera> {
-    let mut camera_ptr = unsafe { uninit() };
-
-    try_gp_internal!(libgphoto2_sys::gp_camera_new(&mut camera_ptr))?;
-    try_gp_internal!(libgphoto2_sys::gp_camera_init(camera_ptr, self.inner))?;
+    try_gp_internal!(gp_camera_new(&out camera_ptr));
+    try_gp_internal!(gp_camera_init(camera_ptr, self.inner));
 
     Ok(Camera::new(camera_ptr, self))
   }
@@ -109,31 +107,29 @@ impl<'a> Context<'a> {
   /// # Ok(())
   /// # }
   pub fn get_camera(&self, model: &str, port_path: &str) -> Result<Camera> {
-    let mut model_abilities = unsafe { uninit() };
-    let mut camera = unsafe { uninit() };
     let abilities_list = AbilitiesList::new(self)?;
     let port_info_list = PortInfoList::new()?;
 
-    try_gp_internal!(libgphoto2_sys::gp_camera_new(&mut camera))?;
+    try_gp_internal!(gp_camera_new(&out camera));
 
-    let model_index = try_gp_internal!(libgphoto2_sys::gp_abilities_list_lookup_model(
+    try_gp_internal!(let model_index = gp_abilities_list_lookup_model(
       abilities_list.inner,
       ffi::CString::new(model)?.as_ptr(),
-    ))?;
+    ));
 
-    try_gp_internal!(libgphoto2_sys::gp_abilities_list_get_abilities(
+    try_gp_internal!(gp_abilities_list_get_abilities(
       abilities_list.inner,
       model_index,
-      &mut model_abilities
-    ))?;
-    try_gp_internal!(libgphoto2_sys::gp_camera_set_abilities(camera, model_abilities))?;
+      &out model_abilities
+    ));
+    try_gp_internal!(gp_camera_set_abilities(camera, model_abilities));
 
-    let p = try_gp_internal!(libgphoto2_sys::gp_port_info_list_lookup_path(
+    try_gp_internal!(let p = gp_port_info_list_lookup_path(
       port_info_list.inner,
       ffi::CString::new(port_path)?.as_ptr()
-    ))?;
+    ));
     let port_info = port_info_list.get_port_info(p)?;
-    try_gp_internal!(libgphoto2_sys::gp_camera_set_port_info(camera, port_info.inner))?;
+    try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner));
 
     Ok(Camera::new(camera, self))
   }
