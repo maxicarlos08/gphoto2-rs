@@ -107,14 +107,14 @@ impl PortInfo {
   pub fn name(&self) -> Result<Cow<str>> {
     try_gp_internal!(gp_port_info_get_name(self.inner, &out name));
 
-    Ok(chars_to_cow(name))
+    Ok(unsafe { chars_to_cow(name) })
   }
 
   /// Path of the port
   pub fn path(&self) -> Result<Cow<str>> {
     try_gp_internal!(gp_port_info_get_path(self.inner, &out path));
 
-    Ok(chars_to_cow(path))
+    Ok(unsafe { chars_to_cow(path) })
   }
 
   /// [Port type](PortType)

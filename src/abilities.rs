@@ -129,12 +129,12 @@ impl AbilitiesList {
 impl Abilities {
   /// Camera ID
   pub fn id(&self) -> Cow<str> {
-    chars_to_cow(self.inner.id.as_ptr())
+    unsafe { chars_to_cow(self.inner.id.as_ptr()) }
   }
 
   /// Get the model of the camera
   pub fn model(&self) -> Cow<str> {
-    chars_to_cow(self.inner.model.as_ptr())
+    unsafe { chars_to_cow(self.inner.model.as_ptr()) }
   }
 
   /// Get the [driver status](CameraDriverStatus) of the device

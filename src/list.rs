@@ -36,7 +36,7 @@ impl CameraList {
       try_gp_internal!(gp_list_get_name(self.inner, list_index, &out name));
       try_gp_internal!(gp_list_get_value(self.inner, list_index, &out value));
 
-      res.push((chars_to_cow(name), chars_to_cow(value)));
+      res.push(unsafe { (chars_to_cow(name), chars_to_cow(value)) });
     }
 
     Ok(res)
