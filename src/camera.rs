@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_cow, cow_to_string, to_c_string},
+  helper::{as_ref, char_slice_to_cow, to_c_string, chars_to_string},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
@@ -152,14 +152,14 @@ impl Camera {
   pub fn summary(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context));
 
-    Ok(cow_to_string(char_slice_to_cow(&summary.text)))
+    Ok(char_slice_to_cow(&summary.text).into_owned())
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context));
 
-    Ok(cow_to_string(char_slice_to_cow(&about.text)))
+    Ok(char_slice_to_cow(&about.text).into_owned())
   }
 
   /// Get the manual of the camera
@@ -168,7 +168,7 @@ impl Camera {
   pub fn manual(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context));
 
-    Ok(cow_to_string(char_slice_to_cow(&manual.text)))
+    Ok(char_slice_to_cow(&manual.text).into_owned())
   }
 
   /// List of storages available on the camera
@@ -219,8 +219,7 @@ impl Camera {
 
     Ok(match event_type {
       CameraEventType::GP_EVENT_UNKNOWN => {
-        let data = unsafe { cow_to_string(chars_to_cow(event_data as *const c_char)) };
-        CameraEvent::Unknown(data)
+        CameraEvent::Unknown(chars_to_string(event_data as *const c_char))
       }
       CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
       CameraEventType::GP_EVENT_FILE_ADDED => {
@@ -282,7 +281,7 @@ impl Camera {
   pub fn set_config(&self, config: &Widget) -> Result<()> {
     try_gp_internal!(gp_camera_set_single_config(
       self.camera,
-      to_c_string!(config.name()?.as_ref()),
+      to_c_string!(config.name()?),
       config.inner,
       self.context
     ));

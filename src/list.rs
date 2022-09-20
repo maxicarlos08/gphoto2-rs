@@ -1,8 +1,6 @@
 //! List of cameras and ports
 
-use crate::helper::as_ref;
-use crate::{helper::chars_to_cow, try_gp_internal, Result};
-use std::borrow::Cow;
+use crate::{try_gp_internal, Result, helper::{as_ref, chars_to_string}};
 
 /// List of string tuples
 pub struct CameraList {
@@ -27,7 +25,7 @@ impl CameraList {
   }
 
   /// Converts the internal gphoto list to a rust vec
-  pub fn to_vec(&self) -> Result<Vec<(Cow<str>, Cow<str>)>> {
+  pub fn to_vec(&self) -> Result<Vec<(String, String)>> {
     let length = unsafe { libgphoto2_sys::gp_list_count(self.inner) };
 
     let mut res = Vec::with_capacity(length as usize);
@@ -36,7 +34,7 @@ impl CameraList {
       try_gp_internal!(gp_list_get_name(self.inner, list_index, &out name));
       try_gp_internal!(gp_list_get_value(self.inner, list_index, &out value));
 
-      res.push(unsafe { (chars_to_cow(name), chars_to_cow(value)) });
+      res.push((chars_to_string(name), chars_to_string(value)));
     }
 
     Ok(res)

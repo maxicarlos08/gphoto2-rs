@@ -3,7 +3,7 @@
 use crate::{
   camera::Camera,
   error::Error,
-  helper::{char_slice_to_cow, chars_to_cow},
+  helper::{char_slice_to_cow, chars_to_string},
   try_gp_internal, Result,
 };
 use std::{borrow::Cow, ffi, fmt, fs, path::Path};
@@ -255,16 +255,16 @@ impl CameraFile {
   }
 
   /// File name
-  pub fn name(&self) -> Result<Cow<str>> {
+  pub fn name(&self) -> Result<String> {
     try_gp_internal!(gp_file_get_name(self.inner, &out file_name));
 
-    Ok(unsafe { chars_to_cow(file_name) })
+    Ok(chars_to_string(file_name))
   }
 
   /// File mime type
-  pub fn mime(&self) -> Result<Cow<str>> {
+  pub fn mime(&self) -> Result<String> {
     try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime));
 
-    Ok(unsafe { chars_to_cow(mime) })
+    Ok(chars_to_string(mime))
   }
 }
