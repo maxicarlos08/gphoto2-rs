@@ -116,10 +116,16 @@ impl fmt::Debug for Widget {
 as_ref!(Widget -> libgphoto2_sys::CameraWidget, *self.inner);
 
 impl Widget {
-  pub(crate) fn new(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
-    unsafe { libgphoto2_sys::gp_widget_ref(widget) };
-
+  pub(crate) fn new_owned(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
     Self { inner: widget }
+  }
+
+  pub(crate) fn new_shared(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
+    unsafe {
+      libgphoto2_sys::gp_widget_ref(widget);
+    }
+
+    Self::new_owned(widget)
   }
 
   /// If true, the widget cannot be written
@@ -171,28 +177,28 @@ impl Widget {
   pub fn get_child(&self, index: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child(self.inner, index as c_int, &out child));
 
-    Ok(Self::new(child))
+    Ok(Self::new_shared(child))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_id(self.inner, id as c_int, &out child));
 
-    Ok(Self::new(child))
+    Ok(Self::new_shared(child))
   }
 
   /// Get a child by its label
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_label(self.inner, to_c_string!(label), &out child));
 
-    Ok(Self::new(child))
+    Ok(Self::new_shared(child))
   }
 
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_name(self.inner, to_c_string!(name), &out child));
 
-    Ok(Self::new(child))
+    Ok(Self::new_shared(child))
   }
 
   /// Get the type of the widget

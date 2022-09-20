@@ -250,7 +250,7 @@ impl Camera {
   pub fn config(&self) -> Result<Widget> {
     try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context));
 
-    Ok(Widget::new(root_widget))
+    Ok(Widget::new_owned(root_widget))
   }
 
   /// Get a single configuration by name
@@ -262,7 +262,7 @@ impl Camera {
       self.context
     ));
 
-    Ok(Widget::new(widget))
+    Ok(Widget::new_owned(widget))
   }
 
   /// Apply a full config object to the camera.
