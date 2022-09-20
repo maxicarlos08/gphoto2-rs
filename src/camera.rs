@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, to_c_string, chars_to_string},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
@@ -219,20 +219,27 @@ impl Camera {
 
     Ok(match event_type {
       CameraEventType::GP_EVENT_UNKNOWN => {
-        CameraEvent::Unknown(chars_to_string(event_data as *const c_char))
+        let s = chars_to_string(event_data.cast::<c_char>());
+        unsafe {
+          libc::free(event_data);
+        }
+        CameraEvent::Unknown(s)
       }
       CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
-      CameraEventType::GP_EVENT_FILE_ADDED => {
-        let file = event_data as *const libgphoto2_sys::CameraFilePath;
-        CameraEvent::NewFile(CameraFilePath { inner: unsafe { *file } })
-      }
-      CameraEventType::GP_EVENT_FOLDER_ADDED => {
-        let folder = event_data as *const libgphoto2_sys::CameraFilePath;
-        CameraEvent::NewFolder(CameraFilePath { inner: unsafe { *folder } })
-      }
-      CameraEventType::GP_EVENT_FILE_CHANGED => {
-        let changed_file = event_data as *const libgphoto2_sys::CameraFilePath;
-        CameraEvent::FileChanged(CameraFilePath { inner: unsafe { *changed_file } })
+      CameraEventType::GP_EVENT_FILE_ADDED
+      | CameraEventType::GP_EVENT_FOLDER_ADDED
+      | CameraEventType::GP_EVENT_FILE_CHANGED => {
+        let file_path =
+          CameraFilePath::from(unsafe { *event_data.cast::<libgphoto2_sys::CameraFilePath>() });
+        unsafe {
+          libc::free(event_data);
+        }
+        match event_type {
+          CameraEventType::GP_EVENT_FILE_ADDED => CameraEvent::NewFile(file_path),
+          CameraEventType::GP_EVENT_FOLDER_ADDED => CameraEvent::NewFolder(file_path),
+          CameraEventType::GP_EVENT_FILE_CHANGED => CameraEvent::FileChanged(file_path),
+          _ => unreachable!(),
+        }
       }
       CameraEventType::GP_EVENT_CAPTURE_COMPLETE => CameraEvent::CaptureComplete,
     })
