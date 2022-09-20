@@ -16,8 +16,8 @@
 //! ```
 
 use crate::{
-  helper::{chars_to_cow, to_c_string},
-  try_gp_internal, InnerPtr, Result,
+  helper::{as_ref, chars_to_cow, to_c_string},
+  try_gp_internal, Result,
 };
 use std::{
   borrow::Cow,
@@ -113,11 +113,7 @@ impl fmt::Debug for Widget {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::CameraWidget> for Widget {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraWidget {
-    &self.inner
-  }
-}
+as_ref!(Widget -> libgphoto2_sys::CameraWidget, *self.inner);
 
 impl Widget {
   pub(crate) fn new(widget: *mut libgphoto2_sys::CameraWidget) -> Self {

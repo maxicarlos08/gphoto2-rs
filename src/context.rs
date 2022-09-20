@@ -1,7 +1,8 @@
 //! Library context
+use crate::helper::as_ref;
 use crate::{
   abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
-  Error, InnerPtr, Result,
+  Error, Result,
 };
 use std::ffi;
 
@@ -36,11 +37,7 @@ impl Drop for Context {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::GPContext> for Context {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::GPContext {
-    &self.inner
-  }
-}
+as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
 
 impl Context {
   /// Create a new context

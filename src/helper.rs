@@ -14,4 +14,28 @@ macro_rules! to_c_string {
   };
 }
 
-pub(crate) use to_c_string;
+macro_rules! as_ref {
+  ($from:ident -> $to:ty, $self:ident . $field:ident) => {
+    as_ref!(@ $from -> $to, , $self, $self.$field);
+  };
+
+  ($from:ident -> $to:ty, * $self:ident . $field:ident) => {
+    as_ref!(@ $from -> $to, unsafe, $self, *$self.$field);
+  };
+
+  (@ $from:ident -> $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
+    impl AsRef<$to> for $from {
+      fn as_ref(&$self) -> &$to {
+        $($unsafe)? { & $value }
+      }
+    }
+
+    impl AsMut<$to> for $from {
+      fn as_mut(&mut $self) -> &mut $to {
+        $($unsafe)? { &mut $value }
+      }
+    }
+  };
+}
+
+pub(crate) use {as_ref, to_c_string};

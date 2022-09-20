@@ -2,7 +2,8 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
-use crate::{context::Context, helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result};
+use crate::helper::as_ref;
+use crate::{context::Context, helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, fmt, os::raw::c_int};
 
 pub(crate) struct AbilitiesList {
@@ -144,17 +145,9 @@ impl fmt::Debug for Abilities {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::CameraAbilitiesList> for AbilitiesList {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraAbilitiesList {
-    &self.inner
-  }
-}
+as_ref!(AbilitiesList -> libgphoto2_sys::CameraAbilitiesList, *self.inner);
 
-impl Inner<libgphoto2_sys::CameraAbilities> for Abilities {
-  unsafe fn inner(&self) -> &libgphoto2_sys::CameraAbilities {
-    &self.inner
-  }
-}
+as_ref!(Abilities -> libgphoto2_sys::CameraAbilities, self.inner);
 
 impl AbilitiesList {
   pub(crate) fn new(context: &Context) -> Result<Self> {
