@@ -13,6 +13,7 @@ fn main() {
     .generate_comments(true)
     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
     .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: false })
+    .bitfield_enum("^Camera(FilePermissions|(File|Folder)?Operation)$")
     .generate()
     .expect("Unable to generate bindings");
 

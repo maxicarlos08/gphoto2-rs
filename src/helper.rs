@@ -38,4 +38,38 @@ macro_rules! as_ref {
   };
 }
 
-pub(crate) use {as_ref, to_c_string};
+macro_rules! bitflags {
+  ($(# $attr:tt)* $name:ident = $target:ident { $($(# $field_attr:tt)* $field:ident: $value:ident,)* }) => {
+    $(# $attr)*
+    #[derive(Clone, Hash, PartialEq, Eq)]
+    pub struct $name(libgphoto2_sys::$target);
+
+    impl From<libgphoto2_sys::$target> for $name {
+      fn from(flags: libgphoto2_sys::$target) -> Self {
+        Self(flags)
+      }
+    }
+
+    impl $name {
+      $(
+        $(# $field_attr)*
+        #[inline]
+        pub fn $field(&self) -> bool {
+          (self.0 & libgphoto2_sys::$target::$value).0 != 0
+        }
+      )*
+    }
+
+    impl std::fmt::Debug for $name {
+      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(stringify!($name))
+          $(
+            .field(stringify!($field), &self.$field())
+          )*
+          .finish()
+      }
+    }
+  };
+}
+
+pub(crate) use {as_ref, bitflags, to_c_string};
