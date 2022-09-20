@@ -16,7 +16,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_cow, to_c_string},
+  helper::{as_ref, chars_to_cow, cow_to_string, to_c_string},
   try_gp_internal, Result,
 };
 use std::{
@@ -218,7 +218,7 @@ impl Widget {
         for choice_i in 0..choice_count {
           try_gp_internal!(gp_widget_get_choice(self.inner, choice_i, &out choice));
 
-          choices.push(unsafe { chars_to_cow(choice).to_string() });
+          choices.push(unsafe { cow_to_string(chars_to_cow(choice)) });
         }
 
         WidgetType::Menu { choices, radio: widget_type == CameraWidgetType::GP_WIDGET_RADIO }
@@ -234,7 +234,7 @@ impl Widget {
   }
 
   fn str_value(&self) -> Result<String> {
-    Ok(unsafe { chars_to_cow(self.raw_value()?) }.to_string())
+    Ok(unsafe { cow_to_string(chars_to_cow(self.raw_value()?)) })
   }
 
   /// Get the widget value and type

@@ -8,6 +8,11 @@ pub unsafe fn chars_to_cow<'a>(chars: *const c_char) -> Cow<'a, str> {
   String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes())
 }
 
+#[inline]
+pub fn cow_to_string(cow: Cow<str>) -> String {
+  cow.into_owned()
+}
+
 macro_rules! to_c_string {
   ($v:expr) => {
     ffi::CString::new($v)?.as_ptr().cast::<std::os::raw::c_char>()
