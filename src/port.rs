@@ -16,9 +16,8 @@
 //! # }
 //! ```
 
-use crate::helper::as_ref;
-use crate::{helper::chars_to_cow, try_gp_internal, Result};
-use std::{borrow::Cow, fmt};
+use crate::{try_gp_internal, Result, helper::{as_ref, chars_to_string}};
+use std::fmt;
 
 /// Type of the port
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -104,17 +103,17 @@ impl PortType {
 
 impl PortInfo {
   /// Name of the port
-  pub fn name(&self) -> Result<Cow<str>> {
+  pub fn name(&self) -> Result<String> {
     try_gp_internal!(gp_port_info_get_name(self.inner, &out name));
 
-    Ok(unsafe { chars_to_cow(name) })
+    Ok(chars_to_string(name))
   }
 
   /// Path of the port
-  pub fn path(&self) -> Result<Cow<str>> {
+  pub fn path(&self) -> Result<String> {
     try_gp_internal!(gp_port_info_get_path(self.inner, &out path));
 
-    Ok(unsafe { chars_to_cow(path) })
+    Ok(chars_to_string(path))
   }
 
   /// [Port type](PortType)

@@ -1,7 +1,8 @@
 //! Error handling
 
-use crate::helper::chars_to_cow;
 use std::{error, fmt, os::raw::c_int};
+
+use crate::helper::chars_to_string;
 
 /// Result type used in this library
 pub type Result<T> = std::result::Result<T, Error>;
@@ -113,7 +114,7 @@ impl From<&str> for Error {
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str(unsafe { &chars_to_cow(libgphoto2_sys::gp_result_as_string(self.error)) })?;
+    f.write_str(unsafe { &chars_to_string(libgphoto2_sys::gp_result_as_string(self.error)) })?;
 
     if let Some(error_info) = &self.info {
       f.write_fmt(format_args!(" [{}]", error_info))?;

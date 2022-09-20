@@ -16,11 +16,10 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_cow, cow_to_string, to_c_string},
+  helper::{as_ref, chars_to_string, to_c_string},
   try_gp_internal, Result,
 };
 use std::{
-  borrow::Cow,
   ffi, fmt,
   os::raw::{c_int, c_void},
 };
@@ -130,16 +129,16 @@ impl Widget {
   }
 
   /// Get the widget label
-  pub fn label(&self) -> Result<Cow<str>> {
+  pub fn label(&self) -> Result<String> {
     try_gp_internal!(gp_widget_get_label(self.inner, &out label));
 
-    Ok(unsafe { chars_to_cow(label) })
+    Ok(chars_to_string(label))
   }
 
   /// Get the widget name
-  pub fn name(&self) -> Result<Cow<str>> {
+  pub fn name(&self) -> Result<String> {
     try_gp_internal!(gp_widget_get_name(self.inner, &out name));
-    Ok(unsafe { chars_to_cow(name) })
+    Ok(chars_to_string(name))
   }
 
   /// Get the widget id
@@ -150,10 +149,10 @@ impl Widget {
   }
 
   /// Get information about the widget
-  pub fn info(&self) -> Result<Cow<str>> {
+  pub fn info(&self) -> Result<String> {
     try_gp_internal!(gp_widget_get_info(self.inner, &out info));
 
-    Ok(unsafe { chars_to_cow(info) })
+    Ok(chars_to_string(info))
   }
 
   /// Creates a new [`WidgetIterator`]
@@ -218,7 +217,7 @@ impl Widget {
         for choice_i in 0..choice_count {
           try_gp_internal!(gp_widget_get_choice(self.inner, choice_i, &out choice));
 
-          choices.push(unsafe { cow_to_string(chars_to_cow(choice)) });
+          choices.push(chars_to_string(choice));
         }
 
         WidgetType::Menu { choices, radio: widget_type == CameraWidgetType::GP_WIDGET_RADIO }
@@ -234,7 +233,7 @@ impl Widget {
   }
 
   fn str_value(&self) -> Result<String> {
-    Ok(unsafe { cow_to_string(chars_to_cow(self.raw_value()?)) })
+    Ok(chars_to_string(self.raw_value()?))
   }
 
   /// Get the widget value and type

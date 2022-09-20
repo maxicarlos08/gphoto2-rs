@@ -4,13 +4,8 @@ pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
 }
 
-pub unsafe fn chars_to_cow<'a>(chars: *const c_char) -> Cow<'a, str> {
-  String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes())
-}
-
-#[inline]
-pub fn cow_to_string(cow: Cow<str>) -> String {
-  cow.into_owned()
+pub fn chars_to_string(chars: *const c_char) -> String {
+  unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }.into_owned()
 }
 
 macro_rules! to_c_string {
