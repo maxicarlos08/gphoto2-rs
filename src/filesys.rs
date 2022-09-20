@@ -2,7 +2,7 @@
 
 use crate::{
   file::{CameraFile, FileType},
-  helper::{bitflags, chars_to_cow, to_c_string},
+  helper::{bitflags, char_slice_to_cow, cow_to_string, to_c_string},
   list::CameraList,
   try_gp_internal, Camera, Result,
 };
@@ -202,7 +202,7 @@ impl From<libgphoto2_sys::CameraFileInfoPreview> for FileInfoPreview {
       status: file_info_get_field!(preview_info, GP_FILE_INFO_STATUS, status).map(Into::into),
       size: file_info_get_field!(preview_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
       mime_type: file_info_get_field!(preview_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| chars_to_cow(mime.as_ptr()).to_string()),
+        .map(|mime| cow_to_string(char_slice_to_cow(&mime))),
       width: file_info_get_field!(preview_info, GP_FILE_INFO_WIDTH, width)
         .map(|width| width as usize),
       height: file_info_get_field!(preview_info, GP_FILE_INFO_HEIGHT, height)
@@ -217,7 +217,7 @@ impl From<libgphoto2_sys::CameraFileInfoFile> for FileInfoFile {
       status: file_info_get_field!(file_info, GP_FILE_INFO_STATUS, status).map(Into::into),
       size: file_info_get_field!(file_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
       mime_type: file_info_get_field!(file_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| chars_to_cow(mime.as_ptr()).to_string()),
+        .map(|mime| cow_to_string(char_slice_to_cow(&mime))),
       width: file_info_get_field!(file_info, GP_FILE_INFO_WIDTH, width).map(|width| width as usize),
       height: file_info_get_field!(file_info, GP_FILE_INFO_HEIGHT, height)
         .map(|height| height as usize),
@@ -234,7 +234,7 @@ impl From<libgphoto2_sys::CameraFileInfoAudio> for FileInfoAudio {
       status: file_info_get_field!(audio_info, GP_FILE_INFO_STATUS, status).map(Into::into),
       size: file_info_get_field!(audio_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
       mime_type: file_info_get_field!(audio_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| chars_to_cow(mime.as_ptr()).to_string()),
+        .map(|mime| cow_to_string(char_slice_to_cow(&mime))),
     }
   }
 }
@@ -265,7 +265,7 @@ impl StorageInfo {
   /// Base directory of the storage. If there is only 1 storage on the camera it will be "/"
   pub fn base_directory(&self) -> Option<Cow<str>> {
     if storage_has_ability!(self.inner, GP_STORAGEINFO_BASE) {
-      Some(chars_to_cow(self.inner.basedir.as_ptr()))
+      Some(char_slice_to_cow(&self.inner.basedir))
     } else {
       None
     }
@@ -274,7 +274,7 @@ impl StorageInfo {
   /// Label of the storage
   pub fn label(&self) -> Option<Cow<str>> {
     if storage_has_ability!(self.inner, GP_STORAGEINFO_LABEL) {
-      Some(chars_to_cow(self.inner.label.as_ptr()))
+      Some(char_slice_to_cow(&self.inner.label))
     } else {
       None
     }
@@ -283,7 +283,7 @@ impl StorageInfo {
   /// Description of the storage
   pub fn description(&self) -> Option<Cow<str>> {
     if storage_has_ability!(self.inner, GP_STORAGEINFO_DESCRIPTION) {
-      Some(chars_to_cow(self.inner.description.as_ptr()))
+      Some(char_slice_to_cow(&self.inner.description))
     } else {
       None
     }
@@ -408,7 +408,7 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(file_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
+    Ok(file_list.to_vec()?.into_iter().map(|(name, _)| cow_to_string(name)).collect())
   }
 
   /// List folders in a folder
@@ -422,7 +422,7 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(folder_list.to_vec()?.into_iter().map(|(name, _)| name.to_string()).collect())
+    Ok(folder_list.to_vec()?.into_iter().map(|(name, _)| cow_to_string(name)).collect())
   }
 
   /// Creates a new folder

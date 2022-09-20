@@ -4,13 +4,13 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, camera_text_to_str, chars_to_cow, to_c_string},
+  helper::{as_ref, char_slice_to_cow, chars_to_cow, cow_to_string, to_c_string},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
   Result,
 };
-use std::{borrow::Cow, ffi, os::raw::c_char, time::Duration};
+use std::{ffi, os::raw::c_char, time::Duration};
 
 /// Event from camera
 #[derive(Debug)]
@@ -149,26 +149,26 @@ impl Camera {
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
-  pub fn summary(&self) -> Result<Cow<str>> {
+  pub fn summary(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context));
 
-    Ok(camera_text_to_str(summary))
+    Ok(cow_to_string(char_slice_to_cow(&summary.text)))
   }
 
   /// Get about information about the camera#
-  pub fn about(&self) -> Result<Cow<str>> {
+  pub fn about(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context));
 
-    Ok(camera_text_to_str(about))
+    Ok(cow_to_string(char_slice_to_cow(&about.text)))
   }
 
   /// Get the manual of the camera
   ///
   /// Not all cameras support this, and will return NotSupported
-  pub fn manual(&self) -> Result<Cow<str>> {
+  pub fn manual(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context));
 
-    Ok(camera_text_to_str(manual))
+    Ok(cow_to_string(char_slice_to_cow(&manual.text)))
   }
 
   /// List of storages available on the camera
@@ -219,8 +219,8 @@ impl Camera {
 
     Ok(match event_type {
       CameraEventType::GP_EVENT_UNKNOWN => {
-        let data = chars_to_cow(event_data as *const c_char);
-        CameraEvent::Unknown(data.to_string())
+        let data = unsafe { cow_to_string(chars_to_cow(event_data as *const c_char)) };
+        CameraEvent::Unknown(data)
       }
       CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
       CameraEventType::GP_EVENT_FILE_ADDED => {

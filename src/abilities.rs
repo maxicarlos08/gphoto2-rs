@@ -2,8 +2,8 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
-use crate::helper::{as_ref, bitflags};
-use crate::{context::Context, helper::chars_to_cow, try_gp_internal, Result};
+use crate::helper::{as_ref, bitflags, char_slice_to_cow};
+use crate::{context::Context, try_gp_internal, Result};
 use std::{borrow::Cow, fmt};
 
 pub(crate) struct AbilitiesList {
@@ -129,12 +129,12 @@ impl AbilitiesList {
 impl Abilities {
   /// Camera ID
   pub fn id(&self) -> Cow<str> {
-    chars_to_cow(self.inner.id.as_ptr())
+    char_slice_to_cow(&self.inner.id)
   }
 
   /// Get the model of the camera
   pub fn model(&self) -> Cow<str> {
-    chars_to_cow(self.inner.model.as_ptr())
+    char_slice_to_cow(&self.inner.model)
   }
 
   /// Get the [driver status](CameraDriverStatus) of the device

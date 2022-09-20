@@ -1,6 +1,11 @@
 //! Files stored on camera
 
-use crate::{camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Result};
+use crate::{
+  camera::Camera,
+  error::Error,
+  helper::{char_slice_to_cow, chars_to_cow},
+  try_gp_internal, Result,
+};
 use std::{borrow::Cow, ffi, fmt, fs, path::Path};
 
 #[cfg(unix)]
@@ -173,12 +178,12 @@ as_ref!(CameraFilePath -> libgphoto2_sys::CameraFilePath, self.inner);
 impl CameraFilePath {
   /// Get the name of the file's folder
   pub fn folder(&self) -> Cow<str> {
-    chars_to_cow(self.inner.folder.as_ptr())
+    char_slice_to_cow(&self.inner.folder)
   }
 
   /// Get the basename of the file (without the folder)
   pub fn name(&self) -> Cow<str> {
-    chars_to_cow(self.inner.name.as_ptr())
+    char_slice_to_cow(&self.inner.name)
   }
 
   fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<CameraFile> {
@@ -253,13 +258,13 @@ impl CameraFile {
   pub fn name(&self) -> Result<Cow<str>> {
     try_gp_internal!(gp_file_get_name(self.inner, &out file_name));
 
-    Ok(chars_to_cow(file_name))
+    Ok(unsafe { chars_to_cow(file_name) })
   }
 
   /// File mime type
   pub fn mime(&self) -> Result<Cow<str>> {
     try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime));
 
-    Ok(chars_to_cow(mime))
+    Ok(unsafe { chars_to_cow(mime) })
   }
 }
