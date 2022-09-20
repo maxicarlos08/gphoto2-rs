@@ -1,6 +1,6 @@
 [package]
 name = "libgphoto2_sys"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 description = "System bindings to libgphoto2"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"

@@ -2,7 +2,7 @@
 
 use crate::{
   file::{CameraFile, FileType},
-  helper::{chars_to_cow, to_c_string},
+  helper::{bitflags, chars_to_cow, to_c_string},
   list::CameraList,
   try_gp_internal, Camera, Result,
 };
@@ -78,8 +78,16 @@ pub enum FileStatus {
   NotDownloaded,
 }
 
-/// Permissions of a [`CameraFile`]
-pub struct FilePermissions(c_int);
+bitflags!(
+  /// Permissions of a [`CameraFile`]
+  FilePermissions = CameraFilePermissions {
+    /// File can be read
+    read: GP_FILE_PERM_READ,
+
+    /// File can be deleted
+    delete: GP_FILE_PERM_DELETE,
+  }
+);
 
 /// Image thumbnail information
 pub struct FileInfoPreview {
@@ -203,12 +211,6 @@ impl From<libgphoto2_sys::CameraFileInfoPreview> for FileInfoPreview {
   }
 }
 
-impl From<libgphoto2_sys::CameraFilePermissions> for FilePermissions {
-  fn from(permissions: libgphoto2_sys::CameraFilePermissions) -> Self {
-    Self(permissions as c_int)
-  }
-}
-
 impl From<libgphoto2_sys::CameraFileInfoFile> for FileInfoFile {
   fn from(file_info: libgphoto2_sys::CameraFileInfoFile) -> Self {
     Self {
@@ -256,18 +258,6 @@ impl fmt::Debug for StorageInfo {
       .field("free", &self.free())
       .field("free_images", &self.free_images())
       .finish()
-  }
-}
-
-impl FilePermissions {
-  /// File can be read
-  pub fn read(&self) -> bool {
-    self.0 & libgphoto2_sys::CameraFilePermissions::GP_FILE_PERM_READ as c_int != 0
-  }
-
-  /// File can be deleted
-  pub fn delete(&self) -> bool {
-    self.0 & libgphoto2_sys::CameraFilePermissions::GP_FILE_PERM_DELETE as c_int != 0
   }
 }
 

@@ -2,8 +2,9 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
+use crate::helper::bitflags;
 use crate::{context::Context, helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result};
-use std::{borrow::Cow, fmt, os::raw::c_int};
+use std::{borrow::Cow, fmt};
 
 pub(crate) struct AbilitiesList {
   pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
@@ -60,43 +61,11 @@ pub enum DeviceType {
   AudioPlayer,
 }
 
-// TODO: Better debug implementation for CameraOperations, FileOperations and FolderOperations
-
-/// Available operations on the camera
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct CameraOperations(c_int);
-
-/// Available operations on files
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct FileOperations(c_int);
-
-/// Available operations of folders
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct FolderOperations(c_int);
-
 impl Drop for AbilitiesList {
   fn drop(&mut self) {
     unsafe {
       libgphoto2_sys::gp_abilities_list_free(self.inner);
     }
-  }
-}
-
-impl From<libgphoto2_sys::CameraOperation> for CameraOperations {
-  fn from(op: libgphoto2_sys::CameraOperation) -> Self {
-    Self(op as c_int)
-  }
-}
-
-impl From<libgphoto2_sys::CameraFileOperation> for FileOperations {
-  fn from(op: libgphoto2_sys::CameraFileOperation) -> Self {
-    Self(op as c_int)
-  }
-}
-
-impl From<libgphoto2_sys::CameraFolderOperation> for FolderOperations {
-  fn from(op: libgphoto2_sys::CameraFolderOperation) -> Self {
-    Self(op as c_int)
   }
 }
 
@@ -216,108 +185,62 @@ impl Abilities {
   }
 }
 
-macro_rules! impl_bitmask_check {
-  ($(#[$meta:meta])*, $name:ident, $op:expr) => {
-    $(#[$meta])*
-    #[inline]
-    pub fn $name(&self) -> bool {
-      self.0 & $op as c_int != 0
-    }
-  };
-}
-
-impl CameraOperations {
-  impl_bitmask_check!(
+bitflags!(
+  /// Available operations on the camera
+  CameraOperations = CameraOperation {
     /// The camera is able to capture images
-    ,capture_image,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_CAPTURE_IMAGE
-  );
+    capture_image: GP_OPERATION_CAPTURE_IMAGE,
 
-  impl_bitmask_check!(
     /// The camera can capture videos
-    ,capture_video,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_CAPTURE_VIDEO
-  );
+    capture_video: GP_OPERATION_CAPTURE_VIDEO,
 
-  impl_bitmask_check!(
     /// The camera can capture audio
-    ,capture_audio,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_CAPTURE_AUDIO
-  );
+    capture_audio: GP_OPERATION_CAPTURE_AUDIO,
 
-  impl_bitmask_check!(
     /// The camera can capture previews (small images that are not saved to the camera)
-    ,capture_preview,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_CAPTURE_PREVIEW
-  );
+    capture_preview: GP_OPERATION_CAPTURE_PREVIEW,
 
-  impl_bitmask_check!(
     /// The camera can be configured
-    ,config,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_CONFIG
-  );
+    configure: GP_OPERATION_CONFIG,
 
-  impl_bitmask_check!(
     /// The camera can trigger captures
-    ,trigger_capture,
-    libgphoto2_sys::CameraOperation::GP_OPERATION_TRIGGER_CAPTURE
-  );
-}
+    trigger_capture: GP_OPERATION_TRIGGER_CAPTURE,
+  }
+);
 
-impl FileOperations {
-  impl_bitmask_check!(
+bitflags!(
+  /// Available operations on files
+  FileOperations = CameraFileOperation {
     /// Files cam be deleted
-    ,delete,
-    libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_DELETE
-  );
+    delete: GP_FILE_OPERATION_DELETE,
 
-  impl_bitmask_check!(
     /// Previews of images
-    ,preview,
-    libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_PREVIEW
-  );
+    preview: GP_FILE_OPERATION_PREVIEW,
 
-  impl_bitmask_check!(
     /// Raw files
-    ,raw,
-    libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_RAW
-  );
+    raw: GP_FILE_OPERATION_RAW,
 
-  impl_bitmask_check!(
     /// Get audio of file
-    ,audio,
-    libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_AUDIO
-  );
+    audio: GP_FILE_OPERATION_AUDIO,
 
-  impl_bitmask_check!(
     /// Can get exif of files
-    ,exif,
-    libgphoto2_sys::CameraFileOperation::GP_FILE_OPERATION_EXIF
-  );
-}
+    exif: GP_FILE_OPERATION_EXIF,
+  }
+);
 
-impl FolderOperations {
-  impl_bitmask_check!(
+bitflags!(
+  /// Available operations on folders
+  FolderOperations = CameraFolderOperation {
     /// Content of folder can be deleted
-    ,delete_all,
-    libgphoto2_sys::CameraFolderOperation::GP_FOLDER_OPERATION_DELETE_ALL
-  );
+    delete_all: GP_FOLDER_OPERATION_DELETE_ALL,
 
-  impl_bitmask_check!(
     /// Files can be uploaded to folder
-    ,put_file,
-    libgphoto2_sys::CameraFolderOperation::GP_FOLDER_OPERATION_PUT_FILE
-  );
+    put_file: GP_FOLDER_OPERATION_PUT_FILE,
 
-  impl_bitmask_check!(
     /// Directories can be created
-    ,make_dir,
-    libgphoto2_sys::CameraFolderOperation::GP_FOLDER_OPERATION_MAKE_DIR
-  );
+    make_dir: GP_FOLDER_OPERATION_MAKE_DIR,
 
-  impl_bitmask_check!(
     /// Directories can be removed
-    ,remove_dir,
-    libgphoto2_sys::CameraFolderOperation::GP_FOLDER_OPERATION_REMOVE_DIR
-  );
-}
+    remove_dir: GP_FOLDER_OPERATION_REMOVE_DIR,
+  }
+);
