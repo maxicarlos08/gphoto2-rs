@@ -1,6 +1,7 @@
 //! List of cameras and ports
 
-use crate::{helper::chars_to_cow, try_gp_internal, InnerPtr, Result};
+use crate::helper::as_ref;
+use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::borrow::Cow;
 
 /// List of string tuples
@@ -16,11 +17,7 @@ impl Drop for CameraList {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::CameraList> for CameraList {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraList {
-    &self.inner
-  }
-}
+as_ref!(CameraList -> libgphoto2_sys::CameraList, *self.inner);
 
 impl CameraList {
   pub(crate) fn new() -> Result<Self> {

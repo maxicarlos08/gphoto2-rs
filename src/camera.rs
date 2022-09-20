@@ -4,11 +4,11 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{camera_text_to_str, chars_to_cow, to_c_string},
+  helper::{as_ref, camera_text_to_str, chars_to_cow, to_c_string},
   port::PortInfo,
   try_gp_internal,
   widget::{Widget, WidgetType},
-  InnerPtr, Result,
+  Result,
 };
 use std::{borrow::Cow, ffi, os::raw::c_char, time::Duration};
 
@@ -93,11 +93,7 @@ impl Drop for Camera {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::Camera> for Camera {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::Camera {
-    &self.camera
-  }
-}
+as_ref!(Camera -> libgphoto2_sys::Camera, *self.camera);
 
 impl Camera {
   pub(crate) fn new(

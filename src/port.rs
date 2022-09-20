@@ -16,7 +16,8 @@
 //! # }
 //! ```
 
-use crate::{helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result};
+use crate::helper::as_ref;
+use crate::{helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, fmt};
 
 /// Type of the port
@@ -80,17 +81,9 @@ impl fmt::Debug for PortInfo {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::GPPortInfoList> for PortInfoList {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::GPPortInfoList {
-    &self.inner
-  }
-}
+as_ref!(PortInfoList -> libgphoto2_sys::GPPortInfoList, *self.inner);
 
-impl Inner<libgphoto2_sys::GPPortInfo> for PortInfo {
-  unsafe fn inner(&self) -> &libgphoto2_sys::GPPortInfo {
-    &self.inner
-  }
-}
+as_ref!(PortInfo -> libgphoto2_sys::GPPortInfo, self.inner);
 
 impl PortType {
   fn new(port_type: libgphoto2_sys::GPPortType) -> Option<Self> {

@@ -1,8 +1,6 @@
 //! Files stored on camera
 
-use crate::{
-  camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Inner, InnerPtr, Result,
-};
+use crate::{camera::Camera, error::Error, helper::chars_to_cow, try_gp_internal, Result};
 use std::{borrow::Cow, ffi, fmt, fs, path::Path};
 
 #[cfg(unix)]
@@ -61,7 +59,7 @@ mod owned_fd_impl {
   }
 }
 
-use crate::helper::to_c_string;
+use crate::helper::{as_ref, to_c_string};
 use owned_fd_impl::OwnedFd;
 
 /// Represents a path of a file on a camera
@@ -168,17 +166,9 @@ impl fmt::Debug for CameraFilePath {
   }
 }
 
-impl InnerPtr<libgphoto2_sys::CameraFile> for CameraFile {
-  unsafe fn inner_mut_ptr(&self) -> &*mut libgphoto2_sys::CameraFile {
-    &self.inner
-  }
-}
+as_ref!(CameraFile -> libgphoto2_sys::CameraFile, *self.inner);
 
-impl Inner<libgphoto2_sys::CameraFilePath> for CameraFilePath {
-  unsafe fn inner(&self) -> &libgphoto2_sys::CameraFilePath {
-    &self.inner
-  }
-}
+as_ref!(CameraFilePath -> libgphoto2_sys::CameraFilePath, self.inner);
 
 impl CameraFilePath {
   /// Get the name of the file's folder
