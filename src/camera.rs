@@ -7,8 +7,8 @@ use crate::{
   helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string},
   port::PortInfo,
   try_gp_internal,
-  widget::{Widget, WidgetType},
-  Result,
+  widget::{GroupWidget, Widget, WidgetBase},
+  Error, Result,
 };
 use std::{ffi, os::raw::c_char, time::Duration};
 
@@ -68,14 +68,14 @@ pub enum CameraEvent {
 /// for my Nikon D3400 (set the iso to 400).
 ///
 /// ```no_run
-/// use gphoto2::{Context, Result, widget::WidgetValue};
+/// use gphoto2::{Context, Result, widget::RadioWidget};
 ///
 /// # fn main() -> Result<()> {
 /// let context = Context::new()?;
 /// let camera = context.autodetect_camera()?;
 ///
-/// let mut iso = camera.config_key("iso")?;
-/// iso.set_value(WidgetValue::Menu("400".into()))?;
+/// let mut iso = camera.config_key::<RadioWidget>("iso")?;
+/// iso.set_choice("400")?;
 /// camera.set_config(&iso)?;
 /// # Ok(())
 /// # }
@@ -253,14 +253,19 @@ impl Camera {
   }
 
   /// Get the camera configuration
-  pub fn config(&self) -> Result<Widget> {
+  pub fn config(&self) -> Result<GroupWidget> {
     try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context));
 
-    Ok(Widget::new_owned(root_widget))
+    Widget::new_owned(root_widget)?.try_into::<GroupWidget>()
   }
 
-  /// Get a single configuration by name
-  pub fn config_key(&self, key: &str) -> Result<Widget> {
+  /// Get a single configuration by name.
+  /// Pass either a specific widget type as a generic parameter or [`Widget`]
+  /// if you're not sure what this config represents.
+  pub fn config_key<T: TryFrom<Widget>>(&self, key: &str) -> Result<T>
+  where
+    Error: From<T::Error>,
+  {
     try_gp_internal!(gp_camera_get_single_config(
       self.camera,
       to_c_string!(key),
@@ -268,24 +273,18 @@ impl Camera {
       self.context
     ));
 
-    Ok(Widget::new_owned(widget))
+    Ok(Widget::new_owned(widget)?.try_into()?)
   }
 
   /// Apply a full config object to the camera.
-  ///
-  /// The configuration widget must be of type [`Window`](crate::widget::WidgetType::Window)
-  pub fn set_all_config(&self, config: &Widget) -> Result<()> {
-    if !matches!(config.widget_type()?, WidgetType::Window | WidgetType::Section) {
-      Err("Full config object must be of type Window or section")?;
-    }
-
+  pub fn set_all_config(&self, config: &GroupWidget) -> Result<()> {
     try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context));
 
     Ok(())
   }
 
   /// Set a single configuration widget to the camera
-  pub fn set_config(&self, config: &Widget) -> Result<()> {
+  pub fn set_config(&self, config: &WidgetBase) -> Result<()> {
     try_gp_internal!(gp_camera_set_single_config(
       self.camera,
       to_c_string!(config.name()?),

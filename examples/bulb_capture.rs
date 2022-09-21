@@ -3,26 +3,27 @@
 //! There are also actions for capturing movies, changing liveview, etc.  
 //! This example will only work for Nikon DSLR cameras.
 
-use gphoto2::{camera::CameraEvent, widget::WidgetValue, Context, Result};
+use gphoto2::widget::{RadioWidget, ToggleWidget};
+use gphoto2::{camera::CameraEvent, Context, Result};
 use std::{thread::sleep, time::Duration};
 
 fn main() -> Result<()> {
   let camera = Context::new()?.autodetect_camera()?;
 
-  let mut shutter_speed = camera.config_key("shutterspeed")?;
-  let mut bulb_setting = camera.config_key("bulb")?;
+  let shutter_speed = camera.config_key::<RadioWidget>("shutterspeed")?;
+  let bulb_setting = camera.config_key::<ToggleWidget>("bulb")?;
 
-  shutter_speed.set_value(WidgetValue::Menu("Bulb".to_string()))?;
+  shutter_speed.set_choice("Bulb")?;
   camera.set_config(&shutter_speed)?;
 
   println!("Starting bulb capture");
 
-  bulb_setting.set_value(WidgetValue::Toggle(Some(true)))?;
+  bulb_setting.set_toggled(true)?;
   camera.set_config(&bulb_setting)?;
 
   sleep(Duration::from_secs(2));
 
-  bulb_setting.set_value(WidgetValue::Toggle(Some(false)))?;
+  bulb_setting.set_toggled(false)?;
   camera.set_config(&bulb_setting)?;
 
   let mut retry = 0;
