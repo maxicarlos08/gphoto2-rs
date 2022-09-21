@@ -251,7 +251,7 @@ impl Widget {
         WidgetType::Window | WidgetType::Button | WidgetType::Section => None,
         WidgetType::Text => Some(WidgetValue::Text(self.str_value()?)),
         WidgetType::Range { .. } => Some(WidgetValue::Range(self.raw_value()?)),
-        WidgetType::Toggle => Some(WidgetValue::Toggle(self.raw_value::<c_int>()? == 0)),
+        WidgetType::Toggle => Some(WidgetValue::Toggle(self.raw_value::<c_int>()? == 1)),
         WidgetType::Date => Some(WidgetValue::Date(self.raw_value()?)),
         WidgetType::Menu { .. } => Some(WidgetValue::Menu(self.str_value()?)),
       },
