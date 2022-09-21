@@ -45,7 +45,7 @@ impl Context {
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
     if context_ptr.is_null() {
-      Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY))
+      Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None))
     } else {
       Ok(Self { inner: context_ptr })
     }

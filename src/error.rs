@@ -62,8 +62,8 @@ pub struct Error {
 
 impl Error {
   /// Creates a new error from a gphoto internal error
-  pub fn new(error: c_int) -> Self {
-    Self { error, info: None }
+  pub fn new(error: c_int, info: Option<String>) -> Self {
+    Self { error, info }
   }
 
   /// Map the gphoto type to an [`ErrorKind`]
@@ -153,7 +153,7 @@ macro_rules! try_gp_internal {
       let status: std::os::raw::c_int = libgphoto2_sys::$func $args;
 
       if status < 0 {
-        return Err($crate::Error::new(status));
+        return Err($crate::Error::new(status, None));
       }
 
       (status, $($out.assume_init()),*)

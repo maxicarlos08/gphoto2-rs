@@ -224,7 +224,7 @@ impl CameraFile {
 
   pub(crate) fn new_file(path: &Path) -> Result<Self> {
     if path.is_file() {
-      return Err(Error::new(libgphoto2_sys::GP_ERROR_FILE_EXISTS));
+      return Err(Error::new(libgphoto2_sys::GP_ERROR_FILE_EXISTS, None));
     }
 
     let file = OwnedFd::from(fs::File::create(path)?);

@@ -17,12 +17,12 @@ fn main() -> Result<()> {
 
   println!("Starting bulb capture");
 
-  bulb_setting.set_value(WidgetValue::Toggle(true))?;
+  bulb_setting.set_value(WidgetValue::Toggle(Some(true)))?;
   camera.set_config(&bulb_setting)?;
 
   sleep(Duration::from_secs(2));
 
-  bulb_setting.set_value(WidgetValue::Toggle(false))?;
+  bulb_setting.set_value(WidgetValue::Toggle(Some(false)))?;
   camera.set_config(&bulb_setting)?;
 
   let mut retry = 0;

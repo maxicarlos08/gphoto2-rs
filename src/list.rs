@@ -1,6 +1,9 @@
 //! List of cameras and ports
 
-use crate::{try_gp_internal, Result, helper::{as_ref, chars_to_string}};
+use crate::{
+  helper::{as_ref, chars_to_string},
+  try_gp_internal, Result,
+};
 
 /// List of string tuples
 pub struct CameraList {

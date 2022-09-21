@@ -31,8 +31,10 @@ pub enum WidgetValue {
   Text(String),
   /// Float in a range
   Range(f32),
-  /// Boolean
-  Toggle(bool),
+  /// Checkbox (if None the state is unknown)
+  ///
+  /// Note that you cannot set a toggle to an unknown state
+  Toggle(Option<bool>),
   /// Selected choice
   Menu(String),
   /// Date
@@ -251,7 +253,11 @@ impl Widget {
         WidgetType::Window | WidgetType::Button | WidgetType::Section => None,
         WidgetType::Text => Some(WidgetValue::Text(self.str_value()?)),
         WidgetType::Range { .. } => Some(WidgetValue::Range(self.raw_value()?)),
-        WidgetType::Toggle => Some(WidgetValue::Toggle(self.raw_value::<c_int>()? == 1)),
+        WidgetType::Toggle => Some(WidgetValue::Toggle(match self.raw_value::<c_int>()? {
+          1 => Some(true),
+          2 => None,
+          _ => Some(false),
+        })),
         WidgetType::Date => Some(WidgetValue::Date(self.raw_value()?)),
         WidgetType::Menu { .. } => Some(WidgetValue::Menu(self.str_value()?)),
       },
@@ -291,12 +297,15 @@ impl Widget {
         }
       }
       WidgetType::Toggle => {
-        if let WidgetValue::Toggle(toggle_value) = value {
-          let toggle_value = if toggle_value { 1 } else { 0 };
-          try_gp_internal!(gp_widget_set_value(
-            self.inner,
-            &toggle_value as *const c_int as *const c_void
-          ));
+        if let WidgetValue::Toggle(optional_toggle) = value {
+          if let Some(toggle_value) = optional_toggle {
+            try_gp_internal!(gp_widget_set_value(
+              self.inner,
+              &(toggle_value as c_int) as *const c_int as *const c_void
+            ));
+          } else {
+            Err("A toggle cannot be set to an unknown state")?;
+          }
         } else {
           Err("Expected value to be Toggle")?;
         }

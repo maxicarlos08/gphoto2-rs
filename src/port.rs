@@ -16,7 +16,10 @@
 //! # }
 //! ```
 
-use crate::{try_gp_internal, Result, helper::{as_ref, chars_to_string}};
+use crate::{
+  helper::{as_ref, chars_to_string},
+  try_gp_internal, Result,
+};
 use std::fmt;
 
 /// Type of the port
