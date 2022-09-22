@@ -106,9 +106,21 @@ impl From<std::ffi::NulError> for Error {
   }
 }
 
+impl From<std::convert::Infallible> for Error {
+  fn from(err: std::convert::Infallible) -> Self {
+    match err {}
+  }
+}
+
+impl From<String> for Error {
+  fn from(message: String) -> Self {
+    Self { error: libgphoto2_sys::GP_ERROR, info: Some(message) }
+  }
+}
+
 impl From<&str> for Error {
   fn from(message: &str) -> Self {
-    Self { error: libgphoto2_sys::GP_ERROR, info: Some(message.into()) }
+    message.to_owned().into()
   }
 }
 
@@ -147,6 +159,7 @@ macro_rules! try_gp_internal {
   };
 
   (@ $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
+    #[allow(unused_unsafe)]
     let ($status, $($out),*) = unsafe {
       $(let mut $out = std::mem::MaybeUninit::uninit();)*
 

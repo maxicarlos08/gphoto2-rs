@@ -4,22 +4,23 @@
 //! This example starts and ends live view mode on the camera for 10 s,
 //! this example only works on Nikon cameras.
 
-use gphoto2::{widget::WidgetValue, Context, Result};
+use gphoto2::widget::TextWidget;
+use gphoto2::{Context, Result};
 use std::{thread, time::Duration};
 
 fn main() -> Result<()> {
   let camera = Context::new()?.autodetect_camera()?;
 
-  let mut opcode = camera.config_key("opcode")?;
+  let opcode = camera.config_key::<TextWidget>("opcode")?;
 
   println!("Starting live view");
-  opcode.set_value(WidgetValue::Text("0x9201".into()))?;
+  opcode.set_value("0x9201")?;
   camera.set_config(&opcode)?;
 
   thread::sleep(Duration::from_secs(10));
 
   println!("Ending live view");
-  opcode.set_value(WidgetValue::Text("0x9202".into()))?;
+  opcode.set_value("0x9202")?;
   camera.set_config(&opcode)?;
 
   Ok(())

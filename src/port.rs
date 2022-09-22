@@ -17,7 +17,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_string},
+  helper::{as_ref, chars_to_string, FmtResult},
   try_gp_internal, Result,
 };
 use std::fmt;
@@ -76,9 +76,9 @@ impl From<libgphoto2_sys::GPPortInfo> for PortInfo {
 impl fmt::Debug for PortInfo {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("PortInfo")
-      .field("name", &self.name().ok())
-      .field("path", &self.path().ok())
-      .field("port_type", &self.port_type().ok().flatten())
+      .field("name", self.name().fmt_res())
+      .field("path", self.path().fmt_res())
+      .field("port_type", self.port_type().fmt_res())
       .finish()
   }
 }

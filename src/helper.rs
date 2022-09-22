@@ -1,3 +1,5 @@
+use crate::Result;
+use std::fmt::Debug;
 use std::{borrow::Cow, ffi, os::raw::c_char};
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
@@ -8,6 +10,19 @@ pub fn chars_to_string(chars: *const c_char) -> String {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }.into_owned()
 }
 
+pub trait FmtResult {
+  fn fmt_res(&self) -> &dyn Debug;
+}
+
+impl<T: Debug> FmtResult for Result<T> {
+  fn fmt_res(&self) -> &dyn Debug {
+    match self {
+      Ok(v) => v,
+      Err(e) => e,
+    }
+  }
+}
+
 macro_rules! to_c_string {
   ($v:expr) => {
     ffi::CString::new($v)?.as_ptr().cast::<std::os::raw::c_char>()
@@ -15,12 +30,12 @@ macro_rules! to_c_string {
 }
 
 macro_rules! as_ref {
-  ($from:ident -> $to:ty, $self:ident . $field:ident) => {
-    as_ref!(@ $from -> $to, , $self, $self.$field);
+  ($from:ident -> $to:ty, $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from -> $to, , $self, $self $($rest)*);
   };
 
-  ($from:ident -> $to:ty, * $self:ident . $field:ident) => {
-    as_ref!(@ $from -> $to, unsafe, $self, *$self.$field);
+  ($from:ident -> $to:ty, * $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from -> $to, unsafe, $self, *$self $($rest)*);
   };
 
   (@ $from:ident -> $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
