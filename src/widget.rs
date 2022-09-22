@@ -71,7 +71,7 @@ impl WidgetBase {
   }
 
   /// Get exact widget type.
-  pub fn ty(&self) -> Result<libgphoto2_sys::CameraWidgetType> {
+  fn ty(&self) -> Result<libgphoto2_sys::CameraWidgetType> {
     try_gp_internal!(gp_widget_get_type(self.inner, &out widget_type));
     Ok(widget_type)
   }
