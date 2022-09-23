@@ -264,7 +264,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Get information of a file
-  pub fn info(&self, folder: &str, file: &str) -> Result<FileInfo> {
+  pub fn file_info(&self, folder: &str, file: &str) -> Result<FileInfo> {
     // File info is fairly large, it's best to allocate it on the heap
     // to avoid lots of memcpy.
     let mut inner = Box::new(MaybeUninit::uninit());
@@ -303,7 +303,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Delete all files in a folder
-  pub fn folder_delete_all(&self, folder: &str) -> Result<()> {
+  pub fn delete_all_in_folder(&self, folder: &str) -> Result<()> {
     try_gp_internal!(gp_camera_folder_delete_all(
       self.camera.camera,
       to_c_string!(folder),
@@ -313,7 +313,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// List files in a folder
-  pub fn ls_files(&self, folder: &str) -> Result<Vec<String>> {
+  pub fn list_files(&self, folder: &str) -> Result<Vec<String>> {
     let file_list = CameraList::new()?;
 
     try_gp_internal!(gp_camera_folder_list_files(
@@ -327,7 +327,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// List folders in a folder
-  pub fn ls_folders(&self, folder: &str) -> Result<Vec<String>> {
+  pub fn list_folders(&self, folder: &str) -> Result<Vec<String>> {
     let folder_list = CameraList::new()?;
 
     try_gp_internal!(gp_camera_folder_list_folders(
@@ -341,7 +341,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Creates a new folder
-  pub fn mkdir(&self, parent_folder: &str, new_folder: &str) -> Result<()> {
+  pub fn create_directory(&self, parent_folder: &str, new_folder: &str) -> Result<()> {
     try_gp_internal!(gp_camera_folder_make_dir(
       self.camera.camera,
       to_c_string!(parent_folder),
@@ -353,7 +353,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Removes a folder
-  pub fn rmdir(&self, parent: &str, to_remove: &str) -> Result<()> {
+  pub fn remove_directory(&self, parent: &str, to_remove: &str) -> Result<()> {
     try_gp_internal!(gp_camera_folder_remove_dir(
       self.camera.camera,
       to_c_string!(parent),
