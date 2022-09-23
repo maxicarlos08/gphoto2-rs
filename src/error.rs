@@ -156,16 +156,21 @@ impl error::Error for Error {}
 /// Check the result of an internal libgphoto2 function.
 ///
 /// If the return type is less than 0, an error is returned,
-/// otherwise the result of the function
+/// otherwise the result of the function.
+///
+/// Supports special `&out param`s for output variables.
 macro_rules! try_gp_internal {
+  // Support special `&out param` references that create local `let` variables.
   (@ $unwrap:tt $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
     try_gp_internal!(@ $unwrap $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
   };
 
+  // Any other arguments are passed as-is.
   (@ $unwrap:tt $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
     try_gp_internal!(@ $unwrap $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
   };
 
+  // End of recursion, unwrap the error in the requested way and generate the `let` bindings on success.
   (@ ($($unwrap:tt)*) $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
     #[allow(unused_unsafe)]
     let ($status, $($out),*) = unsafe {
@@ -184,11 +189,13 @@ macro_rules! try_gp_internal {
     compile_error!("try_gp_internal!() must be used with .unwrap() or ?")
   };
 
+  // Entry point for `let status = some_func(...` form.
   (let $status:tt = $func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
     try_gp_internal!(@check_unwrap_allowed $($unwrap)*);
     try_gp_internal!(@ ($($unwrap)*) $status [] $func () $($args)*)
   };
 
+  // Entry point for `some_func(...` form.
   ($func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
     try_gp_internal!(let _ = $func ( $($args)* ) $($unwrap)*)
   };
