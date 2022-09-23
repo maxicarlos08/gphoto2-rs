@@ -1,5 +1,6 @@
 //! Library context
-use crate::helper::as_ref;
+use crate::helper::{as_ref, to_c_string};
+use crate::list::{CameraDescriptor, CameraListIter};
 use crate::{
   abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
   Error, Result,
@@ -16,12 +17,10 @@ use std::ffi;
 /// # fn main() -> Result<()> {
 /// let context = Context::new()?;
 ///
-/// let camera_list = context.list_cameras()?;
-///
 /// // Use first camera in the camera list
 ///
-/// let (model, port) = &camera_list.to_vec()?[0];
-/// context.get_camera(&model.to_string(), &port.to_string());
+/// let camera_desc = context.list_cameras()?.next().ok_or("No cameras found")?;
+/// let camera = context.get_camera(&camera_desc)?;
 ///
 /// # Ok(())
 /// # }
@@ -55,12 +54,12 @@ impl Context {
   ///
   /// Returns a list of (camera_name, port_path)
   /// which can be used in [`Context::get_camera`].
-  pub fn list_cameras(&self) -> Result<CameraList> {
+  pub fn list_cameras(&self) -> Result<CameraListIter> {
     let camera_list = CameraList::new()?;
 
     try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner));
 
-    Ok(camera_list)
+    Ok(CameraListIter::new(camera_list))
   }
 
   /// Auto chooses a camera
@@ -71,7 +70,7 @@ impl Context {
   /// # fn main() -> Result<()> {
   /// let context = Context::new()?;
   /// if let Ok(camera) = context.autodetect_camera() {
-  ///   println!("Successfully autodetected camera '{}'", camera.abilities()?.model());
+  ///   println!("Successfully autodetected camera '{}'", camera.abilities().model());
   /// } else {
   ///   println!("Could not autodetect camera");
   /// }
@@ -92,17 +91,13 @@ impl Context {
   ///
   /// # fn main() -> Result<()> {
   /// let context = Context::new()?;
-  /// let camera_list = context.list_cameras()?;
-  /// let camera_list = camera_list.to_vec()?;
   ///
-  /// if camera_list.len() < 1 {
-  ///   Err("No cameras found")?
-  /// }
+  /// let camera_desc = context.list_cameras()?.next().ok_or("No cameras found")?;
+  /// let camera = context.get_camera(&camera_desc)?;
   ///
-  /// let camera = context.get_camera(&camera_list[0].0[..], &camera_list[0].1[..])?;
   /// # Ok(())
   /// # }
-  pub fn get_camera(&self, model: &str, port_path: &str) -> Result<Camera> {
+  pub fn get_camera(&self, camera_desc: &CameraDescriptor) -> Result<Camera> {
     let abilities_list = AbilitiesList::new(self)?;
     let port_info_list = PortInfoList::new()?;
 
@@ -110,7 +105,7 @@ impl Context {
 
     try_gp_internal!(let model_index = gp_abilities_list_lookup_model(
       abilities_list.inner,
-      ffi::CString::new(model)?.as_ptr(),
+      to_c_string!(camera_desc.model.as_str())
     ));
 
     try_gp_internal!(gp_abilities_list_get_abilities(
@@ -122,7 +117,7 @@ impl Context {
 
     try_gp_internal!(let p = gp_port_info_list_lookup_path(
       port_info_list.inner,
-      ffi::CString::new(port_path)?.as_ptr()
+      to_c_string!(camera_desc.port.as_str())
     ));
     let port_info = port_info_list.get_port_info(p)?;
     try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner));

@@ -1,13 +1,9 @@
 //! List of cameras and ports
 
-use crate::{
-  helper::{as_ref, chars_to_string},
-  try_gp_internal, Result,
-};
-use std::os::raw::c_int;
+use crate::{helper::chars_to_string, try_gp_internal, Result};
+use std::{ops::Range, os::raw::c_int};
 
-/// List of string tuples
-pub struct CameraList {
+pub(crate) struct CameraList {
   pub(crate) inner: *mut libgphoto2_sys::CameraList,
 }
 
@@ -19,8 +15,6 @@ impl Drop for CameraList {
   }
 }
 
-as_ref!(CameraList -> libgphoto2_sys::CameraList, *self.inner);
-
 impl CameraList {
   pub(crate) fn new() -> Result<Self> {
     try_gp_internal!(gp_list_new(&out list));
@@ -28,71 +22,75 @@ impl CameraList {
     Ok(Self { inner: list })
   }
 
-  /// Get length of the list.
-  pub fn len(&self) -> usize {
-    unsafe { libgphoto2_sys::gp_list_count(self.inner) as usize }
+  fn range(&self) -> Range<c_int> {
+    0..unsafe { libgphoto2_sys::gp_list_count(self.inner) }
   }
 
-  /// Check if the list is empty.
-  pub fn is_empty(&self) -> bool {
-    self.len() == 0
+  fn get_name_at_unchecked(&self, i: c_int) -> String {
+    try_gp_internal!(gp_list_get_name(self.inner, i, &out name).unwrap());
+    chars_to_string(name)
   }
 
-  /// Get the name and value of the list item at the given index.
-  pub fn get_name_value(&self, index: usize) -> Result<(String, String)> {
-    try_gp_internal!(gp_list_get_name(self.inner, index as c_int, &out name));
-    try_gp_internal!(gp_list_get_value(self.inner, index as c_int, &out value));
-
-    Ok((chars_to_string(name), chars_to_string(value)))
-  }
-
-  /// Get a referential iterator.
-  pub fn iter(&self) -> CameraListIter<'_> {
-    self.into_iter()
+  fn get_value_at_unchecked(&self, i: c_int) -> String {
+    try_gp_internal!(gp_list_get_value(self.inner, i, &out value).unwrap());
+    chars_to_string(value)
   }
 }
 
-impl std::fmt::Debug for CameraList {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_list().entries(self.iter()).finish()
-  }
+macro_rules! camera_list_iter {
+  ($(# $attr:tt)* |$self:ident: $ty:ident, $i:ident| -> $item_ty:ty $get_item:block) => {
+    $(# $attr)*
+    pub struct $ty {
+      list: CameraList,
+      range: Range<c_int>,
+    }
+
+    impl $ty {
+      pub(crate) fn new(list: CameraList) -> Self {
+        Self { range: list.range(), list }
+      }
+    }
+
+    impl Iterator for $ty {
+      type Item = $item_ty;
+
+      fn next(&mut $self) -> Option<Self::Item> {
+        $self.range.next().map(|$i| $get_item)
+      }
+
+      fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+      }
+    }
+
+    impl ExactSizeIterator for $ty {
+      fn len(&self) -> usize {
+        self.range.len()
+      }
+    }
+  };
 }
 
-impl<'a> IntoIterator for &'a CameraList {
-  type Item = (String, String);
-  type IntoIter = CameraListIter<'a>;
-
-  fn into_iter(self) -> Self::IntoIter {
-    CameraListIter::new(self)
-  }
+/// Descriptor representing model+port pair of the connected camera.
+#[derive(Debug)]
+pub struct CameraDescriptor {
+  /// Camera model.
+  pub model: String,
+  /// Port the camera is connected to.
+  pub port: String,
 }
 
-/// Iterator for [`CameraList`]
-pub struct CameraListIter<'a> {
-  list: &'a CameraList,
-  range: std::ops::Range<usize>,
-}
-
-impl<'a> CameraListIter<'a> {
-  fn new(list: &'a CameraList) -> Self {
-    Self { range: 0..list.len(), list }
+camera_list_iter!(
+  /// Iterator over camera names and ports.
+  |self: CameraListIter, i| -> CameraDescriptor {
+    CameraDescriptor {
+      model: self.list.get_name_at_unchecked(i),
+      port: self.list.get_value_at_unchecked(i),
+    }
   }
-}
+);
 
-impl Iterator for CameraListIter<'_> {
-  type Item = (String, String);
-
-  fn next(&mut self) -> Option<Self::Item> {
-    self.range.next().map(|i| self.list.get_name_value(i).unwrap())
-  }
-
-  fn size_hint(&self) -> (usize, Option<usize>) {
-    self.range.size_hint()
-  }
-}
-
-impl ExactSizeIterator for CameraListIter<'_> {
-  fn len(&self) -> usize {
-    self.range.len()
-  }
-}
+camera_list_iter!(
+  /// Iterator over filenames.
+  |self: FileListIter, i| -> String { self.list.get_name_at_unchecked(i) }
+);

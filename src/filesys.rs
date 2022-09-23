@@ -3,7 +3,7 @@
 use crate::{
   file::{CameraFile, FileType},
   helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
-  list::CameraList,
+  list::{CameraList, FileListIter},
   try_gp_internal, Camera, Result,
 };
 use std::{borrow::Cow, ffi};
@@ -302,7 +302,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// List files in a folder
-  pub fn ls_files(&self, folder: &str) -> Result<Vec<String>> {
+  pub fn ls_files(&self, folder: &str) -> Result<FileListIter> {
     let file_list = CameraList::new()?;
 
     try_gp_internal!(gp_camera_folder_list_files(
@@ -312,11 +312,11 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(file_list.iter().map(|(name, _)| name).collect())
+    Ok(FileListIter::new(file_list))
   }
 
   /// List folders in a folder
-  pub fn ls_folders(&self, folder: &str) -> Result<Vec<String>> {
+  pub fn ls_folders(&self, folder: &str) -> Result<FileListIter> {
     let folder_list = CameraList::new()?;
 
     try_gp_internal!(gp_camera_folder_list_folders(
@@ -326,7 +326,7 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(folder_list.iter().map(|(name, _)| name).collect())
+    Ok(FileListIter::new(folder_list))
   }
 
   /// Creates a new folder

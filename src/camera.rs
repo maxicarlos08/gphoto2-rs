@@ -51,7 +51,7 @@ pub enum CameraEvent {
 /// let camera = context.autodetect_camera()?;
 ///
 /// // Get some basic information about the camera
-/// println!("Camera abilities: {:?}", camera.abilities()?);
+/// println!("Camera abilities: {:?}", camera.abilities());
 /// println!("Camera summary: {}", camera.summary()?);
 ///
 /// // Capture an image
@@ -129,7 +129,7 @@ impl Camera {
   /// let camera = context.autodetect_camera()?;
   ///
   /// let image_preview = camera.capture_preview()?;
-  /// println!("Preview name: {}", image_preview.name()?);
+  /// println!("Preview name: {}", image_preview.name());
   /// # Ok(())
   /// # }
   /// ```
