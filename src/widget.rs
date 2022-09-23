@@ -299,28 +299,28 @@ impl GroupWidget {
 
   /// Gets a child by its index
   pub fn get_child(&self, index: usize) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child(self.as_ptr(), index as c_int, &out child));
+    try_gp_internal!(gp_widget_get_child(self.as_ptr(), index as c_int, &out child)?);
 
     Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id as c_int, &out child));
+    try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id as c_int, &out child)?);
 
     Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its label
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child_by_label(self.as_ptr(), to_c_string!(label), &out child));
+    try_gp_internal!(gp_widget_get_child_by_label(self.as_ptr(), to_c_string!(label), &out child)?);
 
     Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child_by_name(self.as_ptr(), to_c_string!(name), &out child));
+    try_gp_internal!(gp_widget_get_child_by_name(self.as_ptr(), to_c_string!(name), &out child)?);
 
     Ok(Widget::new_shared(child))
   }

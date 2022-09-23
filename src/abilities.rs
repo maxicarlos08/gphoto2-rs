@@ -113,8 +113,8 @@ as_ref!(Abilities -> libgphoto2_sys::CameraAbilities, self.inner);
 
 impl AbilitiesList {
   pub(crate) fn new(context: &Context) -> Result<Self> {
-    try_gp_internal!(gp_abilities_list_new(&out abilities_inner));
-    try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner));
+    try_gp_internal!(gp_abilities_list_new(&out abilities_inner)?);
+    try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner)?);
 
     Ok(Self { inner: abilities_inner })
   }
