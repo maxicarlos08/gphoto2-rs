@@ -13,6 +13,8 @@ pub mod list;
 pub mod port;
 pub mod widget;
 
+use self::error::try_gp_internal;
+
 #[doc(inline)]
 pub use crate::{
   camera::Camera,

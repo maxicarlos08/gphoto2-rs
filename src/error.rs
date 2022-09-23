@@ -157,7 +157,6 @@ impl error::Error for Error {}
 ///
 /// If the return type is less than 0, an error is returned,
 /// otherwise the result of the function
-#[macro_export]
 macro_rules! try_gp_internal {
   (@ $unwrap:tt $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
     try_gp_internal!(@ $unwrap $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
@@ -191,3 +190,5 @@ macro_rules! try_gp_internal {
     try_gp_internal!(let _ = $func ( $($args)* ) $($unwrap)*)
   };
 }
+
+pub(crate) use try_gp_internal;
