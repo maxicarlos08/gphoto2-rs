@@ -154,7 +154,7 @@ impl Camera {
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context).unwrap());
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context));
 
     Ok(char_slice_to_cow(&summary.text).into_owned())
   }
