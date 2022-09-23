@@ -249,16 +249,16 @@ impl CameraFile {
   }
 
   /// File name
-  pub fn name(&self) -> Result<String> {
-    try_gp_internal!(gp_file_get_name(self.inner, &out file_name));
+  pub fn name(&self) -> String {
+    try_gp_internal!(gp_file_get_name(self.inner, &out file_name).unwrap());
 
-    Ok(chars_to_string(file_name))
+    chars_to_string(file_name)
   }
 
   /// File mime type
-  pub fn mime(&self) -> Result<String> {
-    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime));
+  pub fn mime(&self) -> String {
+    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime).unwrap());
 
-    Ok(chars_to_string(mime))
+    chars_to_string(mime)
   }
 }

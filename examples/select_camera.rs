@@ -9,16 +9,12 @@ fn main() -> Result<()> {
 
   let context = Context::new()?;
 
-  let camera_list = context.list_cameras()?;
-  let camera_list = camera_list.to_vec()?;
+  let camera_desc = context
+    .list_cameras()?
+    .find(|desc| desc.model == camera_name)
+    .ok_or_else(|| format!("Could not find camera with name '{}'", camera_name))?;
 
-  if let Some((camera, port)) = camera_list.iter().find(|(name, _)| name == &camera_name) {
-    let _camera = context.get_camera(&camera.to_owned(), &port.to_owned())?;
-
-    println!("Found camera {}!", camera_name);
-  } else {
-    Err(format!("Could not find camera with name '{}'", camera_name).as_str())?;
-  }
+  let _camera = context.get_camera(&camera_desc)?;
 
   Ok(())
 }

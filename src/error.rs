@@ -66,6 +66,15 @@ impl Error {
     Self { error, info }
   }
 
+  /// Checks the status code and creates a new error if non-zero.
+  pub(crate) fn check(status: c_int) -> Result<c_int> {
+    if status < 0 {
+      Err(Self::new(status, None))
+    } else {
+      Ok(status)
+    }
+  }
+
   /// Map the gphoto type to an [`ErrorKind`]
   pub fn kind(&self) -> ErrorKind {
     match self.error {
@@ -148,36 +157,38 @@ impl error::Error for Error {}
 ///
 /// If the return type is less than 0, an error is returned,
 /// otherwise the result of the function
-#[macro_export]
 macro_rules! try_gp_internal {
-  (@ $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
-    try_gp_internal!(@ $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
+  (@ $unwrap:tt $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
+    try_gp_internal!(@ $unwrap $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
   };
 
-  (@ $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
-    try_gp_internal!(@ $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
+  (@ $unwrap:tt $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
+    try_gp_internal!(@ $unwrap $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
   };
 
-  (@ $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
+  (@ ($($unwrap:tt)*) $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
     #[allow(unused_unsafe)]
     let ($status, $($out),*) = unsafe {
       $(let mut $out = std::mem::MaybeUninit::uninit();)*
 
-      let status: std::os::raw::c_int = libgphoto2_sys::$func $args;
-
-      if status < 0 {
-        return Err($crate::Error::new(status, None));
-      }
+      let status = match $crate::Error::check(libgphoto2_sys::$func $args) {
+        Ok(status) => status,
+        Err(err) => {
+          return Err(err) $($unwrap)*;
+        },
+      };
 
       (status, $($out.assume_init()),*)
     };
   };
 
-  (let $status:tt = $func:ident ( $($args:tt)* )) => {
-    try_gp_internal!(@ $status [] $func () $($args)*)
+  (let $status:tt = $func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
+    try_gp_internal!(@ ($($unwrap)*) $status [] $func () $($args)*)
   };
 
-  ($func:ident ( $($args:tt)* )) => {
-    try_gp_internal!(@ _ [] $func () $($args)*)
+  ($func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
+    try_gp_internal!(let _ = $func ( $($args)* ) $($unwrap)*)
   };
 }
+
+pub(crate) use try_gp_internal;

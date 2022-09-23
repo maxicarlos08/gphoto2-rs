@@ -16,7 +16,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_string, to_c_string, FmtResult},
+  helper::{as_ref, chars_to_string, to_c_string},
   try_gp_internal, Camera, Error, Result,
 };
 use std::{
@@ -31,11 +31,21 @@ pub struct WidgetIterator<'a> {
   range: Range<usize>,
 }
 
-impl<'a> Iterator for WidgetIterator<'a> {
+impl Iterator for WidgetIterator<'_> {
   type Item = Widget;
 
   fn next(&mut self) -> Option<Self::Item> {
     self.range.next().map(|i| self.parent_widget.get_child(i).unwrap())
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.range.size_hint()
+  }
+}
+
+impl ExactSizeIterator for WidgetIterator<'_> {
+  fn len(&self) -> usize {
+    self.range.len()
   }
 }
 
@@ -71,60 +81,55 @@ impl WidgetBase {
   }
 
   /// Get exact widget type.
-  fn ty(&self) -> Result<libgphoto2_sys::CameraWidgetType> {
-    try_gp_internal!(gp_widget_get_type(self.inner, &out widget_type));
-    Ok(widget_type)
+  fn ty(&self) -> libgphoto2_sys::CameraWidgetType {
+    try_gp_internal!(gp_widget_get_type(self.inner, &out widget_type).unwrap());
+    widget_type
   }
 
   /// If true, the widget cannot be written
-  pub fn readonly(&self) -> Result<bool> {
-    try_gp_internal!(gp_widget_get_readonly(self.inner, &out readonly));
-
-    Ok(readonly == 1)
+  pub fn readonly(&self) -> bool {
+    try_gp_internal!(gp_widget_get_readonly(self.inner, &out readonly).unwrap());
+    readonly == 1
   }
 
   /// Get the widget label
-  pub fn label(&self) -> Result<String> {
-    try_gp_internal!(gp_widget_get_label(self.inner, &out label));
-
-    Ok(chars_to_string(label))
+  pub fn label(&self) -> String {
+    try_gp_internal!(gp_widget_get_label(self.inner, &out label).unwrap());
+    chars_to_string(label)
   }
 
   /// Get the widget name
-  pub fn name(&self) -> Result<String> {
-    try_gp_internal!(gp_widget_get_name(self.inner, &out name));
-    Ok(chars_to_string(name))
+  pub fn name(&self) -> String {
+    try_gp_internal!(gp_widget_get_name(self.inner, &out name).unwrap());
+    chars_to_string(name)
   }
 
   /// Get the widget id
-  pub fn id(&self) -> Result<i32> {
-    try_gp_internal!(gp_widget_get_id(self.inner, &out id));
-
-    Ok(id)
+  pub fn id(&self) -> i32 {
+    try_gp_internal!(gp_widget_get_id(self.inner, &out id).unwrap());
+    id
   }
 
   /// Get information about the widget
-  pub fn info(&self) -> Result<String> {
-    try_gp_internal!(gp_widget_get_info(self.inner, &out info));
-
-    Ok(chars_to_string(info))
+  pub fn info(&self) -> String {
+    try_gp_internal!(gp_widget_get_info(self.inner, &out info).unwrap());
+    chars_to_string(info)
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("id", self.id().fmt_res())
-      .field("name", self.name().fmt_res())
-      .field("label", self.label().fmt_res())
-      .field("readonly", self.readonly().fmt_res());
+    f.field("id", &self.id())
+      .field("name", &self.name())
+      .field("label", &self.label())
+      .field("readonly", &self.readonly());
   }
 
-  unsafe fn raw_value<T>(&self) -> Result<T> {
-    try_gp_internal!(gp_widget_get_value(self.inner, &out value as *mut T as *mut c_void));
-    Ok(value)
+  unsafe fn raw_value<T>(&self) -> T {
+    try_gp_internal!(gp_widget_get_value(self.inner, &out value as *mut T as *mut c_void).unwrap());
+    value
   }
 
-  unsafe fn set_raw_value<T>(&self, value: *const T) -> Result<()> {
-    try_gp_internal!(gp_widget_set_value(self.inner, value.cast::<c_void>()));
-    Ok(())
+  unsafe fn set_raw_value<T>(&self, value: *const T) {
+    try_gp_internal!(gp_widget_set_value(self.inner, value.cast::<c_void>()).unwrap());
   }
 }
 
@@ -157,12 +162,12 @@ macro_rules! typed_widgets {
     }
 
     impl Widget {
-      pub(crate) fn new_owned(widget: *mut libgphoto2_sys::CameraWidget) -> Result<Self> {
+      pub(crate) fn new_owned(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
         let inner = WidgetBase { inner: widget };
 
-        Ok(match inner.ty()? {
+        match inner.ty() {
           $($(libgphoto2_sys::CameraWidgetType::$gp_name)|+ => Widget::$variant($name { inner }),)*
-        })
+        }
       }
     }
 
@@ -262,63 +267,62 @@ typed_widgets!(
   DateWidget, Date = GP_WIDGET_DATE;
 );
 
-/// Helper that prints `...` when using `{:?}` or the given list when using `{:#?}`.
+/// Helper that prints `[_; count]` when using `{:?}` or the given list when using `{:#?}`.
 struct MaybeListFmt<F>(F);
 
-impl<Iter: IntoIterator, F: Fn() -> Result<Iter>> fmt::Debug for MaybeListFmt<F>
+impl<Iter: IntoIterator, F: Fn() -> Iter> fmt::Debug for MaybeListFmt<F>
 where
+  Iter::IntoIter: ExactSizeIterator,
   Iter::Item: fmt::Debug,
 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let list = (self.0)();
     if f.alternate() {
-      match (self.0)() {
-        Ok(iter) => f.debug_list().entries(iter).finish(),
-        Err(err) => err.fmt(f),
-      }
+      f.debug_list().entries(list).finish()
     } else {
-      f.write_str("...")
+      write!(f, "[_; {}]", list.into_iter().len())
     }
   }
 }
 
 impl GroupWidget {
   /// Creates a new [`WidgetIterator`]
-  pub fn children_iter(&self) -> Result<WidgetIterator<'_>> {
-    Ok(WidgetIterator { parent_widget: self, range: 0..self.children_count()? })
+  pub fn children_iter(&self) -> WidgetIterator<'_> {
+    WidgetIterator { parent_widget: self, range: 0..self.children_count() }
   }
 
   /// Counts the children of the widget
-  pub fn children_count(&self) -> Result<usize> {
-    try_gp_internal!(let count = gp_widget_count_children(self.as_ptr()));
-    Ok(count as usize)
+  pub fn children_count(&self) -> usize {
+    try_gp_internal!(let count = gp_widget_count_children(self.as_ptr()).unwrap());
+    count as usize
   }
 
   /// Gets a child by its index
   pub fn get_child(&self, index: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child(self.as_ptr(), index as c_int, &out child));
 
-    Widget::new_shared(child)
+    Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id as c_int, &out child));
 
-    Widget::new_shared(child)
+    Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its label
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_label(self.as_ptr(), to_c_string!(label), &out child));
 
-    Widget::new_shared(child)
+    Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_name(self.as_ptr(), to_c_string!(name), &out child));
 
-    Widget::new_shared(child)
+    Ok(Widget::new_shared(child))
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
@@ -328,128 +332,149 @@ impl GroupWidget {
 
 impl TextWidget {
   /// Get the value of the widget.
-  pub fn value(&self) -> Result<String> {
-    Ok(chars_to_string(unsafe { self.raw_value::<*const c_char>()? }))
+  pub fn value(&self) -> String {
+    chars_to_string(unsafe { self.raw_value::<*const c_char>() })
   }
 
   /// Set the value of the widget.
   pub fn set_value(&self, value: &str) -> Result<()> {
-    unsafe { self.set_raw_value::<c_char>(to_c_string!(value)) }
+    unsafe {
+      self.set_raw_value::<c_char>(to_c_string!(value));
+    }
+    Ok(())
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("value", self.value().fmt_res());
+    f.field("value", &self.value());
   }
 }
 
 impl RangeWidget {
   /// Get the value of the widget.
-  pub fn value(&self) -> Result<f32> {
+  pub fn value(&self) -> f32 {
     unsafe { self.raw_value::<f32>() }
   }
 
   /// Set the value of the widget.
-  pub fn set_value(&self, value: f32) -> Result<()> {
+  pub fn set_value(&self, value: f32) {
     unsafe { self.set_raw_value::<f32>(&value) }
   }
 
   /// Get the range and increment step of the widget.
-  pub fn range_and_step(&self) -> Result<(RangeInclusive<f32>, f32)> {
-    try_gp_internal!(gp_widget_get_range(self.as_ptr(), &out min, &out max, &out step));
-    Ok((min..=max, step))
+  pub fn range_and_step(&self) -> (RangeInclusive<f32>, f32) {
+    try_gp_internal!(gp_widget_get_range(self.as_ptr(), &out min, &out max, &out step).unwrap());
+    (min..=max, step)
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    let (range, step) = match self.range_and_step() {
-      Ok((range, step)) => (Some(range), Some(step)),
-      Err(_) => (None, None),
-    };
-    f.field("range", &range).field("step", &step).field("value", &self.value().fmt_res());
+    let (range, step) = self.range_and_step();
+    f.field("range", &range).field("step", &step).field("value", &self.value());
   }
 }
 
 impl ToggleWidget {
   /// Check if the widget is toggled.
-  pub fn is_toggled(&self) -> Result<Option<bool>> {
-    unsafe { self.raw_value::<c_int>() }.map(|value| match value {
+  pub fn is_toggled(&self) -> Option<bool> {
+    let value = unsafe { self.raw_value::<c_int>() };
+    match value {
       0 => Some(false),
       1 => Some(true),
       _ => None,
-    })
+    }
   }
 
   /// Set the toggled state of the widget.
-  pub fn set_toggled(&self, value: bool) -> Result<()> {
+  pub fn set_toggled(&self, value: bool) {
     unsafe { self.set_raw_value::<c_int>(&(value as _)) }
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("toggled", self.is_toggled().fmt_res());
+    f.field("toggled", &self.is_toggled());
+  }
+}
+
+/// Iterator over the choices of a [`RadioWidget`].
+pub struct ChoicesIter<'a> {
+  widget: &'a RadioWidget,
+  range: Range<c_int>,
+}
+
+impl<'a> Iterator for ChoicesIter<'a> {
+  type Item = String;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    self.range.next().map(|i| {
+      try_gp_internal!(gp_widget_get_choice(self.widget.as_ptr(), i, &out choice).unwrap());
+      chars_to_string(choice)
+    })
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.range.size_hint()
+  }
+}
+
+impl ExactSizeIterator for ChoicesIter<'_> {
+  fn len(&self) -> usize {
+    self.range.len()
   }
 }
 
 impl RadioWidget {
   /// Get list of the available choices.
-  pub fn choices(&self) -> Result<Vec<String>> {
-    try_gp_internal!(let choice_count = gp_widget_count_choices(self.as_ptr()));
-
-    (0..choice_count)
-      .map(|i| {
-        try_gp_internal!(gp_widget_get_choice(self.as_ptr(), i, &out choice));
-        Ok(chars_to_string(choice))
-      })
-      .collect()
+  pub fn choices_iter(&self) -> ChoicesIter<'_> {
+    try_gp_internal!(let choice_count = gp_widget_count_choices(self.as_ptr()).unwrap());
+    ChoicesIter { widget: self, range: 0..choice_count }
   }
 
   /// Get the current choice.
-  pub fn choice(&self) -> Result<String> {
-    Ok(chars_to_string(unsafe { self.raw_value::<*const c_char>()? }))
+  pub fn choice(&self) -> String {
+    chars_to_string(unsafe { self.raw_value::<*const c_char>() })
   }
 
   /// Set the current choice.
   pub fn set_choice(&self, value: &str) -> Result<()> {
-    unsafe { self.set_raw_value::<c_char>(to_c_string!(value)) }
+    unsafe {
+      self.set_raw_value::<c_char>(to_c_string!(value));
+    }
+    Ok(())
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("choices", &MaybeListFmt(|| self.choices())).field("choice", self.choice().fmt_res());
+    f.field("choices", &MaybeListFmt(|| self.choices_iter())).field("choice", &self.choice());
   }
 }
 
 impl DateWidget {
   /// Get the widget's value as a UNIX timestamp.
-  pub fn timestamp(&self) -> Result<c_int> {
+  pub fn timestamp(&self) -> c_int {
     unsafe { self.raw_value::<c_int>() }
   }
 
   /// Set the widget's value as a UNIX timestamp.
-  pub fn set_timestamp(&self, value: c_int) -> Result<()> {
+  pub fn set_timestamp(&self, value: c_int) {
     unsafe { self.set_raw_value::<c_int>(&value) }
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("timestamp", self.timestamp().fmt_res());
+    f.field("timestamp", &self.timestamp());
   }
 }
 
 impl ButtonWidget {
   /// Press the button.
   pub fn press(&self, camera: &Camera) -> Result<()> {
-    let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }?
+    let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    let status = unsafe { callback(camera.camera, self.as_ptr(), camera.context) };
-    if status < 0 {
-      Err(Error::new(status, None))
-    } else {
-      Ok(())
-    }
+    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context) })?;
+    Ok(())
   }
 
   fn fmt_fields(&self, _f: &mut fmt::DebugStruct) {}
 }
 
 impl Widget {
-  pub(crate) fn new_shared(widget: *mut libgphoto2_sys::CameraWidget) -> Result<Self> {
+  pub(crate) fn new_shared(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
     unsafe {
       libgphoto2_sys::gp_widget_ref(widget);
     }

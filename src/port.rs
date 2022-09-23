@@ -17,7 +17,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_string, FmtResult},
+  helper::{as_ref, chars_to_string},
   try_gp_internal, Result,
 };
 use std::fmt;
@@ -76,9 +76,9 @@ impl From<libgphoto2_sys::GPPortInfo> for PortInfo {
 impl fmt::Debug for PortInfo {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("PortInfo")
-      .field("name", self.name().fmt_res())
-      .field("path", self.path().fmt_res())
-      .field("port_type", self.port_type().fmt_res())
+      .field("name", &self.name())
+      .field("path", &self.path())
+      .field("port_type", &self.port_type())
       .finish()
   }
 }
@@ -106,24 +106,24 @@ impl PortType {
 
 impl PortInfo {
   /// Name of the port
-  pub fn name(&self) -> Result<String> {
-    try_gp_internal!(gp_port_info_get_name(self.inner, &out name));
+  pub fn name(&self) -> String {
+    try_gp_internal!(gp_port_info_get_name(self.inner, &out name).unwrap());
 
-    Ok(chars_to_string(name))
+    chars_to_string(name)
   }
 
   /// Path of the port
-  pub fn path(&self) -> Result<String> {
-    try_gp_internal!(gp_port_info_get_path(self.inner, &out path));
+  pub fn path(&self) -> String {
+    try_gp_internal!(gp_port_info_get_path(self.inner, &out path).unwrap());
 
-    Ok(chars_to_string(path))
+    chars_to_string(path)
   }
 
   /// [Port type](PortType)
-  pub fn port_type(&self) -> Result<Option<PortType>> {
-    try_gp_internal!(gp_port_info_get_type(self.inner, &out port_type));
+  pub fn port_type(&self) -> Option<PortType> {
+    try_gp_internal!(gp_port_info_get_type(self.inner, &out port_type).unwrap());
 
-    Ok(PortType::new(port_type))
+    PortType::new(port_type)
   }
 }
 

@@ -1,9 +1,13 @@
+use gphoto2::list::CameraDescriptor;
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  let cameras = Context::new()?.list_cameras()?;
+  let context = Context::new()?;
 
-  println!("Available cameras:\n{:#?}", cameras.to_vec()?);
+  println!("Available cameras:");
+  for CameraDescriptor { model, port } in context.list_cameras()? {
+    println!("  {} on port {}", model, port);
+  }
 
   Ok(())
 }

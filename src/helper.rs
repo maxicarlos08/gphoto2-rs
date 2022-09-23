@@ -1,5 +1,3 @@
-use crate::Result;
-use std::fmt::Debug;
 use std::mem::MaybeUninit;
 use std::{borrow::Cow, ffi, os::raw::c_char};
 
@@ -9,19 +7,6 @@ pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
 
 pub fn chars_to_string(chars: *const c_char) -> String {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }.into_owned()
-}
-
-pub trait FmtResult {
-  fn fmt_res(&self) -> &dyn Debug;
-}
-
-impl<T: Debug> FmtResult for Result<T> {
-  fn fmt_res(&self) -> &dyn Debug {
-    match self {
-      Ok(v) => v,
-      Err(e) => e,
-    }
-  }
 }
 
 pub struct UninitBox<T> {

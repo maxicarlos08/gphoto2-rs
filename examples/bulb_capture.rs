@@ -18,12 +18,12 @@ fn main() -> Result<()> {
 
   println!("Starting bulb capture");
 
-  bulb_setting.set_toggled(true)?;
+  bulb_setting.set_toggled(true);
   camera.set_config(&bulb_setting)?;
 
   sleep(Duration::from_secs(2));
 
-  bulb_setting.set_toggled(false)?;
+  bulb_setting.set_toggled(false);
   camera.set_config(&bulb_setting)?;
 
   let mut retry = 0;
