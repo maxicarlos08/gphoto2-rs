@@ -158,7 +158,8 @@ storage_info!(
 /// File information for preview, normal file and audio
 #[repr(transparent)]
 pub struct FileInfo {
-  inner: libgphoto2_sys::CameraFileInfo,
+  // It's fairly large, so we want to keep it on the heap.
+  inner: Box<libgphoto2_sys::CameraFileInfo>,
 }
 
 impl FileInfo {
@@ -263,7 +264,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Get information of a file
-  pub fn info(&self, folder: &str, file: &str) -> Result<Box<FileInfo>> {
+  pub fn info(&self, folder: &str, file: &str) -> Result<FileInfo> {
     // File info is fairly large, it's best to allocate it on the heap
     // to avoid lots of memcpy.
     let mut inner = Box::new(MaybeUninit::uninit());
@@ -276,9 +277,14 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(unsafe {
-      // Safe because of repr(transparent) + MaybeUninit having been filled now.
-      Box::from_raw(Box::into_raw(inner).cast::<FileInfo>())
+    Ok(FileInfo {
+      inner: unsafe {
+        // Safe because MaybeUninit has been filled now.
+        //
+        // Ideally this should be just `.assume_init()` once `new_uninit`
+        // feature is stable.
+        Box::from_raw(Box::into_raw(inner).cast())
+      },
     })
   }
 
