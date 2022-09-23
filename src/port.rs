@@ -129,14 +129,14 @@ impl PortInfo {
 
 impl PortInfoList {
   pub(crate) fn new() -> Result<Self> {
-    try_gp_internal!(gp_port_info_list_new(&out port_info_list));
-    try_gp_internal!(gp_port_info_list_load(port_info_list));
+    try_gp_internal!(gp_port_info_list_new(&out port_info_list)?);
+    try_gp_internal!(gp_port_info_list_load(port_info_list)?);
 
     Ok(Self { inner: port_info_list })
   }
 
   pub(crate) fn get_port_info(&self, p: i32) -> Result<PortInfo> {
-    try_gp_internal!(gp_port_info_list_get_info(self.inner, p, &out port_info));
+    try_gp_internal!(gp_port_info_list_get_info(self.inner, p, &out port_info)?);
 
     Ok(port_info.into())
   }

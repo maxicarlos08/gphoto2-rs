@@ -114,7 +114,7 @@ impl Camera {
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
       inner.as_mut_ptr(),
       self.context
-    ));
+    )?);
 
     Ok(CameraFilePath { inner: unsafe { inner.assume_init() } })
   }
@@ -136,7 +136,7 @@ impl Camera {
   pub fn capture_preview(&self) -> Result<CameraFile> {
     let camera_file = CameraFile::new()?;
 
-    try_gp_internal!(gp_camera_capture_preview(self.camera, camera_file.inner, self.context));
+    try_gp_internal!(gp_camera_capture_preview(self.camera, camera_file.inner, self.context)?);
 
     Ok(camera_file)
   }
@@ -161,7 +161,7 @@ impl Camera {
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context));
+    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context)?);
 
     Ok(char_slice_to_cow(&about.text).into_owned())
   }
@@ -170,7 +170,7 @@ impl Camera {
   ///
   /// Not all cameras support this, and will return NotSupported
   pub fn manual(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context));
+    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context)?);
 
     Ok(char_slice_to_cow(&manual.text).into_owned())
   }
@@ -182,7 +182,7 @@ impl Camera {
       &out storages_ptr,
       &out storages_len,
       self.context
-    ));
+    )?);
 
     let storages = unsafe {
       std::slice::from_raw_parts(
@@ -219,7 +219,7 @@ impl Camera {
       &out event_type,
       &out event_data,
       self.context
-    ));
+    )?);
 
     Ok(match event_type {
       CameraEventType::GP_EVENT_UNKNOWN => {
@@ -252,14 +252,14 @@ impl Camera {
 
   /// Port used to connect to the camera
   pub fn port_info(&self) -> Result<PortInfo> {
-    try_gp_internal!(gp_camera_get_port_info(self.camera, &out port_info));
+    try_gp_internal!(gp_camera_get_port_info(self.camera, &out port_info)?);
 
     Ok(PortInfo { inner: port_info })
   }
 
   /// Get the camera configuration
   pub fn config(&self) -> Result<GroupWidget> {
-    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context));
+    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context)?);
 
     Widget::new_owned(root_widget).try_into::<GroupWidget>()
   }
@@ -276,14 +276,14 @@ impl Camera {
       to_c_string!(key),
       &out widget,
       self.context
-    ));
+    )?);
 
     Ok(Widget::new_owned(widget).try_into()?)
   }
 
   /// Apply a full config object to the camera.
   pub fn set_all_config(&self, config: &GroupWidget) -> Result<()> {
-    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context));
+    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context)?);
 
     Ok(())
   }
@@ -295,7 +295,7 @@ impl Camera {
       to_c_string!(config.name()),
       config.inner,
       self.context
-    ));
+    )?);
 
     Ok(())
   }

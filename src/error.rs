@@ -171,18 +171,21 @@ macro_rules! try_gp_internal {
     let ($status, $($out),*) = unsafe {
       $(let mut $out = std::mem::MaybeUninit::uninit();)*
 
-      let status = match $crate::Error::check(libgphoto2_sys::$func $args) {
-        Ok(status) => status,
-        Err(err) => {
-          return Err(err) $($unwrap)*;
-        },
-      };
+      let status = $crate::Error::check(libgphoto2_sys::$func $args) $($unwrap)*;
 
       (status, $($out.assume_init()),*)
     };
   };
 
+  // no-op, just checks that error is handled properly before .assume_init()
+  (@check_unwrap_allowed .unwrap()) => {};
+  (@check_unwrap_allowed ?) => {};
+  (@check_unwrap_allowed $($rest:tt)*) => {
+    compile_error!("try_gp_internal!() must be used with .unwrap() or ?")
+  };
+
   (let $status:tt = $func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
+    try_gp_internal!(@check_unwrap_allowed $($unwrap)*);
     try_gp_internal!(@ ($($unwrap)*) $status [] $func () $($args)*)
   };
 

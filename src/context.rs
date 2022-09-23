@@ -57,7 +57,7 @@ impl Context {
   pub fn list_cameras(&self) -> Result<CameraListIter> {
     let camera_list = CameraList::new()?;
 
-    try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner));
+    try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner)?);
 
     Ok(CameraListIter::new(camera_list))
   }
@@ -78,8 +78,8 @@ impl Context {
   /// # }
   /// ```
   pub fn autodetect_camera(&self) -> Result<Camera> {
-    try_gp_internal!(gp_camera_new(&out camera_ptr));
-    try_gp_internal!(gp_camera_init(camera_ptr, self.inner));
+    try_gp_internal!(gp_camera_new(&out camera_ptr)?);
+    try_gp_internal!(gp_camera_init(camera_ptr, self.inner)?);
 
     Ok(Camera::new(camera_ptr, self.inner))
   }
@@ -101,26 +101,26 @@ impl Context {
     let abilities_list = AbilitiesList::new(self)?;
     let port_info_list = PortInfoList::new()?;
 
-    try_gp_internal!(gp_camera_new(&out camera));
+    try_gp_internal!(gp_camera_new(&out camera)?);
 
     try_gp_internal!(let model_index = gp_abilities_list_lookup_model(
       abilities_list.inner,
       to_c_string!(camera_desc.model.as_str())
-    ));
+    )?);
 
     try_gp_internal!(gp_abilities_list_get_abilities(
       abilities_list.inner,
       model_index,
       &out model_abilities
-    ));
-    try_gp_internal!(gp_camera_set_abilities(camera, model_abilities));
+    )?);
+    try_gp_internal!(gp_camera_set_abilities(camera, model_abilities)?);
 
     try_gp_internal!(let p = gp_port_info_list_lookup_path(
       port_info_list.inner,
       to_c_string!(camera_desc.port.as_str())
-    ));
+    )?);
     let port_info = port_info_list.get_port_info(p)?;
-    try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner));
+    try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner)?);
 
     Ok(Camera::new(camera, self.inner))
   }

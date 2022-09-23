@@ -258,7 +258,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(folder),
       to_c_string!(file),
       self.camera.context
-    ));
+    )?);
     Ok(())
   }
 
@@ -272,7 +272,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(file),
       inner.as_mut_ptr(),
       self.camera.context
-    ));
+    )?);
 
     Ok(FileInfo { inner: unsafe { inner.assume_init() } })
   }
@@ -286,7 +286,7 @@ impl<'a> CameraFS<'a> {
       FileType::Normal.into(),
       file.inner,
       self.camera.context
-    ));
+    )?);
 
     Ok(())
   }
@@ -297,7 +297,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       self.camera.context
-    ));
+    )?);
     Ok(())
   }
 
@@ -310,7 +310,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(folder),
       file_list.inner,
       self.camera.context
-    ));
+    )?);
 
     Ok(FileListIter::new(file_list))
   }
@@ -324,7 +324,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(folder),
       folder_list.inner,
       self.camera.context
-    ));
+    )?);
 
     Ok(FileListIter::new(folder_list))
   }
@@ -336,7 +336,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(parent_folder),
       to_c_string!(new_folder),
       self.camera.context
-    ));
+    )?);
 
     Ok(())
   }
@@ -348,7 +348,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(parent),
       to_c_string!(to_remove),
       self.camera.context
-    ));
+    )?);
 
     Ok(())
   }

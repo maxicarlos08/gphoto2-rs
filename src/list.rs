@@ -17,7 +17,7 @@ impl Drop for CameraList {
 
 impl CameraList {
   pub(crate) fn new() -> Result<Self> {
-    try_gp_internal!(gp_list_new(&out list));
+    try_gp_internal!(gp_list_new(&out list)?);
 
     Ok(Self { inner: list })
   }
