@@ -31,11 +31,21 @@ pub struct WidgetIterator<'a> {
   range: Range<usize>,
 }
 
-impl<'a> Iterator for WidgetIterator<'a> {
+impl Iterator for WidgetIterator<'_> {
   type Item = Widget;
 
   fn next(&mut self) -> Option<Self::Item> {
     self.range.next().map(|i| self.parent_widget.get_child(i).unwrap())
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.range.size_hint()
+  }
+}
+
+impl ExactSizeIterator for WidgetIterator<'_> {
+  fn len(&self) -> usize {
+    self.range.len()
   }
 }
 
@@ -257,18 +267,20 @@ typed_widgets!(
   DateWidget, Date = GP_WIDGET_DATE;
 );
 
-/// Helper that prints `...` when using `{:?}` or the given list when using `{:#?}`.
+/// Helper that prints `[_; count]` when using `{:?}` or the given list when using `{:#?}`.
 struct MaybeListFmt<F>(F);
 
 impl<Iter: IntoIterator, F: Fn() -> Iter> fmt::Debug for MaybeListFmt<F>
 where
+  Iter::IntoIter: ExactSizeIterator,
   Iter::Item: fmt::Debug,
 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let list = (self.0)();
     if f.alternate() {
-      f.debug_list().entries((self.0)()).finish()
+      f.debug_list().entries(list).finish()
     } else {
-      f.write_str("...")
+      write!(f, "[_; {}]", list.into_iter().len())
     }
   }
 }
