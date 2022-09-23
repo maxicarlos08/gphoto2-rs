@@ -412,10 +412,10 @@ impl<'a> CameraFS<'a> {
   }
 
   /// List folders in a folder
-  pub fn ls_folder(&self, folder: &str) -> Result<Vec<String>> {
+  pub fn ls_folders(&self, folder: &str) -> Result<Vec<String>> {
     let folder_list = CameraList::new()?;
 
-    try_gp_internal!(gp_camera_folder_list_files(
+    try_gp_internal!(gp_camera_folder_list_folders(
       self.camera.camera,
       to_c_string!(folder),
       folder_list.inner,
