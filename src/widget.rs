@@ -124,8 +124,9 @@ impl WidgetBase {
   }
 
   unsafe fn raw_value<T>(&self) -> T {
-    try_gp_internal!(gp_widget_get_value(self.inner, &out value as *mut T as *mut c_void).unwrap());
-    value
+    let mut value = std::mem::MaybeUninit::<T>::uninit();
+    try_gp_internal!(gp_widget_get_value(self.inner, value.as_mut_ptr().cast::<c_void>()).unwrap());
+    value.assume_init()
   }
 
   unsafe fn set_raw_value<T>(&self, value: *const T) {
@@ -294,19 +295,19 @@ impl GroupWidget {
   /// Counts the children of the widget
   pub fn children_count(&self) -> usize {
     try_gp_internal!(let count = gp_widget_count_children(self.as_ptr()).unwrap());
-    count as usize
+    count.try_into().unwrap()
   }
 
   /// Gets a child by its index
   pub fn get_child(&self, index: usize) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child(self.as_ptr(), index as c_int, &out child)?);
+    try_gp_internal!(gp_widget_get_child(self.as_ptr(), index.try_into()?, &out child)?);
 
     Ok(Widget::new_shared(child))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
-    try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id as c_int, &out child)?);
+    try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id.try_into()?, &out child)?);
 
     Ok(Widget::new_shared(child))
   }
@@ -385,7 +386,7 @@ impl ToggleWidget {
 
   /// Set the toggled state of the widget.
   pub fn set_toggled(&self, value: bool) {
-    unsafe { self.set_raw_value::<c_int>(&(value as _)) }
+    unsafe { self.set_raw_value::<c_int>(&value.into()) }
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {

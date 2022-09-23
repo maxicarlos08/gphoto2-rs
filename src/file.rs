@@ -243,7 +243,7 @@ impl CameraFile {
     try_gp_internal!(gp_file_get_data_and_size(self.inner, &out data, &out size)?);
 
     let data_slice: Box<[u8]> =
-      unsafe { std::slice::from_raw_parts(data as *const u8, size as usize) }.into();
+      unsafe { std::slice::from_raw_parts(data.cast::<u8>(), size.try_into()?) }.into();
 
     Ok(data_slice)
   }
