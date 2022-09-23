@@ -6,7 +6,7 @@ use crate::{
   list::CameraList,
   try_gp_internal, Camera, Result,
 };
-use std::{borrow::Cow, ffi, fmt, mem::MaybeUninit, os::raw::c_int};
+use std::{borrow::Cow, ffi, mem::MaybeUninit};
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -18,6 +18,7 @@ macro_rules! storage_info {
     }
 
     impl $name {
+      #[allow(dead_code)]
       pub(crate) fn from_inner_ref(ptr: &libgphoto2_sys::$inner_ty) -> &Self {
         // Safe because of repr(transparent).
         unsafe { &*(ptr as *const _ as *const Self) }
@@ -87,14 +88,13 @@ pub enum AccessType {
   RoDelete,
 }
 
-/// Status of [`CameraFile`]
-#[derive(Debug)]
-pub enum FileStatus {
-  /// The file was downloaded
-  Downloaded,
-  /// The file was not downloaded
-  NotDownloaded,
-}
+bitflags!(
+  /// Status of [`CameraFile`].
+  FileStatus = CameraFileStatus {
+    /// This file has been downloaded.
+    downloaded: GP_FILE_STATUS_DOWNLOADED,
+  }
+);
 
 bitflags!(
   /// Permissions of a [`CameraFile`]
@@ -218,17 +218,6 @@ impl From<libgphoto2_sys::CameraStorageAccessType> for AccessType {
       GPAccessType::GP_STORAGEINFO_AC_READWRITE => Self::Rw,
       GPAccessType::GP_STORAGEINFO_AC_READONLY => Self::Ro,
       GPAccessType::GP_STORAGEINFO_AC_READONLY_WITH_DELETE => Self::RoDelete,
-    }
-  }
-}
-
-impl From<libgphoto2_sys::CameraFileStatus> for FileStatus {
-  fn from(status: libgphoto2_sys::CameraFileStatus) -> Self {
-    use libgphoto2_sys::CameraFileStatus;
-
-    match status {
-      CameraFileStatus::GP_FILE_STATUS_DOWNLOADED => Self::Downloaded,
-      CameraFileStatus::GP_FILE_STATUS_NOT_DOWNLOADED => Self::NotDownloaded,
     }
   }
 }
