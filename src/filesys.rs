@@ -6,22 +6,46 @@ use crate::{
   list::CameraList,
   try_gp_internal, Camera, Result,
 };
-use std::{borrow::Cow, ffi, fmt, os::raw::c_int};
+use std::{borrow::Cow, ffi, fmt, mem::MaybeUninit, os::raw::c_int};
 
-macro_rules! storage_has_ability {
-  ($inf:expr, $it:ident) => {
-    $inf.fields as c_int & libgphoto2_sys::CameraStorageInfoFields::$it as c_int != 0
-  };
-}
-
-macro_rules! file_info_get_field {
-  ($info:expr, $if_field:ident, $field_name:ident) => {{
-    if $info.fields as c_int & libgphoto2_sys::CameraFileInfoFields::$if_field as c_int != 0 {
-      Some($info.$field_name)
-    } else {
-      None
+macro_rules! storage_info {
+  ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
+    $(# $attr)*
+    #[repr(transparent)]
+    #[derive(Clone)]
+    pub struct $name {
+      inner: libgphoto2_sys::$inner_ty,
     }
-  }};
+
+    impl $name {
+      pub(crate) fn from_inner_ref(ptr: &libgphoto2_sys::$inner_ty) -> &Self {
+        // Safe because of repr(transparent).
+        unsafe { &*(ptr as *const _ as *const Self) }
+      }
+
+      $(
+        $(# $field_attr)*
+        pub fn $field(&self) -> Option<$ty> {
+          let $inner = &self.inner;
+          if ($inner.fields & libgphoto2_sys::$bitflag_ty::$bitflag).0 != 0 {
+            Some($expr)
+          } else {
+            None
+          }
+        }
+      )*
+    }
+
+    impl std::fmt::Debug for $name {
+      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(stringify!($name))
+          $(
+            .field(stringify!($field), &self.$field())
+          )*
+          .finish()
+      }
+    }
+  };
 }
 
 /// Hardware storage type
@@ -63,14 +87,8 @@ pub enum AccessType {
   RoDelete,
 }
 
-/// Information about a storage on the camera
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-pub struct StorageInfo {
-  pub(crate) inner: libgphoto2_sys::CameraStorageInformation,
-}
-
 /// Status of [`CameraFile`]
+#[derive(Debug)]
 pub enum FileStatus {
   /// The file was downloaded
   Downloaded,
@@ -89,56 +107,75 @@ bitflags!(
   }
 );
 
-/// Image thumbnail information
-pub struct FileInfoPreview {
-  /// Status of the preview file
-  pub status: Option<FileStatus>,
-  /// Size of the preview file
-  pub size: Option<usize>,
-  /// Mime type of the preview file
-  pub mime_type: Option<String>,
-  /// Image width,
-  pub width: Option<usize>,
-  /// Image height
-  pub height: Option<usize>,
-}
+storage_info!(
+  /// Image thumbnail information
+  FileInfoPreview: CameraFileInfoFields, |info: CameraFileInfoPreview| {
+    /// Status of the preview file
+    status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
+    /// Size of the preview file
+    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    /// Mime type of the preview file
+    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+    /// Image width,
+    width: usize = GP_FILE_INFO_WIDTH, info.width as usize;
+    /// Image height
+    height: usize = GP_FILE_INFO_HEIGHT, info.height as usize;
+  }
+);
 
-/// Info for image file
-pub struct FileInfoFile {
-  /// Status of the file
-  pub status: Option<FileStatus>,
-  /// File size
-  pub size: Option<usize>,
-  /// Mime type
-  pub mime_type: Option<String>,
-  /// Image width
-  pub width: Option<usize>,
-  /// Image height
-  pub height: Option<usize>,
-  /// Image permissions
-  pub permissions: Option<FilePermissions>,
-  /// File modification type
-  pub mtime: Option<usize>,
-}
+storage_info!(
+  /// Info for image file
+  FileInfoFile: CameraFileInfoFields, |info: CameraFileInfoFile| {
+    /// Status of the file
+    status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
+    /// File size
+    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    /// Mime type
+    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+    /// Image width
+    width: usize = GP_FILE_INFO_WIDTH, info.width as usize;
+    /// Image height
+    height: usize = GP_FILE_INFO_HEIGHT, info.height as usize;
+    /// Image permissions
+    permissions: FilePermissions = GP_FILE_INFO_PERMISSIONS, info.permissions.into();
+    /// File modification type
+    mtime: usize = GP_FILE_INFO_MTIME, info.mtime as usize;
+  }
+);
 
-/// Info for file audio data
-pub struct FileInfoAudio {
-  /// Status of the audio file
-  pub status: Option<FileStatus>,
-  /// Size of the audio file
-  pub size: Option<usize>,
-  /// Mime type of the audio
-  pub mime_type: Option<String>,
-}
+storage_info!(
+  /// Info for file audio data
+  FileInfoAudio: CameraFileInfoFields, |info: CameraFileInfoAudio| {
+    /// Status of the audio file
+    status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
+    /// Size of the audio file
+    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    /// Mime type of the audio
+    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+  }
+);
 
 /// File information for preview, normal file and audio
+#[repr(transparent)]
 pub struct FileInfo {
+  inner: libgphoto2_sys::CameraFileInfo,
+}
+
+impl FileInfo {
   /// Info for file preview
-  pub preview: FileInfoPreview,
+  pub fn preview(&self) -> &FileInfoPreview {
+    FileInfoPreview::from_inner_ref(&self.inner.preview)
+  }
+
   /// Info for normal file
-  pub file: FileInfoFile,
+  pub fn file(&self) -> &FileInfoFile {
+    FileInfoFile::from_inner_ref(&self.inner.file)
+  }
+
   /// Info for file audio
-  pub audio: FileInfoAudio,
+  pub fn audio(&self) -> &FileInfoAudio {
+    FileInfoAudio::from_inner_ref(&self.inner.audio)
+  }
 }
 
 /// File system actions for a camera
@@ -196,153 +233,29 @@ impl From<libgphoto2_sys::CameraFileStatus> for FileStatus {
   }
 }
 
-impl From<libgphoto2_sys::CameraFileInfoPreview> for FileInfoPreview {
-  fn from(preview_info: libgphoto2_sys::CameraFileInfoPreview) -> Self {
-    Self {
-      status: file_info_get_field!(preview_info, GP_FILE_INFO_STATUS, status).map(Into::into),
-      size: file_info_get_field!(preview_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
-      mime_type: file_info_get_field!(preview_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| char_slice_to_cow(&mime).into_owned()),
-      width: file_info_get_field!(preview_info, GP_FILE_INFO_WIDTH, width)
-        .map(|width| width as usize),
-      height: file_info_get_field!(preview_info, GP_FILE_INFO_HEIGHT, height)
-        .map(|height| height as usize),
-    }
+storage_info!(
+  /// Information about a storage on the camera
+  StorageInfo: CameraStorageInfoFields, |info: CameraStorageInformation| {
+    /// Label of the storage
+    label: Cow<str> = GP_STORAGEINFO_LABEL, char_slice_to_cow(&info.label);
+    /// Base directory of the storage. If there is only 1 storage on the camera it will be "/"
+    base_directory: Cow<str> = GP_STORAGEINFO_BASE, char_slice_to_cow(&info.basedir);
+    /// Description of the storage
+    description: Cow<str> = GP_STORAGEINFO_DESCRIPTION, char_slice_to_cow(&info.description);
+    /// Type of the storage
+    storage_type: StorageType = GP_STORAGEINFO_STORAGETYPE, info.type_.into();
+    /// Type of the filesystem on the storage
+    filesystem_type: FilesystemType = GP_STORAGEINFO_FILESYSTEMTYPE, info.fstype.into();
+    /// Access permissions
+    access_type: AccessType = GP_STORAGEINFO_ACCESS, info.access.into();
+    /// Total storage capacity in Kilobytes
+    capacity_kb: usize = GP_STORAGEINFO_MAXCAPACITY, info.capacitykbytes as usize * 1024;
+    /// Free storage in Kilobytes
+    free_kb: usize = GP_STORAGEINFO_FREESPACEKBYTES, info.freekbytes as usize * 1024;
+    /// Number of images that fit in free space (guessed by the camera)
+    free_images: usize = GP_STORAGEINFO_FREESPACEIMAGES, info.freeimages as usize;
   }
-}
-
-impl From<libgphoto2_sys::CameraFileInfoFile> for FileInfoFile {
-  fn from(file_info: libgphoto2_sys::CameraFileInfoFile) -> Self {
-    Self {
-      status: file_info_get_field!(file_info, GP_FILE_INFO_STATUS, status).map(Into::into),
-      size: file_info_get_field!(file_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
-      mime_type: file_info_get_field!(file_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| char_slice_to_cow(&mime).into_owned()),
-      width: file_info_get_field!(file_info, GP_FILE_INFO_WIDTH, width).map(|width| width as usize),
-      height: file_info_get_field!(file_info, GP_FILE_INFO_HEIGHT, height)
-        .map(|height| height as usize),
-      permissions: file_info_get_field!(file_info, GP_FILE_INFO_PERMISSIONS, permissions)
-        .map(Into::into),
-      mtime: file_info_get_field!(file_info, GP_FILE_INFO_MTIME, mtime).map(|mtime| mtime as usize),
-    }
-  }
-}
-
-impl From<libgphoto2_sys::CameraFileInfoAudio> for FileInfoAudio {
-  fn from(audio_info: libgphoto2_sys::CameraFileInfoAudio) -> Self {
-    Self {
-      status: file_info_get_field!(audio_info, GP_FILE_INFO_STATUS, status).map(Into::into),
-      size: file_info_get_field!(audio_info, GP_FILE_INFO_SIZE, size).map(|size| size as usize),
-      mime_type: file_info_get_field!(audio_info, GP_FILE_INFO_TYPE, type_)
-        .map(|mime| char_slice_to_cow(&mime).into_owned()),
-    }
-  }
-}
-
-impl From<libgphoto2_sys::CameraFileInfo> for FileInfo {
-  fn from(info: libgphoto2_sys::CameraFileInfo) -> Self {
-    Self { preview: info.preview.into(), file: info.file.into(), audio: info.audio.into() }
-  }
-}
-
-impl fmt::Debug for StorageInfo {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("StorageInfo")
-      .field("label", &self.label())
-      .field("base_directory", &self.base_directory())
-      .field("description", &self.description())
-      .field("storage_type", &self.storage_type())
-      .field("filesystem_type", &self.filesystem_type())
-      .field("access_type", &self.access_type())
-      .field("capacity", &self.capacity())
-      .field("free", &self.free())
-      .field("free_images", &self.free_images())
-      .finish()
-  }
-}
-
-impl StorageInfo {
-  /// Base directory of the storage. If there is only 1 storage on the camera it will be "/"
-  pub fn base_directory(&self) -> Option<Cow<str>> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_BASE) {
-      Some(char_slice_to_cow(&self.inner.basedir))
-    } else {
-      None
-    }
-  }
-
-  /// Label of the storage
-  pub fn label(&self) -> Option<Cow<str>> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_LABEL) {
-      Some(char_slice_to_cow(&self.inner.label))
-    } else {
-      None
-    }
-  }
-
-  /// Description of the storage
-  pub fn description(&self) -> Option<Cow<str>> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_DESCRIPTION) {
-      Some(char_slice_to_cow(&self.inner.description))
-    } else {
-      None
-    }
-  }
-
-  /// Type of the storage
-  pub fn storage_type(&self) -> Option<StorageType> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_STORAGETYPE) {
-      Some(self.inner.type_.into())
-    } else {
-      None
-    }
-  }
-
-  /// Type of the filesystem on the storage
-  pub fn filesystem_type(&self) -> Option<FilesystemType> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_FILESYSTEMTYPE) {
-      Some(self.inner.fstype.into())
-    } else {
-      None
-    }
-  }
-
-  /// Access permissions
-  pub fn access_type(&self) -> Option<AccessType> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_ACCESS) {
-      Some(self.inner.access.into())
-    } else {
-      None
-    }
-  }
-
-  /// Total storage capacity in Kilobytes
-  pub fn capacity(&self) -> Option<usize> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_MAXCAPACITY) {
-      Some(self.inner.capacitykbytes as usize)
-    } else {
-      None
-    }
-  }
-
-  /// Free storage in Kilobytes
-  pub fn free(&self) -> Option<usize> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_FREESPACEKBYTES) {
-      Some(self.inner.freekbytes as usize)
-    } else {
-      None
-    }
-  }
-
-  /// Number of images that fit in free space (guessed by the camera)
-  pub fn free_images(&self) -> Option<usize> {
-    if storage_has_ability!(self.inner, GP_STORAGEINFO_FREESPACEIMAGES) {
-      Some(self.inner.freeimages as usize)
-    } else {
-      None
-    }
-  }
-}
+);
 
 impl<'a> CameraFS<'a> {
   pub(crate) fn new(camera: &'a Camera) -> Self {
@@ -361,16 +274,23 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Get information of a file
-  pub fn info(&self, folder: &str, file: &str) -> Result<FileInfo> {
+  pub fn info(&self, folder: &str, file: &str) -> Result<Box<FileInfo>> {
+    // File info is fairly large, it's best to allocate it on the heap
+    // to avoid lots of memcpy.
+    let mut inner = Box::new(MaybeUninit::uninit());
+
     try_gp_internal!(gp_camera_file_get_info(
       self.camera.camera,
       to_c_string!(folder),
       to_c_string!(file),
-      &out file_info,
+      inner.as_mut_ptr(),
       self.camera.context
     ));
 
-    Ok(file_info.into())
+    Ok(unsafe {
+      // Safe because of repr(transparent) + MaybeUninit having been filled now.
+      Box::from_raw(Box::into_raw(inner).cast::<FileInfo>())
+    })
   }
 
   /// Upload a file to the camera
