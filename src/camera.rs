@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox},
+  helper::{as_ref, char_slice_to_str, chars_to_string, to_c_string, UninitBox},
   port::PortInfo,
   try_gp_internal,
   widget::{GroupWidget, Widget, WidgetBase},
@@ -156,14 +156,14 @@ impl Camera {
   pub fn summary(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context)?);
 
-    Ok(char_slice_to_cow(&summary.text).into_owned())
+    Ok(char_slice_to_str(&summary.text).to_owned())
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context)?);
 
-    Ok(char_slice_to_cow(&about.text).into_owned())
+    Ok(char_slice_to_str(&about.text).to_owned())
   }
 
   /// Get the manual of the camera
@@ -172,7 +172,7 @@ impl Camera {
   pub fn manual(&self) -> Result<String> {
     try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context)?);
 
-    Ok(char_slice_to_cow(&manual.text).into_owned())
+    Ok(char_slice_to_str(&manual.text).to_owned())
   }
 
   /// List of storages available on the camera

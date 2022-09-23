@@ -1,8 +1,8 @@
 use std::mem::MaybeUninit;
-use std::{borrow::Cow, ffi, os::raw::c_char};
+use std::{ffi, os::raw::c_char};
 
-pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
-  unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
+pub fn char_slice_to_str(chars: &[c_char]) -> &'_ str {
+  unsafe { ffi::CStr::from_ptr(chars.as_ptr()).to_str().expect("Got invalid utf from libgphoto2") }
 }
 
 pub fn chars_to_string(chars: *const c_char) -> String {

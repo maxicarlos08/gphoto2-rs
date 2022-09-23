@@ -3,10 +3,10 @@
 use crate::{
   camera::Camera,
   error::Error,
-  helper::{char_slice_to_cow, chars_to_string},
+  helper::{char_slice_to_str, chars_to_string},
   try_gp_internal, Result,
 };
-use std::{borrow::Cow, ffi, fmt, fs, path::Path};
+use std::{ffi, fmt, fs, path::Path};
 
 #[cfg(unix)]
 mod owned_fd_impl {
@@ -171,13 +171,13 @@ as_ref!(CameraFilePath -> libgphoto2_sys::CameraFilePath, self.inner);
 
 impl CameraFilePath {
   /// Get the name of the file's folder
-  pub fn folder(&self) -> Cow<str> {
-    char_slice_to_cow(&self.inner.folder)
+  pub fn folder(&self) -> &str {
+    char_slice_to_str(&self.inner.folder)
   }
 
   /// Get the basename of the file (without the folder)
-  pub fn name(&self) -> Cow<str> {
-    char_slice_to_cow(&self.inner.name)
+  pub fn name(&self) -> &str {
+    char_slice_to_str(&self.inner.name)
   }
 
   fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<CameraFile> {

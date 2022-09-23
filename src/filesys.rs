@@ -2,12 +2,12 @@
 
 use crate::{
   file::{CameraFile, FileType},
-  helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
+  helper::{bitflags, char_slice_to_str, to_c_string, UninitBox},
   list::{CameraList, FileListIter},
   try_gp_internal, Camera, Result,
 };
 use libgphoto2_sys::time_t;
-use std::{borrow::Cow, ffi};
+use std::ffi;
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -117,7 +117,7 @@ storage_info!(
     /// Size of the preview file
     size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type of the preview file
-    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+    mime_type: &str = GP_FILE_INFO_TYPE, char_slice_to_str(&info.type_);
     /// Image width,
     width: u32 = GP_FILE_INFO_WIDTH, info.width;
     /// Image height
@@ -133,7 +133,7 @@ storage_info!(
     /// File size
     size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type
-    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+    mime_type: &str = GP_FILE_INFO_TYPE, char_slice_to_str(&info.type_);
     /// Image width
     width: u32 = GP_FILE_INFO_WIDTH, info.width;
     /// Image height
@@ -153,7 +153,7 @@ storage_info!(
     /// Size of the audio file
     size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type of the audio
-    mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
+    mime_type: &str = GP_FILE_INFO_TYPE, char_slice_to_str(&info.type_);
   }
 );
 
@@ -228,11 +228,11 @@ storage_info!(
   /// Information about a storage on the camera
   StorageInfo: CameraStorageInfoFields, |info: CameraStorageInformation| {
     /// Label of the storage
-    label: Cow<str> = GP_STORAGEINFO_LABEL, char_slice_to_cow(&info.label);
+    label: &str = GP_STORAGEINFO_LABEL, char_slice_to_str(&info.label);
     /// Base directory of the storage. If there is only 1 storage on the camera it will be "/"
-    base_directory: Cow<str> = GP_STORAGEINFO_BASE, char_slice_to_cow(&info.basedir);
+    base_directory: &str = GP_STORAGEINFO_BASE, char_slice_to_str(&info.basedir);
     /// Description of the storage
-    description: Cow<str> = GP_STORAGEINFO_DESCRIPTION, char_slice_to_cow(&info.description);
+    description: &str = GP_STORAGEINFO_DESCRIPTION, char_slice_to_str(&info.description);
     /// Type of the storage
     storage_type: StorageType = GP_STORAGEINFO_STORAGETYPE, info.type_.into();
     /// Type of the filesystem on the storage

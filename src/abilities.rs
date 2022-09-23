@@ -2,9 +2,9 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
-use crate::helper::{as_ref, bitflags, char_slice_to_cow};
+use crate::helper::{as_ref, bitflags, char_slice_to_str};
 use crate::{context::Context, try_gp_internal, Result};
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
 pub(crate) struct AbilitiesList {
   pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
@@ -122,13 +122,13 @@ impl AbilitiesList {
 
 impl Abilities {
   /// Camera ID
-  pub fn id(&self) -> Cow<str> {
-    char_slice_to_cow(&self.inner.id)
+  pub fn id(&self) -> &str {
+    char_slice_to_str(&self.inner.id)
   }
 
   /// Get the model of the camera
-  pub fn model(&self) -> Cow<str> {
-    char_slice_to_cow(&self.inner.model)
+  pub fn model(&self) -> &str {
+    char_slice_to_str(&self.inner.model)
   }
 
   /// Get the [driver status](CameraDriverStatus) of the device
@@ -137,7 +137,6 @@ impl Abilities {
   }
 
   // TODO: Port speeds
-  // TODO: Usb info
 
   /// Get the [camera operations](CameraOperations) of the device
   pub fn camera_operations(&self) -> CameraOperations {
