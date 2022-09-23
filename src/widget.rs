@@ -433,12 +433,8 @@ impl ButtonWidget {
   pub fn press(&self, camera: &Camera) -> Result<()> {
     let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    let status = unsafe { callback(camera.camera, self.as_ptr(), camera.context) };
-    if status < 0 {
-      Err(Error::new(status, None))
-    } else {
-      Ok(())
-    }
+    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context) })?;
+    Ok(())
   }
 
   fn fmt_fields(&self, _f: &mut fmt::DebugStruct) {}

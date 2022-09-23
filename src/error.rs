@@ -66,6 +66,15 @@ impl Error {
     Self { error, info }
   }
 
+  /// Checks the status code and creates a new error if non-zero.
+  pub(crate) fn check(status: c_int) -> Result<c_int> {
+    if status < 0 {
+      Err(Self::new(status, None))
+    } else {
+      Ok(status)
+    }
+  }
+
   /// Map the gphoto type to an [`ErrorKind`]
   pub fn kind(&self) -> ErrorKind {
     match self.error {
@@ -163,11 +172,12 @@ macro_rules! try_gp_internal {
     let ($status, $($out),*) = unsafe {
       $(let mut $out = std::mem::MaybeUninit::uninit();)*
 
-      let status: std::os::raw::c_int = libgphoto2_sys::$func $args;
-
-      if status < 0 {
-        return Err($crate::Error::new(status, None)) $($unwrap)*;
-      }
+      let status = match $crate::Error::check(libgphoto2_sys::$func $args) {
+        Ok(status) => status,
+        Err(err) => {
+          return Err(err) $($unwrap)*;
+        },
+      };
 
       (status, $($out.assume_init()),*)
     };
