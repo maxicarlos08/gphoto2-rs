@@ -381,17 +381,38 @@ impl ToggleWidget {
   }
 }
 
+/// Iterator over the choices of a [`RadioWidget`].
+pub struct ChoicesIter<'a> {
+  widget: &'a RadioWidget,
+  range: Range<c_int>,
+}
+
+impl<'a> Iterator for ChoicesIter<'a> {
+  type Item = String;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    self.range.next().map(|i| {
+      try_gp_internal!(gp_widget_get_choice(self.widget.as_ptr(), i, &out choice).unwrap());
+      chars_to_string(choice)
+    })
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    self.range.size_hint()
+  }
+}
+
+impl ExactSizeIterator for ChoicesIter<'_> {
+  fn len(&self) -> usize {
+    self.range.len()
+  }
+}
+
 impl RadioWidget {
   /// Get list of the available choices.
-  pub fn choices(&self) -> Vec<String> {
+  pub fn choices_iter(&self) -> ChoicesIter<'_> {
     try_gp_internal!(let choice_count = gp_widget_count_choices(self.as_ptr()).unwrap());
-
-    (0..choice_count)
-      .map(|i| {
-        try_gp_internal!(gp_widget_get_choice(self.as_ptr(), i, &out choice).unwrap());
-        chars_to_string(choice)
-      })
-      .collect()
+    ChoicesIter { widget: self, range: 0..choice_count }
   }
 
   /// Get the current choice.
@@ -408,7 +429,7 @@ impl RadioWidget {
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("choices", &MaybeListFmt(|| self.choices())).field("choice", &self.choice());
+    f.field("choices", &MaybeListFmt(|| self.choices_iter())).field("choice", &self.choice());
   }
 }
 
