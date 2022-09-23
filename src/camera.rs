@@ -188,7 +188,7 @@ impl Camera {
       std::slice::from_raw_parts(
         // We can cast pointer safely because StorageInfo is repr(transparent).
         storages_ptr.cast::<StorageInfo>(),
-        storages_len as usize,
+        storages_len.try_into()?,
       )
     };
 
@@ -215,7 +215,7 @@ impl Camera {
 
     try_gp_internal!(gp_camera_wait_for_event(
       self.camera,
-      duration_milliseconds as i32,
+      duration_milliseconds.try_into()?,
       &out event_type,
       &out event_data,
       self.context

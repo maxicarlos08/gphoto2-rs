@@ -28,15 +28,15 @@ pub struct Abilities {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsbInfo {
   /// Vendor ID
-  pub vendor: usize,
+  pub vendor: u16,
   /// Product ID
-  pub product: usize,
+  pub product: u16,
   /// Device class
-  pub class: usize,
+  pub class: u8,
   /// Device subclass
-  pub subclass: usize,
+  pub subclass: u8,
   /// Device protocol
-  pub protocol: usize,
+  pub protocol: u8,
 }
 
 /// Status of the gphoto driver used
@@ -161,12 +161,13 @@ impl Abilities {
 
   /// Get USB information
   pub fn usb_info(&self) -> UsbInfo {
+    #[allow(clippy::as_conversions)]
     UsbInfo {
-      vendor: self.inner.usb_vendor as usize,
-      product: self.inner.usb_product as usize,
-      class: self.inner.usb_class as usize,
-      subclass: self.inner.usb_subclass as usize,
-      protocol: self.inner.usb_protocol as usize,
+      vendor: self.inner.usb_vendor as u16,
+      product: self.inner.usb_product as u16,
+      class: self.inner.usb_class as u8,
+      subclass: self.inner.usb_subclass as u8,
+      protocol: self.inner.usb_protocol as u8,
     }
   }
 }

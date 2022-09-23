@@ -7,9 +7,6 @@ use crate::helper::chars_to_string;
 /// Result type used in this library
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// i32 version of [`libgphoto2_sys::GP_OK`]
-pub const GP_OK: c_int = libgphoto2_sys::GP_OK as c_int;
-
 /// Error type
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ErrorKind {
@@ -110,8 +107,14 @@ impl From<std::io::Error> for Error {
 }
 
 impl From<std::ffi::NulError> for Error {
-  fn from(_: std::ffi::NulError) -> Self {
-    Self { error: libgphoto2_sys::GP_ERROR, info: Some("FFI: NulError".to_string()) }
+  fn from(err: std::ffi::NulError) -> Self {
+    Self { error: libgphoto2_sys::GP_ERROR_BAD_PARAMETERS, info: Some(err.to_string()) }
+  }
+}
+
+impl From<std::num::TryFromIntError> for Error {
+  fn from(err: std::num::TryFromIntError) -> Self {
+    Self { error: libgphoto2_sys::GP_ERROR, info: Some(err.to_string()) }
   }
 }
 

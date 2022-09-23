@@ -6,6 +6,7 @@ use crate::{
   list::{CameraList, FileListIter},
   try_gp_internal, Camera, Result,
 };
+use libgphoto2_sys::time_t;
 use std::{borrow::Cow, ffi};
 
 macro_rules! storage_info {
@@ -20,8 +21,9 @@ macro_rules! storage_info {
     impl $name {
       #[allow(dead_code)]
       pub(crate) fn from_inner_ref(ptr: &libgphoto2_sys::$inner_ty) -> &Self {
+        let ptr: *const _ = ptr;
         // Safe because of repr(transparent).
-        unsafe { &*(ptr as *const _ as *const Self) }
+        unsafe { &*ptr.cast::<Self>() }
       }
 
       $(
@@ -113,13 +115,13 @@ storage_info!(
     /// Status of the preview file
     status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
     /// Size of the preview file
-    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type of the preview file
     mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
     /// Image width,
-    width: usize = GP_FILE_INFO_WIDTH, info.width as usize;
+    width: u32 = GP_FILE_INFO_WIDTH, info.width;
     /// Image height
-    height: usize = GP_FILE_INFO_HEIGHT, info.height as usize;
+    height: u32 = GP_FILE_INFO_HEIGHT, info.height;
   }
 );
 
@@ -129,17 +131,17 @@ storage_info!(
     /// Status of the file
     status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
     /// File size
-    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type
     mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
     /// Image width
-    width: usize = GP_FILE_INFO_WIDTH, info.width as usize;
+    width: u32 = GP_FILE_INFO_WIDTH, info.width;
     /// Image height
-    height: usize = GP_FILE_INFO_HEIGHT, info.height as usize;
+    height: u32 = GP_FILE_INFO_HEIGHT, info.height;
     /// Image permissions
     permissions: FilePermissions = GP_FILE_INFO_PERMISSIONS, info.permissions.into();
-    /// File modification type
-    mtime: usize = GP_FILE_INFO_MTIME, info.mtime as usize;
+    /// File modification time
+    mtime: time_t = GP_FILE_INFO_MTIME, info.mtime;
   }
 );
 
@@ -149,7 +151,7 @@ storage_info!(
     /// Status of the audio file
     status: FileStatus = GP_FILE_INFO_STATUS, info.status.into();
     /// Size of the audio file
-    size: usize = GP_FILE_INFO_SIZE, info.size as usize;
+    size: u64 = GP_FILE_INFO_SIZE, info.size;
     /// Mime type of the audio
     mime_type: Cow<str> = GP_FILE_INFO_TYPE, char_slice_to_cow(&info.type_);
   }
@@ -238,11 +240,11 @@ storage_info!(
     /// Access permissions
     access_type: AccessType = GP_STORAGEINFO_ACCESS, info.access.into();
     /// Total storage capacity in Kilobytes
-    capacity_kb: usize = GP_STORAGEINFO_MAXCAPACITY, info.capacitykbytes as usize * 1024;
+    capacity_kb: u64 = GP_STORAGEINFO_MAXCAPACITY, info.capacitykbytes * 1024;
     /// Free storage in Kilobytes
-    free_kb: usize = GP_STORAGEINFO_FREESPACEKBYTES, info.freekbytes as usize * 1024;
+    free_kb: u64 = GP_STORAGEINFO_FREESPACEKBYTES, info.freekbytes * 1024;
     /// Number of images that fit in free space (guessed by the camera)
-    free_images: usize = GP_STORAGEINFO_FREESPACEIMAGES, info.freeimages as usize;
+    free_images: u64 = GP_STORAGEINFO_FREESPACEIMAGES, info.freeimages;
   }
 );
 
