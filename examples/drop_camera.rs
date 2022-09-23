@@ -6,11 +6,11 @@ fn main() -> Result<()> {
   let camera = Context::new()?.autodetect_camera()?;
 
   let widget = camera.config()?;
-  let abilities = camera.abilities()?;
+  let abilities = camera.abilities();
 
   drop(camera);
 
-  widget.children_count()?;
+  widget.children_count();
   println!("{:?}", abilities);
 
   Ok(())

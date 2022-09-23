@@ -10,7 +10,7 @@ fn main() -> Result<()> {
   let context = Context::new()?;
 
   let camera_list = context.list_cameras()?;
-  let camera_list = camera_list.to_vec()?;
+  let camera_list = camera_list.to_vec();
 
   if let Some((camera, port)) = camera_list.iter().find(|(name, _)| name == &camera_name) {
     let _camera = context.get_camera(&camera.to_owned(), &port.to_owned())?;

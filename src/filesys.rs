@@ -312,7 +312,7 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(file_list.to_vec()?.into_iter().map(|(name, _)| name).collect())
+    Ok(file_list.to_vec().into_iter().map(|(name, _)| name).collect())
   }
 
   /// List folders in a folder
@@ -326,7 +326,7 @@ impl<'a> CameraFS<'a> {
       self.camera.context
     ));
 
-    Ok(folder_list.to_vec()?.into_iter().map(|(name, _)| name).collect())
+    Ok(folder_list.to_vec().into_iter().map(|(name, _)| name).collect())
   }
 
   /// Creates a new folder

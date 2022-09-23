@@ -150,15 +150,15 @@ impl error::Error for Error {}
 /// otherwise the result of the function
 #[macro_export]
 macro_rules! try_gp_internal {
-  (@ $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
-    try_gp_internal!(@ $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
+  (@ $unwrap:tt $status:tt [ $($out:ident)* ] $func:ident ( $($args:tt)* ) &out $new_out:ident $($rest:tt)*) => {
+    try_gp_internal!(@ $unwrap $status [ $($out)* $new_out ] $func ( $($args)* $new_out.as_mut_ptr() ) $($rest)*)
   };
 
-  (@ $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
-    try_gp_internal!(@ $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
+  (@ $unwrap:tt $status:tt $out:tt $func:ident ( $($args:tt)* ) $new_arg_token:tt $($rest:tt)*) => {
+    try_gp_internal!(@ $unwrap $status $out $func ( $($args)* $new_arg_token ) $($rest)*)
   };
 
-  (@ $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
+  (@ ($($unwrap:tt)*) $status:tt [ $($out:ident)* ] $func:ident $args:tt) => {
     #[allow(unused_unsafe)]
     let ($status, $($out),*) = unsafe {
       $(let mut $out = std::mem::MaybeUninit::uninit();)*
@@ -166,18 +166,18 @@ macro_rules! try_gp_internal {
       let status: std::os::raw::c_int = libgphoto2_sys::$func $args;
 
       if status < 0 {
-        return Err($crate::Error::new(status, None));
+        return Err($crate::Error::new(status, None)) $($unwrap)*;
       }
 
       (status, $($out.assume_init()),*)
     };
   };
 
-  (let $status:tt = $func:ident ( $($args:tt)* )) => {
-    try_gp_internal!(@ $status [] $func () $($args)*)
+  (let $status:tt = $func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
+    try_gp_internal!(@ ($($unwrap)*) $status [] $func () $($args)*)
   };
 
-  ($func:ident ( $($args:tt)* )) => {
-    try_gp_internal!(@ _ [] $func () $($args)*)
+  ($func:ident ( $($args:tt)* ) $($unwrap:tt)*) => {
+    try_gp_internal!(let _ = $func ( $($args)* ) $($unwrap)*)
   };
 }

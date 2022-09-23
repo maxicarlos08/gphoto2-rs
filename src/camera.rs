@@ -144,17 +144,17 @@ impl Camera {
   /// Get the camera's [`Abilities`]
   ///
   /// The abilities contain information about the driver used, permissions and camera model
-  pub fn abilities(&self) -> Result<Abilities> {
+  pub fn abilities(&self) -> Abilities {
     let mut inner = UninitBox::uninit();
 
-    try_gp_internal!(gp_camera_get_abilities(self.camera, inner.as_mut_ptr()));
+    try_gp_internal!(gp_camera_get_abilities(self.camera, inner.as_mut_ptr()).unwrap());
 
     Ok(Abilities { inner: unsafe { inner.assume_init() } })
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context));
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context).unwrap());
 
     Ok(char_slice_to_cow(&summary.text).into_owned())
   }
@@ -261,7 +261,7 @@ impl Camera {
   pub fn config(&self) -> Result<GroupWidget> {
     try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context));
 
-    Widget::new_owned(root_widget)?.try_into::<GroupWidget>()
+    Widget::new_owned(root_widget).try_into::<GroupWidget>()
   }
 
   /// Get a single configuration by name.
@@ -278,7 +278,7 @@ impl Camera {
       self.context
     ));
 
-    Ok(Widget::new_owned(widget)?.try_into()?)
+    Ok(Widget::new_owned(widget).try_into()?)
   }
 
   /// Apply a full config object to the camera.
@@ -292,7 +292,7 @@ impl Camera {
   pub fn set_config(&self, config: &WidgetBase) -> Result<()> {
     try_gp_internal!(gp_camera_set_single_config(
       self.camera,
-      to_c_string!(config.name()?),
+      to_c_string!(config.name()),
       config.inner,
       self.context
     ));

@@ -4,7 +4,7 @@ fn main() -> Result<()> {
   let camera = Context::new()?.autodetect_camera()?;
 
   println!("==== SUMMARY   ====\n{}", camera.summary()?);
-  println!("==== ABILITIES ====\n{:#?}", camera.abilities()?);
+  println!("==== ABILITIES ====\n{:#?}", camera.abilities());
   println!("==== STORAGES  ====");
 
   let storages = camera.storages()?;
