@@ -1,5 +1,6 @@
 use crate::Result;
 use std::fmt::Debug;
+use std::mem::MaybeUninit;
 use std::{borrow::Cow, ffi, os::raw::c_char};
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
@@ -20,6 +21,24 @@ impl<T: Debug> FmtResult for Result<T> {
       Ok(v) => v,
       Err(e) => e,
     }
+  }
+}
+
+pub struct UninitBox<T> {
+  inner: Box<MaybeUninit<T>>,
+}
+
+impl<T> UninitBox<T> {
+  pub fn uninit() -> Self {
+    Self { inner: Box::new(MaybeUninit::uninit()) }
+  }
+
+  pub fn as_mut_ptr(&mut self) -> *mut T {
+    self.inner.as_mut_ptr().cast()
+  }
+
+  pub unsafe fn assume_init(self) -> Box<T> {
+    Box::from_raw(Box::into_raw(self.inner).cast())
   }
 }
 

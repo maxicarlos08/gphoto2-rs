@@ -69,7 +69,7 @@ use owned_fd_impl::OwnedFd;
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
-  pub(crate) inner: libgphoto2_sys::CameraFilePath,
+  pub(crate) inner: Box<libgphoto2_sys::CameraFilePath>,
 }
 
 /// Type of a file
@@ -116,12 +116,6 @@ impl Drop for CameraFile {
     unsafe {
       libgphoto2_sys::gp_file_unref(self.inner);
     }
-  }
-}
-
-impl From<libgphoto2_sys::CameraFilePath> for CameraFilePath {
-  fn from(file_path: libgphoto2_sys::CameraFilePath) -> Self {
-    Self { inner: file_path }
   }
 }
 

@@ -21,7 +21,7 @@ pub(crate) struct AbilitiesList {
 ///  - [`folder_operations`](Abilities::folder_operations): Available operations on folder
 ///  - [`device_type`](Abilities::device_type): Type of the device
 pub struct Abilities {
-  pub(crate) inner: libgphoto2_sys::CameraAbilities,
+  pub(crate) inner: Box<libgphoto2_sys::CameraAbilities>,
 }
 
 /// Camera USB information
@@ -89,12 +89,6 @@ impl From<libgphoto2_sys::CameraDriverStatus> for CameraDriverStatus {
       GPDriverStatus::GP_DRIVER_STATUS_EXPERIMENTAL => Self::Experimental,
       GPDriverStatus::GP_DRIVER_STATUS_DEPRECATED => Self::Deprecated,
     }
-  }
-}
-
-impl From<libgphoto2_sys::CameraAbilities> for Abilities {
-  fn from(abilities: libgphoto2_sys::CameraAbilities) -> Self {
-    Self { inner: abilities }
   }
 }
 

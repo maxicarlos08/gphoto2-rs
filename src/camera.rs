@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox},
   port::PortInfo,
   try_gp_internal,
   widget::{GroupWidget, Widget, WidgetBase},
@@ -107,14 +107,16 @@ impl Camera {
 
   /// Capture image
   pub fn capture_image(&self) -> Result<CameraFilePath> {
+    let mut inner = UninitBox::uninit();
+
     try_gp_internal!(gp_camera_capture(
       self.camera,
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
-      &out file_path_ptr,
+      inner.as_mut_ptr(),
       self.context
     ));
 
-    Ok(file_path_ptr.into())
+    Ok(CameraFilePath { inner: unsafe { inner.assume_init() } })
   }
 
   /// Capture a preview image
@@ -143,9 +145,11 @@ impl Camera {
   ///
   /// The abilities contain information about the driver used, permissions and camera model
   pub fn abilities(&self) -> Result<Abilities> {
-    try_gp_internal!(gp_camera_get_abilities(self.camera, &out abilities));
+    let mut inner = UninitBox::uninit();
 
-    Ok(abilities.into())
+    try_gp_internal!(gp_camera_get_abilities(self.camera, inner.as_mut_ptr()));
+
+    Ok(Abilities { inner: unsafe { inner.assume_init() } })
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
@@ -229,8 +233,9 @@ impl Camera {
       CameraEventType::GP_EVENT_FILE_ADDED
       | CameraEventType::GP_EVENT_FOLDER_ADDED
       | CameraEventType::GP_EVENT_FILE_CHANGED => {
-        let file_path =
-          CameraFilePath::from(unsafe { *event_data.cast::<libgphoto2_sys::CameraFilePath>() });
+        let file_path = CameraFilePath {
+          inner: Box::new(unsafe { *event_data.cast::<libgphoto2_sys::CameraFilePath>() }),
+        };
         unsafe {
           libc::free(event_data);
         }
