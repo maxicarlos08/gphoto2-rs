@@ -1,3 +1,4 @@
+use std::mem::MaybeUninit;
 use std::{borrow::Cow, ffi, os::raw::c_char};
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {

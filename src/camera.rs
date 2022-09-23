@@ -149,7 +149,7 @@ impl Camera {
 
     try_gp_internal!(gp_camera_get_abilities(self.camera, inner.as_mut_ptr()).unwrap());
 
-    Ok(Abilities { inner: unsafe { inner.assume_init() } })
+    Abilities { inner: unsafe { inner.assume_init() } }
   }
 
   /// Summary of the cameras model, settings, capabilities, etc.
