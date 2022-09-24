@@ -9,6 +9,8 @@ use gphoto2::{Context, Result};
 use std::{thread, time::Duration};
 
 fn main() -> Result<()> {
+  env_logger::init();
+
   let camera = Context::new()?.autodetect_camera()?;
 
   let opcode = camera.config_key::<TextWidget>("opcode")?;

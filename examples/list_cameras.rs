@@ -2,6 +2,8 @@ use gphoto2::list::CameraDescriptor;
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
+  env_logger::init();
+
   let context = Context::new()?;
 
   println!("Available cameras:");

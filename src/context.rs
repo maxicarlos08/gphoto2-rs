@@ -1,5 +1,5 @@
 //! Library context
-use crate::helper::{as_ref, libtool_lock, to_c_string};
+use crate::helper::{as_ref, chars_to_string, libtool_lock, to_c_string};
 use crate::list::{CameraDescriptor, CameraListIter};
 use crate::{
   abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
@@ -44,10 +44,38 @@ impl Context {
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
     if context_ptr.is_null() {
-      Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None))
-    } else {
-      Ok(Self { inner: context_ptr })
+      return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
     }
+
+    unsafe extern "C" fn log_func(
+      _context: *mut libgphoto2_sys::GPContext,
+      text: *const libc::c_char,
+      log_level_as_ptr: *mut libc::c_void,
+    ) {
+      let log_level: log::Level = std::mem::transmute(log_level_as_ptr);
+      log::log!(target: "gphoto2", log_level, "{}", chars_to_string(text));
+    }
+
+    unsafe {
+      if log::log_enabled!(log::Level::Error) {
+        let log_level_as_ptr = std::mem::transmute(log::Level::Error);
+
+        libgphoto2_sys::gp_context_set_error_func(context_ptr, Some(log_func), log_level_as_ptr);
+
+        // `gp_context_message` seems to be used also for error messages.
+        libgphoto2_sys::gp_context_set_message_func(context_ptr, Some(log_func), log_level_as_ptr);
+      }
+
+      if log::log_enabled!(log::Level::Info) {
+        libgphoto2_sys::gp_context_set_status_func(
+          context_ptr,
+          Some(log_func),
+          std::mem::transmute(log::Level::Info),
+        );
+      }
+    }
+
+    Ok(Self { inner: context_ptr })
   }
 
   /// Lists all available cameras and their ports

@@ -2,6 +2,8 @@ use gphoto2::{Context, Result};
 use std::path::Path;
 
 fn main() -> Result<()> {
+  env_logger::init();
+
   let camera = Context::new()?.autodetect_camera()?;
 
   let file = camera.capture_image()?;
