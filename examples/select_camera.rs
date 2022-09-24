@@ -5,6 +5,8 @@
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
+  env_logger::init();
+
   let camera_name = std::env::args().nth(1).expect("Missing argument: camera_model");
 
   let context = Context::new()?;
