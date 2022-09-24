@@ -4,7 +4,10 @@ use std::{
   fs::File,
   mem::MaybeUninit,
   os::raw::{c_char, c_int},
+  sync::{Mutex, MutexGuard},
 };
+
+static LIBTOOL_LOCK: Mutex<()> = Mutex::new(());
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
@@ -35,6 +38,14 @@ impl IntoUnixFd for File {
     let handle = self.into_raw_handle();
 
     unsafe { libc::open_osfhandle(handle as _, 0) }
+  }
+}
+
+pub fn libtool_lock() -> MutexGuard<'static, ()> {
+  match LIBTOOL_LOCK.lock() {
+    Ok(guard) => guard,
+    // Since the lock contains no meaningful data, if the Mutex got poisoned there is no need for other threads to panic
+    Err(err) => err.into_inner(),
   }
 }
 
