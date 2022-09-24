@@ -15,7 +15,8 @@ pub fn chars_to_string(chars: *const c_char) -> String {
 pub fn libtool_lock() -> MutexGuard<'static, ()> {
   match LIBTOOL_LOCK.lock() {
     Ok(guard) => guard,
-    Err(err) => err.into_inner()
+    // Since the lock contains no meaningful data, if the Mutex got poisoned there is no need for other threads to panic
+    Err(err) => err.into_inner(),
   }
 }
 
