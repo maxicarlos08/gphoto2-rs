@@ -12,8 +12,8 @@ macro_rules! add_log_func {
         $({
           unsafe extern "C" fn log_func(
             _level: libgphoto2_sys::GPLogLevel,
-            domain: *const ffi::c_char,
-            message: *const ffi::c_char,
+            domain: *const std::os::raw::c_char,
+            message: *const std::os::raw::c_char,
             _data: *mut ffi::c_void,
           ) {
             log::log!(target: "gphoto2", log::Level::$level, "[{}] {}", chars_to_string(domain), chars_to_string(message));
