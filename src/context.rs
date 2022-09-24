@@ -7,6 +7,29 @@ use crate::{
 };
 use std::ffi;
 
+macro_rules! add_log_func {
+    ($($level:ident: $gp_level:ident;)*) => {
+        $({
+          unsafe extern "C" fn log_func(
+            _level: libgphoto2_sys::GPLogLevel,
+            domain: *const ffi::c_char,
+            message: *const ffi::c_char,
+            _data: *mut ffi::c_void,
+          ) {
+            log::log!(target: "gphoto2", log::Level::$level, "[{}] {}", chars_to_string(domain), chars_to_string(message));
+          }
+
+          if log::log_enabled!(log::Level::$level) {
+            libgphoto2_sys::gp_log_add_func(
+              libgphoto2_sys::GPLogLevel::$gp_level,
+              Some(log_func),
+              std::mem::transmute(log::Level::$level) // We have to pass something here...
+            );
+          }
+        })*
+    };
+}
+
 /// Context used internally by gphoto
 ///
 /// ## Example
@@ -47,32 +70,12 @@ impl Context {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
     }
 
-    unsafe extern "C" fn log_func(
-      _context: *mut libgphoto2_sys::GPContext,
-      text: *const libc::c_char,
-      log_level_as_ptr: *mut libc::c_void,
-    ) {
-      let log_level: log::Level = std::mem::transmute(log_level_as_ptr);
-      log::log!(target: "gphoto2", log_level, "{}", chars_to_string(text));
-    }
-
     unsafe {
-      if log::log_enabled!(log::Level::Error) {
-        let log_level_as_ptr = std::mem::transmute(log::Level::Error);
-
-        libgphoto2_sys::gp_context_set_error_func(context_ptr, Some(log_func), log_level_as_ptr);
-
-        // `gp_context_message` seems to be used also for error messages.
-        libgphoto2_sys::gp_context_set_message_func(context_ptr, Some(log_func), log_level_as_ptr);
-      }
-
-      if log::log_enabled!(log::Level::Info) {
-        libgphoto2_sys::gp_context_set_status_func(
-          context_ptr,
-          Some(log_func),
-          std::mem::transmute(log::Level::Info),
-        );
-      }
+      add_log_func!(
+        Error: GP_LOG_ERROR;
+        Debug: GP_LOG_DEBUG;
+        Info: GP_LOG_VERBOSE;
+      );
     }
 
     Ok(Self { inner: context_ptr })
