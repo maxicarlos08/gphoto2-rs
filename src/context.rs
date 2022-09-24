@@ -53,7 +53,7 @@ impl Context {
       log_level_as_ptr: *mut libc::c_void,
     ) {
       let log_level: log::Level = std::mem::transmute(log_level_as_ptr);
-      log::log!(log_level, "{}", chars_to_string(text));
+      log::log!(target: "gphoto2", log_level, "{}", chars_to_string(text));
     }
 
     unsafe {
