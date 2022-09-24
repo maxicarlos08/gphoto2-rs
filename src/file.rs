@@ -106,9 +106,6 @@ pub enum FileType {
 /// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
-  #[allow(dead_code)]
-  // The file must live as long as the camera file to keep the raw file descriptor alive
-  file: Option<OwnedFd>,
 }
 
 impl Drop for CameraFile {
@@ -152,7 +149,7 @@ impl Into<libgphoto2_sys::CameraFileType> for FileType {
 
 impl From<*mut libgphoto2_sys::CameraFile> for CameraFile {
   fn from(raw_file: *mut libgphoto2_sys::CameraFile) -> Self {
-    Self { file: None, inner: raw_file }
+    Self { inner: raw_file }
   }
 }
 
@@ -213,7 +210,7 @@ impl CameraFile {
   pub(crate) fn new() -> Result<Self> {
     try_gp_internal!(gp_file_new(&out camera_file_ptr)?);
 
-    Ok(Self { inner: camera_file_ptr, file: None })
+    Ok(Self { inner: camera_file_ptr })
   }
 
   pub(crate) fn new_file(path: &Path) -> Result<Self> {
@@ -224,7 +221,7 @@ impl CameraFile {
     let file = OwnedFd::from(fs::File::create(path)?);
 
     try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, file.as_raw_fd())?);
-    Ok(Self { inner: camera_file_ptr, file: Some(file) })
+    Ok(Self { inner: camera_file_ptr })
   }
 
   /// Creates a new camera file from disk
@@ -235,7 +232,7 @@ impl CameraFile {
       to_c_string!(path.to_str().ok_or("File path invalid")?)
     )?);
 
-    Ok(Self { inner: camera_file_ptr, file: None })
+    Ok(Self { inner: camera_file_ptr })
   }
 
   /// Get the data of the file
