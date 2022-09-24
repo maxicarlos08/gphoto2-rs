@@ -106,6 +106,7 @@ pub enum FileType {
 /// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
+  pub(crate) is_from_disk: bool,
 }
 
 impl Drop for CameraFile {
@@ -144,12 +145,6 @@ impl Into<libgphoto2_sys::CameraFileType> for FileType {
       Self::Exif => GPFileType::GP_FILE_TYPE_EXIF,
       Self::Metadata => GPFileType::GP_FILE_TYPE_METADATA,
     }
-  }
-}
-
-impl From<*mut libgphoto2_sys::CameraFile> for CameraFile {
-  fn from(raw_file: *mut libgphoto2_sys::CameraFile) -> Self {
-    Self { inner: raw_file }
   }
 }
 
@@ -210,7 +205,7 @@ impl CameraFile {
   pub(crate) fn new() -> Result<Self> {
     try_gp_internal!(gp_file_new(&out camera_file_ptr)?);
 
-    Ok(Self { inner: camera_file_ptr })
+    Ok(Self { inner: camera_file_ptr, is_from_disk: false })
   }
 
   pub(crate) fn new_file(path: &Path) -> Result<Self> {
@@ -221,7 +216,7 @@ impl CameraFile {
     let file = OwnedFd::from(fs::File::create(path)?);
 
     try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, file.as_raw_fd())?);
-    Ok(Self { inner: camera_file_ptr })
+    Ok(Self { inner: camera_file_ptr, is_from_disk: true })
   }
 
   /// Creates a new camera file from disk
@@ -232,7 +227,7 @@ impl CameraFile {
       to_c_string!(path.to_str().ok_or("File path invalid")?)
     )?);
 
-    Ok(Self { inner: camera_file_ptr })
+    Ok(Self { inner: camera_file_ptr, is_from_disk: true })
   }
 
   /// Get the data of the file
@@ -241,6 +236,14 @@ impl CameraFile {
 
     let data_slice: Box<[u8]> =
       unsafe { std::slice::from_raw_parts(data.cast::<u8>(), size.try_into()?) }.into();
+
+    if self.is_from_disk {
+      unsafe {
+        // Casting a *const pointer to *mut is still unstable
+        #[allow(clippy::as_conversions)]
+        libc::free((data as *mut i8).cast())
+      }
+    }
 
     Ok(data_slice)
   }
