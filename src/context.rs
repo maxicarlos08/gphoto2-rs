@@ -7,6 +7,10 @@ use crate::{
 };
 use std::ffi;
 
+type ProgressStartFunc = Box<dyn Fn(ffi::c_float, String) -> ffi::c_uint>;
+type ProgressUpdateFunc = Box<dyn Fn(ffi::c_uint, ffi::c_float)>;
+type ProgressStopFunc = Box<dyn Fn(ffi::c_uint)>;
+
 /// Context used internally by gphoto
 ///
 /// ## Example
@@ -28,6 +32,13 @@ use std::ffi;
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
+  pub(crate) progress_functions: Option<ContextProgress>,
+}
+
+pub(crate) struct ContextProgress {
+  start: ProgressStartFunc,
+  update: ProgressUpdateFunc,
+  stop: ProgressStopFunc,
 }
 
 impl Drop for Context {
@@ -75,7 +86,7 @@ impl Context {
       }
     }
 
-    Ok(Self { inner: context_ptr })
+    Ok(Self { inner: context_ptr, progress_functions: None })
   }
 
   /// Lists all available cameras and their ports
@@ -156,4 +167,60 @@ impl Context {
 
     Ok(Camera::new(camera, self.inner))
   }
+
+  /// Set progress functions
+  /// TODO: docs
+  pub fn set_progress_functions(
+    &mut self,
+    start: ProgressStartFunc,
+    update: ProgressUpdateFunc,
+    stop: ProgressStopFunc,
+  ) {
+    unsafe extern "C" fn start_func(
+      _ctx: *mut libgphoto2_sys::GPContext,
+      target: ffi::c_float,
+      message: *const ffi::c_char,
+      data: *mut ffi::c_void,
+    ) -> ffi::c_uint {
+      call_progress_func!(data, start(target, chars_to_string(message)))
+    }
+
+    unsafe extern "C" fn update_func(
+      _ctx: *mut libgphoto2_sys::GPContext,
+      id: ffi::c_uint,
+      current: ffi::c_float,
+      data: *mut ffi::c_void,
+    ) {
+      call_progress_func!(data, update(id, current))
+    }
+
+    unsafe extern "C" fn stop_func(
+      _ctx: *mut libgphoto2_sys::GPContext,
+      id: ffi::c_uint,
+      data: *mut ffi::c_void,
+    ) {
+      call_progress_func!(data, stop(id))
+    }
+
+    self.progress_functions = Some(ContextProgress { start, update, stop });
+
+    unsafe {
+      #[allow(clippy::as_conversions)]
+      libgphoto2_sys::gp_context_set_progress_funcs(
+        self.inner,
+        Some(start_func),
+        Some(update_func),
+        Some(stop_func),
+        self.progress_functions.as_mut().unwrap() as *mut _ as *mut ffi::c_void,
+      )
+    }
+  }
 }
+
+macro_rules! call_progress_func {
+    ($data:expr, $function:ident ($($args:expr$(,)?)+)) => {
+          ($data.cast::<ContextProgress>().as_ref().unwrap().$function)($($args,)*)
+    };
+}
+
+pub(self) use call_progress_func;
