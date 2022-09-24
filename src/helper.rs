@@ -1,5 +1,8 @@
 use std::mem::MaybeUninit;
+use std::sync::{Mutex, MutexGuard};
 use std::{borrow::Cow, ffi, os::raw::c_char};
+
+static LIBTOOL_LOCK: Mutex<()> = Mutex::new(());
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
@@ -7,6 +10,13 @@ pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
 
 pub fn chars_to_string(chars: *const c_char) -> String {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }.into_owned()
+}
+
+pub fn libtool_lock() -> MutexGuard<'static, ()> {
+  match LIBTOOL_LOCK.lock() {
+    Ok(guard) => guard,
+    Err(err) => err.into_inner()
+  }
 }
 
 pub struct UninitBox<T> {

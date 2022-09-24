@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox, libtool_lock},
   port::PortInfo,
   try_gp_internal,
   widget::{GroupWidget, Widget, WidgetBase},
@@ -86,6 +86,9 @@ pub struct Camera {
 
 impl Drop for Camera {
   fn drop(&mut self) {
+    // gp_camera_unref -> gp_camera_free -> gp_camera_exit -> libtool
+    let _lock = libtool_lock();
+
     unsafe {
       libgphoto2_sys::gp_camera_unref(self.camera);
       libgphoto2_sys::gp_context_unref(self.context);
