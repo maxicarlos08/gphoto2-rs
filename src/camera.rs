@@ -4,7 +4,7 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox, libtool_lock},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, libtool_lock, to_c_string, UninitBox},
   port::PortInfo,
   try_gp_internal,
   widget::{GroupWidget, Widget, WidgetBase},

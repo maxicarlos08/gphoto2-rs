@@ -1,5 +1,5 @@
 //! Library context
-use crate::helper::{as_ref, to_c_string, libtool_lock};
+use crate::helper::{as_ref, libtool_lock, to_c_string};
 use crate::list::{CameraDescriptor, CameraListIter};
 use crate::{
   abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
@@ -57,7 +57,7 @@ impl Context {
   pub fn list_cameras(&self) -> Result<CameraListIter> {
     // gp_camera_autodetect -> (gp_port_info_list_load, gp_abilities_list_load, ...) -> libtool
     let _lock = libtool_lock();
-    
+
     let camera_list = CameraList::new()?;
     try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner)?);
 
