@@ -17,7 +17,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_string},
+  helper::{as_ref, chars_to_string, libtool_lock},
   try_gp_internal, Result,
 };
 use std::fmt;
@@ -129,6 +129,8 @@ impl PortInfo {
 
 impl PortInfoList {
   pub(crate) fn new() -> Result<Self> {
+    let _lock = libtool_lock(); // gp_port_info_list_load -> libtool
+
     try_gp_internal!(gp_port_info_list_new(&out port_info_list)?);
     try_gp_internal!(gp_port_info_list_load(port_info_list)?);
 
