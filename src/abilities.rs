@@ -2,7 +2,7 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
-use crate::helper::{as_ref, bitflags, char_slice_to_cow};
+use crate::helper::{as_ref, bitflags, char_slice_to_cow, libtool_lock};
 use crate::{context::Context, try_gp_internal, Result};
 use std::{borrow::Cow, fmt};
 
@@ -113,6 +113,8 @@ as_ref!(Abilities -> libgphoto2_sys::CameraAbilities, self.inner);
 
 impl AbilitiesList {
   pub(crate) fn new(context: &Context) -> Result<Self> {
+    let _lock = libtool_lock(); // gp_abilities_list_load -> libtool
+
     try_gp_internal!(gp_abilities_list_new(&out abilities_inner)?);
     try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner)?);
 
