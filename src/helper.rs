@@ -1,5 +1,10 @@
-use std::mem::MaybeUninit;
-use std::{borrow::Cow, ffi, os::raw::c_char};
+use std::{
+  borrow::Cow,
+  ffi,
+  fs::File,
+  mem::MaybeUninit,
+  os::raw::{c_char, c_int},
+};
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
@@ -7,6 +12,30 @@ pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
 
 pub fn chars_to_string(chars: *const c_char) -> String {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars).to_bytes()) }.into_owned()
+}
+
+pub trait IntoUnixFd {
+  fn into_unix_fd(self) -> c_int;
+}
+
+#[cfg(unix)]
+impl IntoUnixFd for File {
+  fn into_unix_fd(self) -> c_int {
+    use std::os::unix::prelude::IntoRawFd;
+
+    self.into_raw_fd()
+  }
+}
+
+#[cfg(windows)]
+impl IntoUnixFd for File {
+  fn into_unix_fd(self) -> c_int {
+    use std::os::windows::io::IntoRawHandle;
+
+    let handle = self.into_raw_handle();
+
+    unsafe { libc::open_osfhandle(handle as _, 0) }
+  }
 }
 
 pub struct UninitBox<T> {
