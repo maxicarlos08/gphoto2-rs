@@ -254,10 +254,10 @@ impl Camera {
   }
 
   /// Port used to connect to the camera
-  pub fn port_info(&self) -> Result<PortInfo> {
+  pub fn port_info(&self) -> Result<PortInfo<'_>> {
     try_gp_internal!(gp_camera_get_port_info(self.camera, &out port_info)?);
 
-    Ok(PortInfo { inner: port_info })
+    Ok(unsafe { PortInfo::new(port_info) })
   }
 
   /// Get the camera configuration

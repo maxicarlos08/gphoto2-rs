@@ -74,15 +74,15 @@ macro_rules! to_c_string {
 }
 
 macro_rules! as_ref {
-  ($from:ident -> $to:ty, $self:ident $($rest:tt)*) => {
-    as_ref!(@ $from -> $to, , $self, $self $($rest)*);
+  ($from:ident $(<$lt:tt>)? -> $to:ty, $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, , $self, $self $($rest)*);
   };
 
-  ($from:ident -> $to:ty, * $self:ident $($rest:tt)*) => {
-    as_ref!(@ $from -> $to, unsafe, $self, *$self $($rest)*);
+  ($from:ident $(<$lt:tt>)? -> $to:ty, * $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, *$self $($rest)*);
   };
 
-  (@ $from:ident -> $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
+  (@ $from:ty, $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
     impl AsRef<$to> for $from {
       fn as_ref(&$self) -> &$to {
         $($unsafe)? { & $value }
