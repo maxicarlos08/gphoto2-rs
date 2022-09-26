@@ -4,10 +4,12 @@ use std::{
   fs::File,
   mem::MaybeUninit,
   os::raw::{c_char, c_int},
+  sync::Once,
   sync::{Mutex, MutexGuard},
 };
 
 static LIBTOOL_LOCK: Mutex<()> = Mutex::new(());
+static HOOK_LOG_FUNCTION: Once = Once::new();
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
@@ -39,6 +41,36 @@ impl IntoUnixFd for File {
 
     unsafe { libc::open_osfhandle(handle as _, 0) }
   }
+}
+
+pub fn hook_gp_log() {
+  unsafe extern "C" fn log_function(
+    level: libgphoto2_sys::GPLogLevel,
+    domain: *const std::os::raw::c_char,
+    message: *const std::os::raw::c_char,
+    _data: *mut ffi::c_void,
+  ) {
+    use libgphoto2_sys::GPLogLevel;
+
+    let log_level = match level {
+      GPLogLevel::GP_LOG_ERROR => log::Level::Error,
+      GPLogLevel::GP_LOG_DEBUG => log::Level::Debug,
+      GPLogLevel::GP_LOG_VERBOSE => log::Level::Info,
+      GPLogLevel::GP_LOG_DATA => unreachable!(),
+    };
+
+    log::log!(target: "gphoto2", log_level, "[{}] {}", chars_to_string(domain), chars_to_string(message));
+  }
+
+  HOOK_LOG_FUNCTION.call_once(|| {
+    unsafe {
+      libgphoto2_sys::gp_log_add_func(
+        libgphoto2_sys::GPLogLevel::GP_LOG_DEBUG,
+        Some(log_function),
+        std::mem::transmute(log::Level::Debug),
+      ); // We have to pass something here...
+    }
+  });
 }
 
 pub fn libtool_lock() -> MutexGuard<'static, ()> {

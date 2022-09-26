@@ -1,34 +1,14 @@
 //! Library context
-use crate::helper::{as_ref, chars_to_string, libtool_lock, to_c_string};
-use crate::list::{CameraDescriptor, CameraListIter};
 use crate::{
-  abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
-  Error, Result,
+  abilities::AbilitiesList,
+  camera::Camera,
+  helper::{as_ref, hook_gp_log, libtool_lock, to_c_string},
+  list::CameraList,
+  list::{CameraDescriptor, CameraListIter},
+  port::PortInfoList,
+  try_gp_internal, Error, Result,
 };
 use std::ffi;
-
-macro_rules! add_log_func {
-    ($($level:ident: $gp_level:ident;)*) => {
-        $({
-          unsafe extern "C" fn log_func(
-            _level: libgphoto2_sys::GPLogLevel,
-            domain: *const std::os::raw::c_char,
-            message: *const std::os::raw::c_char,
-            _data: *mut ffi::c_void,
-          ) {
-            log::log!(target: "gphoto2", log::Level::$level, "[{}] {}", chars_to_string(domain), chars_to_string(message));
-          }
-
-          if log::log_enabled!(log::Level::$level) {
-            libgphoto2_sys::gp_log_add_func(
-              libgphoto2_sys::GPLogLevel::$gp_level,
-              Some(log_func),
-              std::mem::transmute(log::Level::$level) // We have to pass something here...
-            );
-          }
-        })*
-    };
-}
 
 /// Context used internally by gphoto
 ///
@@ -64,18 +44,12 @@ as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
 impl Context {
   /// Create a new context
   pub fn new() -> Result<Self> {
+    hook_gp_log();
+
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
     if context_ptr.is_null() {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
-    }
-
-    unsafe {
-      add_log_func!(
-        Error: GP_LOG_ERROR;
-        Debug: GP_LOG_DEBUG;
-        Info: GP_LOG_VERBOSE;
-      );
     }
 
     Ok(Self { inner: context_ptr })
