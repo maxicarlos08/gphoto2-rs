@@ -171,6 +171,19 @@ impl CameraFile {
     Ok(Self { inner: camera_file_ptr, is_from_disk: true })
   }
 
+  /// Creates a new camera file from in memory data
+  pub fn new_from_slice(data: Box<[u8]>) -> Result<Self> {
+    let data = Box::leak(data);
+    try_gp_internal!(gp_file_new(&out file)?);
+    try_gp_internal!(gp_file_set_data_and_size(
+      file,
+      data.as_mut_ptr().cast(),
+      data.len().try_into()?
+    )?);
+
+    Ok(Self { is_from_disk: false, inner: file })
+  }
+
   /// Get the data of the file
   pub fn get_data(&self) -> Result<Box<[u8]>> {
     try_gp_internal!(gp_file_get_data_and_size(self.inner, &out data, &out size)?);

@@ -280,7 +280,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Upload a file to the camera
-  pub fn upload_file(&self, folder: &str, filename: &str, file: CameraFile) -> Result<()> {
+  pub fn upload_file(&self, folder: &str, filename: &str, file: &CameraFile) -> Result<()> {
     try_gp_internal!(gp_camera_folder_put_file(
       self.camera.camera,
       to_c_string!(folder),
