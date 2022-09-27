@@ -180,6 +180,16 @@ impl FileInfo {
   }
 }
 
+impl fmt::Debug for FileInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("FileInfo")
+      .field("preview", &self.preview())
+      .field("file", &self.file())
+      .field("audio", &self.audio())
+      .finish()
+  }
+}
+
 /// File system actions for a camera
 pub struct CameraFS<'a> {
   pub(crate) camera: &'a Camera,
