@@ -59,17 +59,17 @@ pub fn hook_gp_log() {
       GPLogLevel::GP_LOG_DATA => unreachable!(),
     };
 
-    log::log!(target: "gphoto2", log_level, "[{}] {}", chars_to_string(domain), chars_to_string(message));
+    let target = format!("gphoto2::{}", chars_to_string(domain));
+
+    log::log!(target: &target, log_level, "{}", chars_to_string(message));
   }
 
-  HOOK_LOG_FUNCTION.call_once(|| {
-    unsafe {
-      libgphoto2_sys::gp_log_add_func(
-        libgphoto2_sys::GPLogLevel::GP_LOG_DEBUG,
-        Some(log_function),
-        std::mem::transmute(log::Level::Debug),
-      ); // We have to pass something here...
-    }
+  HOOK_LOG_FUNCTION.call_once(|| unsafe {
+    libgphoto2_sys::gp_log_add_func(
+      libgphoto2_sys::GPLogLevel::GP_LOG_DEBUG,
+      Some(log_function),
+      std::ptr::null_mut(),
+    );
   });
 }
 
