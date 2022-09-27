@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use std::{
   borrow::Cow,
   ffi,
@@ -44,8 +43,10 @@ impl IntoUnixFd for File {
   }
 }
 
+#[cfg(feature = "alt_logs")]
 pub fn hook_gp_log() {
   use libgphoto2_sys::GPLogLevel;
+  use log::LevelFilter;
 
   unsafe extern "C" fn log_function(
     level: libgphoto2_sys::GPLogLevel,
@@ -75,6 +76,40 @@ pub fn hook_gp_log() {
 
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
     libgphoto2_sys::gp_log_add_func(max_log_level, Some(log_function), std::ptr::null_mut());
+  });
+}
+
+#[cfg(not(feature = "alt_logs"))]
+pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
+  use log::Level;
+
+  unsafe extern "C" fn log_func(
+    _context: *mut libgphoto2_sys::GPContext,
+    message: *const c_char,
+    log_level: *mut ffi::c_void,
+  ) {
+    let log_level: Level = std::mem::transmute(log_level);
+
+    log::log!(target: "gphoto2", log_level, "{}", chars_to_string(message));
+  }
+
+  HOOK_LOG_FUNCTION.call_once(|| unsafe {
+    if log::log_enabled!(log::Level::Error) {
+      let log_level_as_ptr = std::mem::transmute(log::Level::Error);
+
+      libgphoto2_sys::gp_context_set_error_func(context, Some(log_func), log_level_as_ptr);
+
+      // `gp_context_message` seems to be used also for error messages.
+      libgphoto2_sys::gp_context_set_message_func(context, Some(log_func), log_level_as_ptr);
+    }
+
+    if log::log_enabled!(log::Level::Info) {
+      libgphoto2_sys::gp_context_set_status_func(
+        context,
+        Some(log_func),
+        std::mem::transmute(log::Level::Info),
+      );
+    }
   });
 }
 

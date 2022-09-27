@@ -11,6 +11,10 @@ homepage = "https://github.com/maxicarlos08/gphoto2-rs"
 documentation = "https://docs.rs/gphoto2/latest/gphoto2/"
 readme = "README.md"
 
+[features]
+# Uses gp_log_add_func instead of gp_context_set_log_func for logging (not supported on many systems)
+alt_logs = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]

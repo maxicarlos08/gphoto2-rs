@@ -2,7 +2,7 @@
 use crate::{
   abilities::AbilitiesList,
   camera::Camera,
-  helper::{as_ref, hook_gp_log, libtool_lock, to_c_string},
+  helper::{as_ref, libtool_lock, to_c_string},
   list::CameraList,
   list::{CameraDescriptor, CameraListIter},
   port::PortInfoList,
@@ -44,13 +44,17 @@ as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
 impl Context {
   /// Create a new context
   pub fn new() -> Result<Self> {
-    hook_gp_log();
+    #[cfg(feature = "alt_logs")]
+    crate::helper::hook_gp_log();
 
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
     if context_ptr.is_null() {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
     }
+
+    #[cfg(not(feature = "alt_logs"))]
+    crate::helper::hook_gp_context_log_func(context_ptr);
 
     Ok(Self { inner: context_ptr })
   }
