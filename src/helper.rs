@@ -1,3 +1,4 @@
+use log::LevelFilter;
 use std::{
   borrow::Cow,
   ffi,
@@ -44,19 +45,19 @@ impl IntoUnixFd for File {
 }
 
 pub fn hook_gp_log() {
+  use libgphoto2_sys::GPLogLevel;
+
   unsafe extern "C" fn log_function(
     level: libgphoto2_sys::GPLogLevel,
     domain: *const std::os::raw::c_char,
     message: *const std::os::raw::c_char,
     _data: *mut ffi::c_void,
   ) {
-    use libgphoto2_sys::GPLogLevel;
-
     let log_level = match level {
       GPLogLevel::GP_LOG_ERROR => log::Level::Error,
       GPLogLevel::GP_LOG_DEBUG => log::Level::Debug,
       GPLogLevel::GP_LOG_VERBOSE => log::Level::Info,
-      GPLogLevel::GP_LOG_DATA => unreachable!(),
+      GPLogLevel::GP_LOG_DATA => log::Level::Trace,
     };
 
     let target = format!("gphoto2::{}", chars_to_string(domain));
@@ -64,12 +65,16 @@ pub fn hook_gp_log() {
     log::log!(target: &target, log_level, "{}", chars_to_string(message));
   }
 
+  let max_log_level = match log::STATIC_MAX_LEVEL {
+    LevelFilter::Debug | LevelFilter::Warn => GPLogLevel::GP_LOG_DEBUG,
+    LevelFilter::Error => GPLogLevel::GP_LOG_ERROR,
+    LevelFilter::Info => GPLogLevel::GP_LOG_VERBOSE,
+    LevelFilter::Trace => GPLogLevel::GP_LOG_DATA,
+    LevelFilter::Off => return,
+  };
+
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
-    libgphoto2_sys::gp_log_add_func(
-      libgphoto2_sys::GPLogLevel::GP_LOG_DEBUG,
-      Some(log_function),
-      std::ptr::null_mut(),
-    );
+    libgphoto2_sys::gp_log_add_func(max_log_level, Some(log_function), std::ptr::null_mut());
   });
 }
 
