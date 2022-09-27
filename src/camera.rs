@@ -89,8 +89,8 @@ impl Drop for Camera {
     // gp_camera_unref -> gp_camera_free -> gp_camera_exit -> libtool
     let _lock = libtool_lock();
 
+    try_gp_internal!(gp_camera_unref(self.camera).unwrap());
     unsafe {
-      libgphoto2_sys::gp_camera_unref(self.camera);
       libgphoto2_sys::gp_context_unref(self.context);
     }
   }

@@ -9,9 +9,7 @@ pub(crate) struct CameraList {
 
 impl Drop for CameraList {
   fn drop(&mut self) {
-    unsafe {
-      libgphoto2_sys::gp_list_unref(self.inner);
-    }
+    try_gp_internal!(gp_list_unref(self.inner).unwrap());
   }
 }
 

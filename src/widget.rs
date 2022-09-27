@@ -59,19 +59,14 @@ pub struct WidgetBase {
 
 impl Clone for WidgetBase {
   fn clone(&self) -> Self {
-    unsafe {
-      libgphoto2_sys::gp_widget_ref(self.inner);
-    }
-
+    try_gp_internal!(gp_widget_ref(self.inner).unwrap());
     Self { inner: self.inner }
   }
 }
 
 impl Drop for WidgetBase {
   fn drop(&mut self) {
-    unsafe {
-      libgphoto2_sys::gp_widget_unref(self.inner);
-    }
+    try_gp_internal!(gp_widget_unref(self.inner).unwrap());
   }
 }
 
@@ -476,10 +471,7 @@ impl ButtonWidget {
 
 impl Widget {
   pub(crate) fn new_shared(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
-    unsafe {
-      libgphoto2_sys::gp_widget_ref(widget);
-    }
-
+    try_gp_internal!(gp_widget_ref(widget).unwrap());
     Self::new_owned(widget)
   }
 }

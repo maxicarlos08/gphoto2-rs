@@ -63,9 +63,7 @@ pub enum DeviceType {
 
 impl Drop for AbilitiesList {
   fn drop(&mut self) {
-    unsafe {
-      libgphoto2_sys::gp_abilities_list_free(self.inner);
-    }
+    try_gp_internal!(gp_abilities_list_free(self.inner).unwrap());
   }
 }
 
