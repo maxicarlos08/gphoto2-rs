@@ -73,12 +73,12 @@ use std::path::Path;
 fn main() -> Result<()> {
   // Create a new context and detect the first camera from it
   let camera = Context::new()?.autodetect_camera().expect("Failed to autodetect camera");
+  let camera_fs = camera.fs();
+
 
   // And take pictures
   let file_path = camera.capture_image().expect("Could not capture image");
-  file_path
-    .download(&camera, Path::new(&file_path.name().to_string()))
-    .expect("Failed to download image");
+  camera_fs.download_to(&file_path, Path::new(&file_path.name().to_string()))?;
 
   // For more advanced examples take a look at the examples/ folder
 

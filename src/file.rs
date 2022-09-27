@@ -30,19 +30,7 @@ pub enum FileType {
 
 /// File on a camera
 ///
-/// ## Downloading examples
-/// ### In memory
-/// ```no_run
-/// use gphoto2::{Context, Result};
-///
-/// # fn main() -> Result<()> {
-/// let context = Context::new()?;
-/// let camera = context.autodetect_camera()?;
-/// let file = camera.capture_image()?;
-/// let file_data = file.get_in_memory(&camera)?.get_data()?;
-///
-/// # Ok(())
-/// # }
+/// To download the file use [`CameraFS`](crate::filesys::CameraFS)
 /// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
