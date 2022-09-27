@@ -375,7 +375,7 @@ impl RangeWidget {
 
 impl ToggleWidget {
   /// Check if the widget is toggled.
-  pub fn is_toggled(&self) -> Option<bool> {
+  pub fn toggled(&self) -> Option<bool> {
     let value = unsafe { self.raw_value::<c_int>() };
     match value {
       0 => Some(false),
@@ -390,7 +390,7 @@ impl ToggleWidget {
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
-    f.field("toggled", &self.is_toggled());
+    f.field("toggled", &self.toggled());
   }
 }
 
