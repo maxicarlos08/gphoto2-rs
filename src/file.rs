@@ -3,10 +3,10 @@
 use crate::{
   camera::Camera,
   error::Error,
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, IntoUnixFd},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, IntoUnixFd},
   try_gp_internal, Result,
 };
-use std::{borrow::Cow, ffi, fmt, fs, path::Path};
+use std::{borrow::Cow, fmt, fs, path::Path};
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
@@ -158,30 +158,6 @@ impl CameraFile {
 
     try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, fd)?);
     Ok(Self { inner: camera_file_ptr, is_from_disk: true })
-  }
-
-  /// Creates a new camera file from disk
-  pub fn new_from_disk(path: &Path) -> Result<Self> {
-    try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, -1)?);
-    try_gp_internal!(gp_file_open(
-      camera_file_ptr,
-      to_c_string!(path.to_str().ok_or("File path invalid")?)
-    )?);
-
-    Ok(Self { inner: camera_file_ptr, is_from_disk: true })
-  }
-
-  /// Creates a new camera file from in memory data
-  pub fn new_from_slice(data: Box<[u8]>) -> Result<Self> {
-    let data = Box::leak(data);
-    try_gp_internal!(gp_file_new(&out file)?);
-    try_gp_internal!(gp_file_set_data_and_size(
-      file,
-      data.as_mut_ptr().cast(),
-      data.len().try_into()?
-    )?);
-
-    Ok(Self { is_from_disk: false, inner: file })
   }
 
   /// Get the data of the file
