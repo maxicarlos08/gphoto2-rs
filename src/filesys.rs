@@ -7,7 +7,7 @@ use crate::{
   try_gp_internal, Camera, Result,
 };
 use libgphoto2_sys::time_t;
-use std::{borrow::Cow, ffi, path::Path};
+use std::{borrow::Cow, ffi, fmt, path::Path};
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -39,8 +39,8 @@ macro_rules! storage_info {
       )*
     }
 
-    impl std::fmt::Debug for $name {
-      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    impl fmt::Debug for $name {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct(stringify!($name))
           $(
             .field(stringify!($field), &self.$field())
