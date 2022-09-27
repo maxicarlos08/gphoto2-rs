@@ -1,13 +1,13 @@
 //! Camera filesystem and storages
 
 use crate::{
-  file::{CameraFile, FileType},
+  file::{CameraFile, CameraFilePath, FileType},
   helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
   list::{CameraList, FileListIter},
   try_gp_internal, Camera, Result,
 };
 use libgphoto2_sys::time_t;
-use std::{borrow::Cow, ffi};
+use std::{borrow::Cow, ffi, path::Path};
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -279,6 +279,16 @@ impl<'a> CameraFS<'a> {
     Ok(FileInfo { inner: unsafe { inner.assume_init() } })
   }
 
+  /// Downloads a file from the camera
+  pub fn download_to(&self, file: &CameraFilePath, path: &Path) -> Result<CameraFile> {
+    self.to_camera_file(file, Some(path))
+  }
+
+  /// Downloads a camera file to memory
+  pub fn download(&self, file: &CameraFilePath) -> Result<CameraFile> {
+    self.to_camera_file(file, None)
+  }
+
   /// Upload a file to the camera
   pub fn upload_file(&self, folder: &str, filename: &str, file: CameraFile) -> Result<()> {
     try_gp_internal!(gp_camera_folder_put_file(
@@ -353,5 +363,26 @@ impl<'a> CameraFS<'a> {
     )?);
 
     Ok(())
+  }
+}
+
+/// Private implementations
+impl CameraFS<'_> {
+  fn to_camera_file(&self, file: &CameraFilePath, path: Option<&Path>) -> Result<CameraFile> {
+    let camera_file = match path {
+      Some(dest_path) => CameraFile::new_file(dest_path)?,
+      None => CameraFile::new()?,
+    };
+
+    try_gp_internal!(gp_camera_file_get(
+      self.camera.camera,
+      file.inner.folder.as_ptr(),
+      file.inner.name.as_ptr(),
+      libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
+      camera_file.inner,
+      self.camera.context
+    )?);
+
+    Ok(camera_file)
   }
 }

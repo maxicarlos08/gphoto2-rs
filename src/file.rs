@@ -1,7 +1,6 @@
 //! Files stored on camera
 
 use crate::{
-  camera::Camera,
   error::Error,
   helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, IntoUnixFd},
   try_gp_internal, Result,
@@ -111,34 +110,6 @@ impl CameraFilePath {
   /// Get the basename of the file (without the folder)
   pub fn name(&self) -> Cow<str> {
     char_slice_to_cow(&self.inner.name)
-  }
-
-  fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<CameraFile> {
-    let camera_file = match path {
-      Some(dest_path) => CameraFile::new_file(dest_path)?,
-      None => CameraFile::new()?,
-    };
-
-    try_gp_internal!(gp_camera_file_get(
-      camera.camera,
-      self.inner.folder.as_ptr(),
-      self.inner.name.as_ptr(),
-      libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
-      camera_file.inner,
-      camera.context
-    )?);
-
-    Ok(camera_file)
-  }
-
-  /// Creates a [`CameraFile`] which is downloaded to memory
-  pub fn get_in_memory(&self, camera: &Camera) -> Result<CameraFile> {
-    self.to_camera_file(camera, None)
-  }
-
-  /// Creates a [`CameraFile`] which is downloaded to a path on disk
-  pub fn download(&self, camera: &Camera, path: &Path) -> Result<CameraFile> {
-    self.to_camera_file(camera, Some(path))
   }
 }
 
