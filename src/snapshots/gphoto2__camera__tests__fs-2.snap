@@ -1,0 +1,10 @@
+---
+source: src/camera.rs
+expression: captured_file
+---
+CameraFile {
+    name: "GPH_0099.JPG",
+    mime_type: "image/jpeg",
+    mtime: 42,
+    size: 631,
+}

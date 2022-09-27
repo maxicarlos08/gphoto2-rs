@@ -1,0 +1,35 @@
+---
+source: src/camera.rs
+expression: storages
+---
+[
+    StorageInfo {
+        label: Some(
+            "GPVCS Label",
+        ),
+        base_directory: Some(
+            "/store_00010001",
+        ),
+        description: Some(
+            "GPVC Storage",
+        ),
+        storage_type: Some(
+            FixedRam,
+        ),
+        filesystem_type: Some(
+            Dcf,
+        ),
+        access_type: Some(
+            RoDelete,
+        ),
+        capacity_kb: Some(
+            1111638016,
+        ),
+        free_kb: Some(
+            555819008,
+        ),
+        free_images: Some(
+            150,
+        ),
+    },
+]

@@ -1,0 +1,8 @@
+[package]
+name = "gphoto2_test"
+version = "1.0.0"
+edition = "2021"
+description = "Test environment for gphoto2-rs"
+authors = ["Ingvar Stepanyan <me@rreverser.com>"]
+license = "MIT"
+repository = "https://github.com/maxicarlos08/gphoto2-rs"

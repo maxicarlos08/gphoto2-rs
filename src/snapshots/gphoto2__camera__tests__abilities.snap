@@ -1,0 +1,38 @@
+---
+source: src/camera.rs
+expression: abilities
+---
+Abilities {
+    id: "PTP",
+    model: "Nikon DSC D750",
+    driver_status: Production,
+    camera_operations: CameraOperations {
+        capture_image: true,
+        capture_video: false,
+        capture_audio: false,
+        capture_preview: true,
+        configure: true,
+        trigger_capture: true,
+    },
+    file_operations: FileOperations {
+        delete: true,
+        preview: true,
+        raw: false,
+        audio: false,
+        exif: false,
+    },
+    folder_operations: FolderOperations {
+        delete_all: false,
+        put_file: false,
+        make_dir: true,
+        remove_dir: true,
+    },
+    device_type: Camera,
+    usb_info: UsbInfo {
+        vendor: 1200,
+        product: 1079,
+        class: 0,
+        subclass: 0,
+        protocol: 0,
+    },
+}

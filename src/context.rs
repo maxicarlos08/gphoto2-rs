@@ -138,3 +138,12 @@ impl Context {
     Ok(Camera::new(camera, self.inner))
   }
 }
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_list_cameras() {
+    let cameras = crate::sample_context().list_cameras().unwrap().collect::<Vec<_>>();
+    insta::assert_debug_snapshot!(cameras);
+  }
+}

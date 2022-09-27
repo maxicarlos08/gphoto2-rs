@@ -1,0 +1,73 @@
+---
+source: src/camera.rs
+expression: summary
+---
+Manufacturer: GP
+Model: VC
+  Version: 2.5.11
+  Serial Number: 0.1
+Vendor Extension ID: 0xa (1.0)
+Vendor Extension Description: G-V: 1.0;
+
+Capture Formats: JPEG
+Display Formats: JPEG
+
+Device Capabilities:
+	File Download, File Deletion, No File Upload
+	Generic Image Capture, No Open Capture, No vendor specific capture
+
+Storage Devices Summary:
+store_00010001:
+	StorageDescription: GPVC Storage
+	VolumeLabel: GPVCS Label
+	Storage Type: Builtin RAM
+	Filesystemtype: Digital Camera Layout (DCIM)
+	Access Capability: Read Only with Object deletion
+	Maximum Capability: 1111638594 (1060 MB)
+	Free Space (Bytes): 555819297 (530 MB)
+	Free Space (Images): 150
+
+Device Property Summary:
+Battery Level(0x5001):(read only) (type=0x2) Range [0 - 100, step 1] value: 50% (50)
+Image Size(0x5003):(read only) (type=0xffff) Enumeration [
+	'640x480',
+	'1024x768',
+	'2048x1536'
+	] value: '640x480'
+F-Number(0x5007):(readwrite) (type=0x4) Enumeration [280,350,400,450,500,560,630,710,800,900,1000,1100,1300,1400,1600,1800,2000,2200] value: f/2.8 (280)
+Exposure Bias Compensation(0x5010):(readwrite) (type=0x3) Enumeration [-3000,-2500,-2000,-1500,-1000,-500,0,500,1000,1500,2000,2500,3000] value: 0.0 stops (0)
+Exposure Time(0x500d):(readwrite) (type=0x6) Enumeration [10000,1000,500,200,100,50,25,12,1] value: 0.001 sec (100)
+Date & Time(0x5011):(readwrite) (type=0xffff) (omitted timestamp)
+Property 0xf000: error 200a on query.
+Property 0xf001: error 200a on query.
+ISO(0xf002): error 200a on query.
+Aperture(0xf003): error 200a on query.
+Shutterspeed(0xf004): error 200a on query.
+Property 0xf005: error 200a on query.
+Aperture(0xf006): error 200a on query.
+Shutterspeed(0xf007): error 200a on query.
+Property 0xf008: error 200a on query.
+Image Compression(0xf009): error 200a on query.
+Image Size(0xf00a): error 200a on query.
+Property 0xf00b: error 200a on query.
+White Balance(0xf00c): error 200a on query.
+Long Exposure Noise Reduction(0xf00d): error 200a on query.
+High ISO Noise Reduction(0xf00e): error 200a on query.
+Active D-Lighting(0xf00f): error 200a on query.
+Property 0xf010: error 200a on query.
+Property 0xf011: error 200a on query.
+Property 0xf012: error 200a on query.
+Property 0xf013: error 200a on query.
+Property 0xf014: error 200a on query.
+Property 0xf015: error 200a on query.
+Property 0xf016: error 200a on query.
+Property 0xf017: error 200a on query.
+Camera Language(0xf018): error 200a on query.
+Release without SD card(0xf019): error 200a on query.
+Property 0xf01a: error 200a on query.
+Property 0xf01b: error 200a on query.
+Movie Quality(0xf01c): error 200a on query.
+Nikon Exposure Time(0xd100): error 200a on query.
+Live View Prohibit Condition(0xd1a4): error 200a on query.
+Live View Status(0xd1a2): error 200a on query.
+

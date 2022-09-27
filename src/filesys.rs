@@ -160,7 +160,7 @@ storage_info!(
 /// File information for preview, normal file and audio
 pub struct FileInfo {
   // It's fairly large, so we want to keep it on the heap.
-  inner: Box<libgphoto2_sys::CameraFileInfo>,
+  pub(crate) inner: Box<libgphoto2_sys::CameraFileInfo>,
 }
 
 impl FileInfo {
