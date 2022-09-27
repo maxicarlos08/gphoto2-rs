@@ -281,7 +281,6 @@ impl<'a> CameraFS<'a> {
 
   /// Upload a file to the camera
   pub fn upload_file(&self, folder: &str, filename: &str, data: Box<[u8]>) -> Result<()> {
-    let data = Box::leak(data);
     try_gp_internal!(gp_file_new(&out file)?);
     try_gp_internal!(gp_file_append(file, data.as_ptr().cast(), data.len().try_into()?)?);
     try_gp_internal!(gp_camera_folder_put_file(
