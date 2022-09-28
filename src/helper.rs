@@ -43,7 +43,7 @@ impl IntoUnixFd for File {
   }
 }
 
-#[cfg(feature = "alt_logs")]
+#[cfg(feature = "extended_logs")]
 pub fn hook_gp_log() {
   use libgphoto2_sys::GPLogLevel;
   use log::LevelFilter;
@@ -79,7 +79,7 @@ pub fn hook_gp_log() {
   });
 }
 
-#[cfg(not(feature = "alt_logs"))]
+#[cfg(not(feature = "extended_logs"))]
 pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
   use log::Level;
 

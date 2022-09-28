@@ -44,7 +44,7 @@ as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
 impl Context {
   /// Create a new context
   pub fn new() -> Result<Self> {
-    #[cfg(feature = "alt_logs")]
+    #[cfg(feature = "extended_logs")]
     crate::helper::hook_gp_log();
 
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
@@ -53,7 +53,7 @@ impl Context {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
     }
 
-    #[cfg(not(feature = "alt_logs"))]
+    #[cfg(not(feature = "extended_logs"))]
     crate::helper::hook_gp_context_log_func(context_ptr);
 
     Ok(Self { inner: context_ptr })
