@@ -401,7 +401,8 @@ mod tests {
     let captured_file_path = camera.capture_image().unwrap();
     insta::assert_debug_snapshot!(captured_file_path);
 
-    let captured_file = camera.fs().download(&captured_file_path).unwrap();
+    let captured_file =
+      camera.fs().download(&captured_file_path.name(), &captured_file_path.folder()).unwrap();
     unsafe {
       // Fixup mtime to a constant for the snapshot.
       libgphoto2_sys::gp_file_set_mtime(captured_file.inner, 42);
