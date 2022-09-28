@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install gphoto2 dependency
-      run: sudo apt install -y libgphoto2-dev autopoint
+      run: sudo apt install -y autopoint
     - name: Build
       run: cargo build --verbose
     - name: Run tests
