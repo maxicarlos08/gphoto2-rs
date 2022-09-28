@@ -43,7 +43,7 @@ fn sample_context() -> Context {
       .init();
 
     // Tell libgphoto2 to look for drivers in a custom built directory.
-    gphoto2_test::set_env();
+    libgphoto2_sys::test_utils::set_env();
   });
 
   Context::new().unwrap()

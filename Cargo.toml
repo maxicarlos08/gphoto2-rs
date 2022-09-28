@@ -28,4 +28,4 @@ log = "0.4"
 [dev-dependencies]
 env_logger = "0.9.1"
 insta = "1.20.0"
-gphoto2_test = { path = "gphoto2-test", version = "1.0" }
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.1", features = ["test"] }

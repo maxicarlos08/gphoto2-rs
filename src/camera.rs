@@ -408,7 +408,10 @@ mod tests {
     }
     insta::assert_debug_snapshot!(captured_file);
 
-    assert_eq!(captured_file.get_data().unwrap().as_ref(), gphoto2_test::SAMPLE_IMAGE);
+    assert_eq!(
+      captured_file.get_data().unwrap().as_ref(),
+      libgphoto2_sys::test_utils::SAMPLE_IMAGE
+    );
 
     let fs = camera.fs();
     let storages = camera.storages().unwrap();

@@ -11,8 +11,7 @@ macro_rules! c_str_concat {
 
 /// Set environment variables for libgphoto2.
 ///
-/// This overrides the location where libgphoto2 will attempt to locate drivers
-/// as well as provides the location for the virtual camera's filesystem.
+/// Currently this provides the location for the virtual camera's filesystem.
 pub fn set_env() {
   // Fun fact: `std::env::set_var` is not guaranteed to end up in the libc
   // environment table (it doesn't on Windows, where `SetEnvironmentVariableW`
@@ -29,9 +28,12 @@ pub fn set_env() {
   // In this case we're fine because all strings are constant (concatenated
   // at compile-time).
   unsafe {
-    putenv(c_str_concat!("IOLIBS=", env!("OUT_DIR"), "/libgphoto2/libgphoto2_port/.libs"));
     putenv(c_str_concat!("VCAMERADIR=", env!("OUT_DIR"), "/vcamera"));
   }
+}
+
+pub fn libgphoto2_dir() -> &'static Path {
+  Path::new(concat!(env!("OUT_DIR"), "/install"))
 }
 
 pub fn vcamera_dir() -> &'static Path {
