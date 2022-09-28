@@ -1,7 +1,7 @@
 //! Camera filesystem and storages
 
 use crate::{
-  file::{CameraFile, CameraFilePath, FileType},
+  file::{CameraFile, FileType},
   helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
   list::{CameraList, FileListIter},
   try_gp_internal, Camera, Result,
@@ -280,13 +280,13 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Downloads a file from the camera
-  pub fn download_to(&self, file: &CameraFilePath, path: &Path) -> Result<CameraFile> {
-    self.to_camera_file(file, Some(path))
+  pub fn download_to(&self, folder: &str, file: &str, path: &Path) -> Result<CameraFile> {
+    self.to_camera_file(folder, file, Some(path))
   }
 
   /// Downloads a camera file to memory
-  pub fn download(&self, file: &CameraFilePath) -> Result<CameraFile> {
-    self.to_camera_file(file, None)
+  pub fn download(&self, folder: &str, file: &str) -> Result<CameraFile> {
+    self.to_camera_file(folder, file, None)
   }
 
   /// Upload a file to the camera
@@ -371,7 +371,7 @@ impl<'a> CameraFS<'a> {
 
 /// Private implementations
 impl CameraFS<'_> {
-  fn to_camera_file(&self, file: &CameraFilePath, path: Option<&Path>) -> Result<CameraFile> {
+  fn to_camera_file(&self, folder: &str, file: &str, path: Option<&Path>) -> Result<CameraFile> {
     let camera_file = match path {
       Some(dest_path) => CameraFile::new_file(dest_path)?,
       None => CameraFile::new()?,
@@ -379,8 +379,8 @@ impl CameraFS<'_> {
 
     try_gp_internal!(gp_camera_file_get(
       self.camera.camera,
-      file.inner.folder.as_ptr(),
-      file.inner.name.as_ptr(),
+      to_c_string!(file),
+      to_c_string!(folder),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
       camera_file.inner,
       self.camera.context
