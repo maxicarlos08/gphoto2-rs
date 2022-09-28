@@ -8,7 +8,8 @@ root_dir=$(dirname $(readlink -f $0))
 cd $OUT_DIR
 
 if [ ! -d libgphoto2 ] ; then
-	git clone https://github.com/gphoto/libgphoto2 --depth 1
+	mkdir libgphoto2
+	curl -L https://github.com/gphoto/libgphoto2/archive/7605d4ab2b65d209bc94b6ae3fd0d26daf14a3f2.tar.gz | tar -xzv --strip 1 -C libgphoto2
 fi
 
 cd libgphoto2/libgphoto2_port
