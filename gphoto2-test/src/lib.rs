@@ -1,3 +1,4 @@
+use std::os::raw::{c_char, c_int};
 use std::path::Path;
 
 macro_rules! c_str_concat {
@@ -5,7 +6,7 @@ macro_rules! c_str_concat {
     std::ffi::CStr::from_bytes_with_nul(concat!($($s,)* "\0").as_bytes())
       .unwrap()
       .as_ptr()
-      .cast::<std::os::raw::c_char>()
+      .cast::<c_char>()
   };
 }
 
@@ -19,7 +20,7 @@ pub fn set_env() {
   // either, so we have to use `putenv` for our changes to be noticed by
   // libgphoto2 on all platforms.
   extern "C" {
-    fn putenv(s: *const std::os::raw::c_char) -> std::os::raw::c_int;
+    fn putenv(s: *const c_char) -> c_int;
   }
 
   // Be careful: in some implementations `putenv` expects the input string
