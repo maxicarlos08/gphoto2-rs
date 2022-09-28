@@ -145,9 +145,41 @@ impl CameraFile {
   }
 
   /// File mime type
-  pub fn mime(&self) -> String {
-    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime).unwrap());
+  pub fn mime_type(&self) -> String {
+    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime_type).unwrap());
 
-    chars_to_string(mime)
+    chars_to_string(mime_type)
+  }
+
+  /// File modification time
+  pub fn mtime(&self) -> libc::time_t {
+    try_gp_internal!(gp_file_get_mtime(self.inner, &out mtime).unwrap());
+
+    mtime
+  }
+
+  /// File size
+  pub fn size(&self) -> Result<u64> {
+    try_gp_internal!(gp_file_get_data_and_size(self.inner, std::ptr::null_mut(), &out size)?);
+
+    #[allow(clippy::useless_conversion)] // c_ulong depends on the platform
+    Ok(size.into())
+  }
+}
+
+impl fmt::Debug for CameraFile {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CameraFile")
+      .field("name", &self.name())
+      .field("mime_type", &self.mime_type())
+      .field("mtime", &self.mtime())
+      .field(
+        "size",
+        match &self.size() {
+          Ok(size) => size,
+          err => err,
+        },
+      )
+      .finish()
   }
 }

@@ -89,8 +89,8 @@ impl Drop for Camera {
     // gp_camera_unref -> gp_camera_free -> gp_camera_exit -> libtool
     let _lock = libtool_lock();
 
+    try_gp_internal!(gp_camera_unref(self.camera).unwrap());
     unsafe {
-      libgphoto2_sys::gp_camera_unref(self.camera);
       libgphoto2_sys::gp_context_unref(self.context);
     }
   }
@@ -301,5 +301,164 @@ impl Camera {
     )?);
 
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  fn sample_camera() -> super::Camera {
+    crate::sample_context().autodetect_camera().unwrap()
+  }
+
+  #[test]
+  fn test_abilities() {
+    let abilities = sample_camera().abilities();
+    insta::assert_debug_snapshot!(abilities);
+  }
+
+  #[test]
+  fn test_summary() {
+    let mut summary = sample_camera().summary().unwrap_or_default();
+
+    // Summary contains dynamic timestamp, find and remove it for snapshotting.
+    let prefix = "Date & Time(0x5011):(readwrite) (type=0xffff)";
+
+    summary = summary
+      .lines()
+      .map(|line| {
+        let mut line = line.to_owned();
+        if line.starts_with(prefix) {
+          line.replace_range(prefix.len().., " (omitted timestamp)");
+        }
+        line + "\n"
+      })
+      .collect();
+
+    insta::assert_snapshot!(summary);
+  }
+
+  #[test]
+  fn test_about() {
+    let about = sample_camera().about().unwrap_or_default();
+    insta::assert_snapshot!(about);
+  }
+
+  #[test]
+  fn test_manual() {
+    let manual = sample_camera().manual().unwrap_or_default();
+    insta::assert_snapshot!(manual);
+  }
+
+  #[test]
+  fn test_storages() {
+    let storages = sample_camera().storages().unwrap();
+    insta::assert_debug_snapshot!(storages);
+  }
+
+  #[test]
+  fn test_fs() {
+    use crate::filesys::{CameraFS, FileInfo};
+    use std::collections::BTreeMap;
+
+    #[derive(Debug)]
+    #[allow(dead_code)]
+    struct FolderDbg {
+      folders: BTreeMap<String, FolderDbg>,
+      files: BTreeMap<String, FileInfo>,
+    }
+
+    impl FolderDbg {
+      fn collect(fs: &CameraFS, path: &str) -> FolderDbg {
+        FolderDbg {
+          folders: fs
+            .list_folders(path)
+            .unwrap()
+            .map(|folder_name| {
+              let folder = Self::collect(fs, &format!("{path}/{folder_name}"));
+              (folder_name, folder)
+            })
+            .collect(),
+          files: fs
+            .list_files(path)
+            .unwrap()
+            .map(|file_name| {
+              let mut file_info = fs.file_info(path, &file_name).unwrap();
+              // Change timestamp to a constant for the snapshot.
+              file_info.inner.file.mtime = 42;
+              (file_name, file_info)
+            })
+            .collect(),
+        }
+      }
+    }
+
+    let camera = sample_camera();
+
+    // capture_image should be checked in the same test as fs, because it
+    // modifies the filesystem and it's easier to check both in the same test
+    // than dealing with potential race conditions changing the file tree.
+
+    let captured_file_path = camera.capture_image().unwrap();
+    insta::assert_debug_snapshot!(captured_file_path);
+
+    let captured_file = camera.fs().download(&captured_file_path).unwrap();
+    unsafe {
+      // Fixup mtime to a constant for the snapshot.
+      libgphoto2_sys::gp_file_set_mtime(captured_file.inner, 42);
+    }
+    insta::assert_debug_snapshot!(captured_file);
+
+    assert_eq!(
+      captured_file.get_data().unwrap().as_ref(),
+      libgphoto2_sys::test_utils::SAMPLE_IMAGE
+    );
+
+    let fs = camera.fs();
+    let storages = camera.storages().unwrap();
+
+    let storage_folders = storages
+      .iter()
+      .map(|storage| {
+        let base_dir = storage.base_directory().unwrap();
+        let folder_tree = FolderDbg::collect(&fs, &base_dir);
+        (base_dir, folder_tree)
+      })
+      .collect::<BTreeMap<_, _>>();
+
+    insta::assert_debug_snapshot!(storage_folders);
+  }
+
+  #[test]
+  fn test_port_info() {
+    let camera = sample_camera();
+    let port_info = camera.port_info().unwrap();
+    insta::assert_debug_snapshot!(port_info);
+  }
+
+  #[test]
+  fn test_config() {
+    use crate::widget::{DateWidget, TextWidget};
+
+    let widget_tree = sample_camera().config().unwrap();
+
+    // Some widgets represent dynamic information.
+    // Find and fix it up before snapshotting.
+
+    widget_tree
+      .get_child_by_label("Date & Time")
+      .unwrap()
+      .try_into::<TextWidget>()
+      .unwrap()
+      .set_value("(omitted timestamp)")
+      .unwrap();
+
+    widget_tree
+      .get_child_by_name("datetime")
+      .unwrap()
+      .try_into::<DateWidget>()
+      .unwrap()
+      .set_timestamp(42);
+
+    insta::assert_debug_snapshot!(widget_tree);
   }
 }

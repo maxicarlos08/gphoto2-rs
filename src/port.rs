@@ -71,9 +71,7 @@ pub(crate) struct PortInfoList {
 
 impl Drop for PortInfoList {
   fn drop(&mut self) {
-    unsafe {
-      libgphoto2_sys::gp_port_info_list_free(self.inner);
-    }
+    try_gp_internal!(gp_port_info_list_free(self.inner).unwrap());
   }
 }
 
