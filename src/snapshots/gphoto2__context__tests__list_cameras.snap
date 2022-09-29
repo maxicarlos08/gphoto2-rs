@@ -1,0 +1,10 @@
+---
+source: src/context.rs
+expression: cameras
+---
+[
+    CameraDescriptor {
+        model: "Nikon DSC D750",
+        port: "usb:001,001",
+    },
+]

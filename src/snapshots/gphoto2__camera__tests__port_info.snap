@@ -1,0 +1,11 @@
+---
+source: src/camera.rs
+expression: port_info
+---
+PortInfo {
+    name: "Universal Serial Bus",
+    path: "usb:001,001",
+    port_type: Some(
+        Usb,
+    ),
+}

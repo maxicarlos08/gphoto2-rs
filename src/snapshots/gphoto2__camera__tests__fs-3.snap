@@ -1,0 +1,186 @@
+---
+source: src/camera.rs
+expression: storage_folders
+---
+{
+    "/store_00010001": FolderDbg {
+        folders: {
+            "DCIM": FolderDbg {
+                folders: {
+                    "100GPHOT": FolderDbg {
+                        folders: {},
+                        files: {
+                            "GPH_0099.JPG": FileInfo {
+                                preview: FileInfoPreview {
+                                    status: None,
+                                    size: Some(
+                                        0,
+                                    ),
+                                    mime_type: Some(
+                                        "application/x-unknown",
+                                    ),
+                                    width: Some(
+                                        0,
+                                    ),
+                                    height: Some(
+                                        0,
+                                    ),
+                                },
+                                file: FileInfoFile {
+                                    status: None,
+                                    size: Some(
+                                        631,
+                                    ),
+                                    mime_type: Some(
+                                        "image/jpeg",
+                                    ),
+                                    width: Some(
+                                        0,
+                                    ),
+                                    height: Some(
+                                        0,
+                                    ),
+                                    permissions: None,
+                                    mtime: Some(
+                                        42,
+                                    ),
+                                },
+                                audio: FileInfoAudio {
+                                    status: None,
+                                    size: None,
+                                    mime_type: None,
+                                },
+                            },
+                        },
+                    },
+                },
+                files: {},
+            },
+            "bar": FolderDbg {
+                folders: {
+                    "baz": FolderDbg {
+                        folders: {},
+                        files: {},
+                    },
+                },
+                files: {
+                    "blank.jpg": FileInfo {
+                        preview: FileInfoPreview {
+                            status: None,
+                            size: None,
+                            mime_type: Some(
+                                "application/x-unknown",
+                            ),
+                            width: None,
+                            height: None,
+                        },
+                        file: FileInfoFile {
+                            status: None,
+                            size: Some(
+                                631,
+                            ),
+                            mime_type: Some(
+                                "image/jpeg",
+                            ),
+                            width: None,
+                            height: None,
+                            permissions: Some(
+                                FilePermissions {
+                                    read: true,
+                                    delete: true,
+                                },
+                            ),
+                            mtime: Some(
+                                42,
+                            ),
+                        },
+                        audio: FileInfoAudio {
+                            status: None,
+                            size: None,
+                            mime_type: None,
+                        },
+                    },
+                },
+            },
+            "foo": FolderDbg {
+                folders: {},
+                files: {
+                    "blank.jpg": FileInfo {
+                        preview: FileInfoPreview {
+                            status: None,
+                            size: None,
+                            mime_type: Some(
+                                "application/x-unknown",
+                            ),
+                            width: None,
+                            height: None,
+                        },
+                        file: FileInfoFile {
+                            status: None,
+                            size: Some(
+                                631,
+                            ),
+                            mime_type: Some(
+                                "image/jpeg",
+                            ),
+                            width: None,
+                            height: None,
+                            permissions: Some(
+                                FilePermissions {
+                                    read: true,
+                                    delete: true,
+                                },
+                            ),
+                            mtime: Some(
+                                42,
+                            ),
+                        },
+                        audio: FileInfoAudio {
+                            status: None,
+                            size: None,
+                            mime_type: None,
+                        },
+                    },
+                },
+            },
+        },
+        files: {
+            "blank.jpg": FileInfo {
+                preview: FileInfoPreview {
+                    status: None,
+                    size: None,
+                    mime_type: Some(
+                        "application/x-unknown",
+                    ),
+                    width: None,
+                    height: None,
+                },
+                file: FileInfoFile {
+                    status: None,
+                    size: Some(
+                        631,
+                    ),
+                    mime_type: Some(
+                        "image/jpeg",
+                    ),
+                    width: None,
+                    height: None,
+                    permissions: Some(
+                        FilePermissions {
+                            read: true,
+                            delete: true,
+                        },
+                    ),
+                    mtime: Some(
+                        42,
+                    ),
+                },
+                audio: FileInfoAudio {
+                    status: None,
+                    size: None,
+                    mime_type: None,
+                },
+            },
+        },
+    },
+}

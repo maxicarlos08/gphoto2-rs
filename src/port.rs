@@ -20,7 +20,7 @@ use crate::{
   helper::{as_ref, chars_to_string, libtool_lock},
   try_gp_internal, Result,
 };
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 
 /// Type of the port
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -51,8 +51,18 @@ pub enum PortType {
 ///  - [`name`](PortInfo::name): Name of the port
 ///  - [`path`](PortInfo::path): Path of the port
 ///  - [`port_type`](PortInfo::port_type): Type of the port
-pub struct PortInfo {
+pub struct PortInfo<'a> {
   pub(crate) inner: libgphoto2_sys::GPPortInfo,
+  _phantom: std::marker::PhantomData<&'a ()>,
+}
+
+impl PortInfo<'_> {
+  // Unsafe because we bind a pointer to an unbounded lifetime.
+  // The caller must be sure to bind the result to the lifetime
+  // of the PortInfo owner.
+  pub(crate) unsafe fn new(inner: libgphoto2_sys::GPPortInfo) -> Self {
+    Self { inner, _phantom: PhantomData }
+  }
 }
 
 pub(crate) struct PortInfoList {
@@ -61,19 +71,11 @@ pub(crate) struct PortInfoList {
 
 impl Drop for PortInfoList {
   fn drop(&mut self) {
-    unsafe {
-      libgphoto2_sys::gp_port_info_list_free(self.inner);
-    }
+    try_gp_internal!(gp_port_info_list_free(self.inner).unwrap());
   }
 }
 
-impl From<libgphoto2_sys::GPPortInfo> for PortInfo {
-  fn from(inner: libgphoto2_sys::GPPortInfo) -> Self {
-    Self { inner }
-  }
-}
-
-impl fmt::Debug for PortInfo {
+impl fmt::Debug for PortInfo<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("PortInfo")
       .field("name", &self.name())
@@ -85,7 +87,7 @@ impl fmt::Debug for PortInfo {
 
 as_ref!(PortInfoList -> libgphoto2_sys::GPPortInfoList, *self.inner);
 
-as_ref!(PortInfo -> libgphoto2_sys::GPPortInfo, self.inner);
+as_ref!(PortInfo<'_> -> libgphoto2_sys::GPPortInfo, self.inner);
 
 impl PortType {
   fn new(port_type: libgphoto2_sys::GPPortType) -> Option<Self> {
@@ -104,7 +106,7 @@ impl PortType {
   }
 }
 
-impl PortInfo {
+impl PortInfo<'_> {
   /// Name of the port
   pub fn name(&self) -> String {
     try_gp_internal!(gp_port_info_get_name(self.inner, &out name).unwrap());
@@ -137,9 +139,9 @@ impl PortInfoList {
     Ok(Self { inner: port_info_list })
   }
 
-  pub(crate) fn get_port_info(&self, p: i32) -> Result<PortInfo> {
+  pub(crate) fn get_port_info(&self, p: i32) -> Result<PortInfo<'_>> {
     try_gp_internal!(gp_port_info_list_get_info(self.inner, p, &out port_info)?);
 
-    Ok(port_info.into())
+    Ok(unsafe { PortInfo::new(port_info) })
   }
 }

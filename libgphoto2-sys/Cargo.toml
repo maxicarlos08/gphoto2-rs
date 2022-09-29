@@ -5,12 +5,19 @@ edition = "2021"
 description = "System bindings to libgphoto2"
 repository = "https://git.maxicarlos.de/maxicarlos08/gphoto2-rs"
 license = "LGPL-2.1-only"
-
 links = "gphoto2"
 build = "src/build.rs"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
 pkg-config = "0.3.25"
 bindgen = "0.60.1"
+gphoto2_test = { path = "../gphoto2-test", version = "1.0", optional = true }
+
+[dependencies]
+gphoto2_test = { path = "../gphoto2-test", version = "1.0", optional = true }
+
+[features]
+test = ["gphoto2_test"]

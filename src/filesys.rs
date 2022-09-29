@@ -7,7 +7,7 @@ use crate::{
   try_gp_internal, Camera, Result,
 };
 use libgphoto2_sys::time_t;
-use std::{borrow::Cow, ffi};
+use std::{borrow::Cow, ffi, fmt, path::Path};
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -39,8 +39,8 @@ macro_rules! storage_info {
       )*
     }
 
-    impl std::fmt::Debug for $name {
-      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    impl fmt::Debug for $name {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct(stringify!($name))
           $(
             .field(stringify!($field), &self.$field())
@@ -160,7 +160,7 @@ storage_info!(
 /// File information for preview, normal file and audio
 pub struct FileInfo {
   // It's fairly large, so we want to keep it on the heap.
-  inner: Box<libgphoto2_sys::CameraFileInfo>,
+  pub(crate) inner: Box<libgphoto2_sys::CameraFileInfo>,
 }
 
 impl FileInfo {
@@ -177,6 +177,16 @@ impl FileInfo {
   /// Info for file audio
   pub fn audio(&self) -> &FileInfoAudio {
     FileInfoAudio::from_inner_ref(&self.inner.audio)
+  }
+}
+
+impl fmt::Debug for FileInfo {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("FileInfo")
+      .field("preview", &self.preview())
+      .field("file", &self.file())
+      .field("audio", &self.audio())
+      .finish()
   }
 }
 
@@ -279,14 +289,27 @@ impl<'a> CameraFS<'a> {
     Ok(FileInfo { inner: unsafe { inner.assume_init() } })
   }
 
+  /// Downloads a file from the camera
+  pub fn download_to(&self, folder: &str, file: &str, path: &Path) -> Result<CameraFile> {
+    self.to_camera_file(folder, file, Some(path))
+  }
+
+  /// Downloads a camera file to memory
+  pub fn download(&self, folder: &str, file: &str) -> Result<CameraFile> {
+    self.to_camera_file(folder, file, None)
+  }
+
   /// Upload a file to the camera
-  pub fn upload_file(&self, folder: &str, filename: &str, file: CameraFile) -> Result<()> {
+  #[allow(clippy::boxed_local)]
+  pub fn upload_file(&self, folder: &str, filename: &str, data: Box<[u8]>) -> Result<()> {
+    try_gp_internal!(gp_file_new(&out file)?);
+    try_gp_internal!(gp_file_append(file, data.as_ptr().cast(), data.len().try_into()?)?);
     try_gp_internal!(gp_camera_folder_put_file(
       self.camera.camera,
       to_c_string!(folder),
       to_c_string!(filename),
       FileType::Normal.into(),
-      file.inner,
+      file,
       self.camera.context
     )?);
 
@@ -353,5 +376,26 @@ impl<'a> CameraFS<'a> {
     )?);
 
     Ok(())
+  }
+}
+
+/// Private implementations
+impl CameraFS<'_> {
+  fn to_camera_file(&self, folder: &str, file: &str, path: Option<&Path>) -> Result<CameraFile> {
+    let camera_file = match path {
+      Some(dest_path) => CameraFile::new_file(dest_path)?,
+      None => CameraFile::new()?,
+    };
+
+    try_gp_internal!(gp_camera_file_get(
+      self.camera.camera,
+      to_c_string!(file),
+      to_c_string!(folder),
+      libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
+      camera_file.inner,
+      self.camera.context
+    )?);
+
+    Ok(camera_file)
   }
 }

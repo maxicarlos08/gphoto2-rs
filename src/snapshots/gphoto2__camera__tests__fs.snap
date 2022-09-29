@@ -1,0 +1,8 @@
+---
+source: src/camera.rs
+expression: captured_file_path
+---
+CameraFilePath {
+    folder: "/store_00010001/DCIM/100GPHOT",
+    name: "GPH_0099.JPG",
+}

@@ -11,10 +11,14 @@ homepage = "https://github.com/maxicarlos08/gphoto2-rs"
 documentation = "https://docs.rs/gphoto2/latest/gphoto2/"
 readme = "README.md"
 
+[features]
+# Uses gp_log_add_func instead of gp_context_set_log_func for logging (not supported on many systems)
+extended_logs = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["libgphoto2-sys"]
+members = ["libgphoto2-sys", "gphoto2-test"]
 
 [dependencies]
 libgphoto2_sys = { path = "libgphoto2-sys", version = "1.1" }
@@ -23,3 +27,5 @@ log = "0.4"
 
 [dev-dependencies]
 env_logger = "0.9.1"
+insta = "1.20.0"
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.1", features = ["test"] }

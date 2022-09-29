@@ -1,12 +1,11 @@
 //! Files stored on camera
 
 use crate::{
-  camera::Camera,
   error::Error,
-  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, IntoUnixFd},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, IntoUnixFd},
   try_gp_internal, Result,
 };
-use std::{borrow::Cow, ffi, fmt, fs, path::Path};
+use std::{borrow::Cow, fmt, fs, path::Path};
 
 /// Represents a path of a file on a camera
 pub struct CameraFilePath {
@@ -31,19 +30,7 @@ pub enum FileType {
 
 /// File on a camera
 ///
-/// ## Downloading examples
-/// ### In memory
-/// ```no_run
-/// use gphoto2::{Context, Result};
-///
-/// # fn main() -> Result<()> {
-/// let context = Context::new()?;
-/// let camera = context.autodetect_camera()?;
-/// let file = camera.capture_image()?;
-/// let file_data = file.get_in_memory(&camera)?.get_data()?;
-///
-/// # Ok(())
-/// # }
+/// To download the file use [`CameraFS`](crate::filesys::CameraFS)
 /// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
@@ -112,34 +99,6 @@ impl CameraFilePath {
   pub fn name(&self) -> Cow<str> {
     char_slice_to_cow(&self.inner.name)
   }
-
-  fn to_camera_file(&self, camera: &Camera, path: Option<&Path>) -> Result<CameraFile> {
-    let camera_file = match path {
-      Some(dest_path) => CameraFile::new_file(dest_path)?,
-      None => CameraFile::new()?,
-    };
-
-    try_gp_internal!(gp_camera_file_get(
-      camera.camera,
-      self.inner.folder.as_ptr(),
-      self.inner.name.as_ptr(),
-      libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
-      camera_file.inner,
-      camera.context
-    )?);
-
-    Ok(camera_file)
-  }
-
-  /// Creates a [`CameraFile`] which is downloaded to memory
-  pub fn get_in_memory(&self, camera: &Camera) -> Result<CameraFile> {
-    self.to_camera_file(camera, None)
-  }
-
-  /// Creates a [`CameraFile`] which is downloaded to a path on disk
-  pub fn download(&self, camera: &Camera, path: &Path) -> Result<CameraFile> {
-    self.to_camera_file(camera, Some(path))
-  }
 }
 
 impl CameraFile {
@@ -157,17 +116,6 @@ impl CameraFile {
     let fd = fs::File::create(path)?.into_unix_fd();
 
     try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, fd)?);
-    Ok(Self { inner: camera_file_ptr, is_from_disk: true })
-  }
-
-  /// Creates a new camera file from disk
-  pub fn new_from_disk(path: &Path) -> Result<Self> {
-    try_gp_internal!(gp_file_new_from_fd(&out camera_file_ptr, -1)?);
-    try_gp_internal!(gp_file_open(
-      camera_file_ptr,
-      to_c_string!(path.to_str().ok_or("File path invalid")?)
-    )?);
-
     Ok(Self { inner: camera_file_ptr, is_from_disk: true })
   }
 
@@ -197,9 +145,41 @@ impl CameraFile {
   }
 
   /// File mime type
-  pub fn mime(&self) -> String {
-    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime).unwrap());
+  pub fn mime_type(&self) -> String {
+    try_gp_internal!(gp_file_get_mime_type(self.inner, &out mime_type).unwrap());
 
-    chars_to_string(mime)
+    chars_to_string(mime_type)
+  }
+
+  /// File modification time
+  pub fn mtime(&self) -> libc::time_t {
+    try_gp_internal!(gp_file_get_mtime(self.inner, &out mtime).unwrap());
+
+    mtime
+  }
+
+  /// File size
+  pub fn size(&self) -> Result<u64> {
+    try_gp_internal!(gp_file_get_data_and_size(self.inner, std::ptr::null_mut(), &out size)?);
+
+    #[allow(clippy::useless_conversion)] // c_ulong depends on the platform
+    Ok(size.into())
+  }
+}
+
+impl fmt::Debug for CameraFile {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CameraFile")
+      .field("name", &self.name())
+      .field("mime_type", &self.mime_type())
+      .field("mtime", &self.mtime())
+      .field(
+        "size",
+        match &self.size() {
+          Ok(size) => size,
+          err => err,
+        },
+      )
+      .finish()
   }
 }

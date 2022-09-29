@@ -4,10 +4,12 @@ use std::{
   fs::File,
   mem::MaybeUninit,
   os::raw::{c_char, c_int},
+  sync::Once,
   sync::{Mutex, MutexGuard},
 };
 
 static LIBTOOL_LOCK: Mutex<()> = Mutex::new(());
+static HOOK_LOG_FUNCTION: Once = Once::new();
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
   unsafe { String::from_utf8_lossy(ffi::CStr::from_ptr(chars.as_ptr()).to_bytes()) }
@@ -39,6 +41,76 @@ impl IntoUnixFd for File {
 
     unsafe { libc::open_osfhandle(handle as _, 0) }
   }
+}
+
+#[cfg(feature = "extended_logs")]
+pub fn hook_gp_log() {
+  use libgphoto2_sys::GPLogLevel;
+  use log::LevelFilter;
+
+  unsafe extern "C" fn log_function(
+    level: libgphoto2_sys::GPLogLevel,
+    domain: *const std::os::raw::c_char,
+    message: *const std::os::raw::c_char,
+    _data: *mut ffi::c_void,
+  ) {
+    let log_level = match level {
+      GPLogLevel::GP_LOG_ERROR => log::Level::Error,
+      GPLogLevel::GP_LOG_DEBUG => log::Level::Debug,
+      GPLogLevel::GP_LOG_VERBOSE => log::Level::Info,
+      GPLogLevel::GP_LOG_DATA => log::Level::Trace,
+    };
+
+    let target = format!("gphoto2::{}", chars_to_string(domain));
+
+    log::log!(target: &target, log_level, "{}", chars_to_string(message));
+  }
+
+  let max_log_level = match log::STATIC_MAX_LEVEL {
+    LevelFilter::Debug | LevelFilter::Warn => GPLogLevel::GP_LOG_DEBUG,
+    LevelFilter::Error => GPLogLevel::GP_LOG_ERROR,
+    LevelFilter::Info => GPLogLevel::GP_LOG_VERBOSE,
+    LevelFilter::Trace => GPLogLevel::GP_LOG_DATA,
+    LevelFilter::Off => return,
+  };
+
+  HOOK_LOG_FUNCTION.call_once(|| unsafe {
+    libgphoto2_sys::gp_log_add_func(max_log_level, Some(log_function), std::ptr::null_mut());
+  });
+}
+
+#[cfg(not(feature = "extended_logs"))]
+pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
+  use log::Level;
+
+  unsafe extern "C" fn log_func(
+    _context: *mut libgphoto2_sys::GPContext,
+    message: *const c_char,
+    log_level: *mut ffi::c_void,
+  ) {
+    let log_level: Level = std::mem::transmute(log_level);
+
+    log::log!(target: "gphoto2", log_level, "{}", chars_to_string(message));
+  }
+
+  HOOK_LOG_FUNCTION.call_once(|| unsafe {
+    if log::log_enabled!(log::Level::Error) {
+      let log_level_as_ptr = std::mem::transmute(log::Level::Error);
+
+      libgphoto2_sys::gp_context_set_error_func(context, Some(log_func), log_level_as_ptr);
+
+      // `gp_context_message` seems to be used also for error messages.
+      libgphoto2_sys::gp_context_set_message_func(context, Some(log_func), log_level_as_ptr);
+    }
+
+    if log::log_enabled!(log::Level::Info) {
+      libgphoto2_sys::gp_context_set_status_func(
+        context,
+        Some(log_func),
+        std::mem::transmute(log::Level::Info),
+      );
+    }
+  });
 }
 
 pub fn libtool_lock() -> MutexGuard<'static, ()> {
@@ -74,15 +146,15 @@ macro_rules! to_c_string {
 }
 
 macro_rules! as_ref {
-  ($from:ident -> $to:ty, $self:ident $($rest:tt)*) => {
-    as_ref!(@ $from -> $to, , $self, $self $($rest)*);
+  ($from:ident $(<$lt:tt>)? -> $to:ty, $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, , $self, $self $($rest)*);
   };
 
-  ($from:ident -> $to:ty, * $self:ident $($rest:tt)*) => {
-    as_ref!(@ $from -> $to, unsafe, $self, *$self $($rest)*);
+  ($from:ident $(<$lt:tt>)? -> $to:ty, * $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, *$self $($rest)*);
   };
 
-  (@ $from:ident -> $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
+  (@ $from:ty, $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
     impl AsRef<$to> for $from {
       fn as_ref(&$self) -> &$to {
         $($unsafe)? { & $value }

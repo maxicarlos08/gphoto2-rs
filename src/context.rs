@@ -1,9 +1,12 @@
 //! Library context
-use crate::helper::{as_ref, chars_to_string, libtool_lock, to_c_string};
-use crate::list::{CameraDescriptor, CameraListIter};
 use crate::{
-  abilities::AbilitiesList, camera::Camera, list::CameraList, port::PortInfoList, try_gp_internal,
-  Error, Result,
+  abilities::AbilitiesList,
+  camera::Camera,
+  helper::{as_ref, libtool_lock, to_c_string, chars_to_string},
+  list::CameraList,
+  list::{CameraDescriptor, CameraListIter},
+  port::PortInfoList,
+  try_gp_internal, Error, Result,
 };
 use std::ffi;
 
@@ -52,39 +55,17 @@ as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
 impl Context {
   /// Create a new context
   pub fn new() -> Result<Self> {
+    #[cfg(feature = "extended_logs")]
+    crate::helper::hook_gp_log();
+
     let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
     if context_ptr.is_null() {
       return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
     }
 
-    unsafe extern "C" fn log_func(
-      _context: *mut libgphoto2_sys::GPContext,
-      text: *const libc::c_char,
-      log_level_as_ptr: *mut libc::c_void,
-    ) {
-      let log_level: log::Level = std::mem::transmute(log_level_as_ptr);
-      log::log!(target: "gphoto2", log_level, "{}", chars_to_string(text));
-    }
-
-    unsafe {
-      if log::log_enabled!(log::Level::Error) {
-        let log_level_as_ptr = std::mem::transmute(log::Level::Error);
-
-        libgphoto2_sys::gp_context_set_error_func(context_ptr, Some(log_func), log_level_as_ptr);
-
-        // `gp_context_message` seems to be used also for error messages.
-        libgphoto2_sys::gp_context_set_message_func(context_ptr, Some(log_func), log_level_as_ptr);
-      }
-
-      if log::log_enabled!(log::Level::Info) {
-        libgphoto2_sys::gp_context_set_status_func(
-          context_ptr,
-          Some(log_func),
-          std::mem::transmute(log::Level::Info),
-        );
-      }
-    }
+    #[cfg(not(feature = "extended_logs"))]
+    crate::helper::hook_gp_context_log_func(context_ptr);
 
     Ok(Self { inner: context_ptr, progress_functions: None })
   }
@@ -224,3 +205,12 @@ macro_rules! call_progress_func {
 }
 
 pub(self) use call_progress_func;
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_list_cameras() {
+    let cameras = crate::sample_context().list_cameras().unwrap().collect::<Vec<_>>();
+    insta::assert_debug_snapshot!(cameras);
+  }
+}
