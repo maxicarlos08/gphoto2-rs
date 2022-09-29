@@ -389,8 +389,8 @@ impl CameraFS<'_> {
 
     try_gp_internal!(gp_camera_file_get(
       self.camera.camera,
-      to_c_string!(file),
       to_c_string!(folder),
+      to_c_string!(file),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
       camera_file.inner,
       self.camera.context
