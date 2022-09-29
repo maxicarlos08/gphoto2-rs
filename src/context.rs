@@ -2,7 +2,7 @@
 use crate::{
   abilities::AbilitiesList,
   camera::Camera,
-  helper::{as_ref, libtool_lock, to_c_string, chars_to_string},
+  helper::{as_ref, chars_to_string, libtool_lock, to_c_string},
   list::CameraList,
   list::{CameraDescriptor, CameraListIter},
   port::PortInfoList,
@@ -35,7 +35,6 @@ type ProgressStopFunc = Box<dyn Fn(ffi::c_uint)>;
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  pub(crate) progress_functions: Option<ContextProgress>,
 }
 
 pub(crate) struct ContextProgress {
@@ -67,7 +66,7 @@ impl Context {
     #[cfg(not(feature = "extended_logs"))]
     crate::helper::hook_gp_context_log_func(context_ptr);
 
-    Ok(Self { inner: context_ptr, progress_functions: None })
+    Ok(Self { inner: context_ptr })
   }
 
   /// Lists all available cameras and their ports
@@ -183,16 +182,18 @@ impl Context {
       call_progress_func!(data, stop(id))
     }
 
-    self.progress_functions = Some(ContextProgress { start, update, stop });
+    let progress_functions = Box::new(ContextProgress { start, update, stop });
 
     unsafe {
-      #[allow(clippy::as_conversions)]
       libgphoto2_sys::gp_context_set_progress_funcs(
         self.inner,
         Some(start_func),
         Some(update_func),
         Some(stop_func),
-        self.progress_functions.as_mut().unwrap() as *mut _ as *mut ffi::c_void,
+        // The progress functions may outlive our Context wrapper, since the underlying GPContext
+        // will outlive the wrapper if it was dropped but a camera using it is still alive.
+        // **If** I understand the libgphoto2 source code, this should be freed when GPContext is
+        Box::into_raw(progress_functions).cast(),
       )
     }
   }
