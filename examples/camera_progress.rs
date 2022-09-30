@@ -3,6 +3,7 @@
 use gphoto2::{Context, Result};
 use std::{
   collections::HashMap,
+  path::Path,
   sync::{Arc, RwLock},
 };
 
@@ -24,21 +25,29 @@ impl ProgressManager {
 
   fn new_progress(&mut self, message: String, target: f32) -> u32 {
     let id = self.next_progress_id;
+
     self.next_progress_id += 1;
     self.progresses.insert(id, ContextProgress { message: message, target: target, current: 0.0 });
+    self.on_progress_update();
     id
   }
 
   fn update_progress(&mut self, id: u32, progress: f32) {
     self.progresses.get_mut(&id).map(|cprogress| cprogress.current = progress);
+    self.on_progress_update();
   }
 
   fn end_progress(&mut self, id: u32) {
     self.progresses.remove(&id);
+    self.on_progress_update()
   }
 
-  // When actually using this you would an another function which updates your progress bars and call that function
-  // in new_progress, update_progress and end_progress
+  fn on_progress_update(&self) {
+    println!("Current number of running progresses: {}", self.progresses.len());
+    for (id, progress) in self.progresses.iter() {
+      println!("   - progress #{:03}: [{}] {:0.1}% done", id, progress.message, progress.progress())
+    }
+  }
 }
 
 impl ContextProgress {
@@ -50,6 +59,8 @@ impl ContextProgress {
 
 fn main() -> Result<()> {
   let mut context = Context::new()?;
+
+  env_logger::init();
 
   // Wrapping this in an Arc is necessary because the context functions may outlive the context wrapper's scope
   // (not in this case though because we are in `fn main()` and the context is dropped when the program ends)
@@ -71,6 +82,10 @@ fn main() -> Result<()> {
       Box::new(move |id| progresses_ref.write().unwrap().end_progress(id))
     },
   );
+
+  let camera = context.autodetect_camera()?;
+  let image = camera.capture_image()?;
+  camera.fs().download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned()))?;
 
   Ok(())
 }
