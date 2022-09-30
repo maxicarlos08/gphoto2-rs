@@ -31,7 +31,6 @@ pub enum FileType {
 /// File on a camera
 ///
 /// To download the file use [`CameraFS`](crate::filesys::CameraFS)
-/// ```
 pub struct CameraFile {
   pub(crate) inner: *mut libgphoto2_sys::CameraFile,
   pub(crate) is_from_disk: bool,

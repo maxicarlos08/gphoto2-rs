@@ -10,9 +10,9 @@ use crate::{
 };
 use std::ffi;
 
-type ProgressStartFunc = Box<dyn Fn(ffi::c_float, String) -> ffi::c_uint>;
-type ProgressUpdateFunc = Box<dyn Fn(ffi::c_uint, ffi::c_float)>;
-type ProgressStopFunc = Box<dyn Fn(ffi::c_uint)>;
+type ProgressStartFunc = Box<dyn Fn(f32, String) -> u32>;
+type ProgressUpdateFunc = Box<dyn Fn(u32, f32)>;
+type ProgressStopFunc = Box<dyn Fn(u32)>;
 
 /// Context used internally by gphoto
 ///
@@ -148,8 +148,34 @@ impl Context {
     Ok(Camera::new(camera, self.inner))
   }
 
-  /// Set progress functions
-  /// TODO: docs
+  /// Set context progress functions
+  ///
+  /// `libgphoto2` allows you to set progress functions to a context, these
+  /// allow you to show some progress bars whenever eg. an image is being downloaded.
+  ///
+  /// These functions must be boxed because they might outlive [`Context`]
+  /// (eg. `Context::new()?.autodetect_camera()` drops [`Context`] but the internal
+  /// [`GPContext`](libgphoto2_sys::GPContext) is kept alive using `libgphoto2` reference counting)
+  ///
+  /// ### Start function
+  ///
+  ///  - The first argument is the target ([`f32`]), when the progress has reached this target it has completed
+  ///  - The second argument is the message for this progress ([`String`])
+  ///
+  /// This function must return a unique ID ([`u32`]), it will be passed to the following progress functions.
+  ///
+  /// ### Update function
+  ///
+  ///  - The first argument is the id previously returned in the start function
+  ///  - The second argument is the progress that has been made ([`f32`])
+  ///
+  /// ### Stop function
+  ///
+  /// This function only takes one argument which is the progress ID.
+  ///
+  /// # Example
+  ///
+  /// An example can be found in the examples directory
   pub fn set_progress_functions(
     &mut self,
     start: ProgressStartFunc,
