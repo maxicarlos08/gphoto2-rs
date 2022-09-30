@@ -88,6 +88,20 @@ fn main() -> Result<()> {
 
 You can find more examples [here](https://github.com/maxicarlos08/gphoto2-rs/tree/master/examples)
 
+## Logging
+
+To make your debugging life a bit easier, this crate hooks up the libgphoto2 log functions to the [`log`](https://docs.rs/log) crate.
+
+To show the logs use a logging implementation like [`env_logger`](https://crates.io/crates/env_logger).
+
+### Additional logs
+
+By default we use `gp_context_set_log_func` in a context to get the logs, but there is also `gp_log_add_func` which provides a lot more information and can be a lot more useful when debugging.
+
+The reason this crate doesn't use `gp_log_add_func` by default is because it is disabled in most Linux distributions and Windows. You will have to check if your installed version does not disable this feature or build libgphoto2 yourself **without** passing the `--disabled-debug` flag to the configure command.
+
+To use this feature, enable the `extended_logs` feature of this crate (the linker will fail if your version of `libgphoto2` was not compiled without the `--disabled-debug`).
+
 ## Stability
 
 In general all all APIs should be stable, I've tested the ones my camera supported and found no bugs so far.  
