@@ -8,13 +8,23 @@ use crate::{
   port::PortInfoList,
   try_gp_internal, Error, Result,
 };
-use std::ffi;
+use std::{ffi, ops::Deref, rc::Rc};
 
-type ProgressStartFunc = Box<dyn Fn(f32, String) -> u32>;
-type ProgressUpdateFunc = Box<dyn Fn(u32, f32)>;
-type ProgressStopFunc = Box<dyn Fn(u32)>;
+/// Progress handler trait
+pub trait ProgressHandler {
+  /// This method is called when a progress starts.
+  ///
+  /// It must return a unique ID which is passed to the following functions
+  fn start(&mut self, target: f32, message: String) -> u32;
 
-/// Context used internally by gphoto
+  /// Progress has updated
+  fn update(&mut self, id: u32, progress: f32);
+
+  /// Progress has stopped
+  fn stop(&mut self, id: u32);
+}
+
+/// Context used internally by libgphoto2
 ///
 /// ## Example
 ///
@@ -35,17 +45,22 @@ type ProgressStopFunc = Box<dyn Fn(u32)>;
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-}
-
-pub(crate) struct ContextProgress {
-  start: ProgressStartFunc,
-  update: ProgressUpdateFunc,
-  stop: ProgressStopFunc,
+  progress_handler: Option<Rc<Box<dyn ProgressHandler>>>,
 }
 
 impl Drop for Context {
   fn drop(&mut self) {
     unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
+  }
+}
+
+impl Clone for Context {
+  fn clone(&self) -> Self {
+    unsafe {
+      libgphoto2_sys::gp_context_ref(self.inner);
+    }
+
+    Self { inner: self.inner, progress_handler: self.progress_handler.clone() }
   }
 }
 
@@ -66,7 +81,7 @@ impl Context {
     #[cfg(not(feature = "extended_logs"))]
     crate::helper::hook_gp_context_log_func(context_ptr);
 
-    Ok(Self { inner: context_ptr })
+    Ok(Self { inner: context_ptr, progress_handler: None })
   }
 
   /// Lists all available cameras and their ports
@@ -104,7 +119,7 @@ impl Context {
     try_gp_internal!(gp_camera_new(&out camera_ptr)?);
     try_gp_internal!(gp_camera_init(camera_ptr, self.inner)?);
 
-    Ok(Camera::new(camera_ptr, self.inner))
+    Ok(Camera::new(camera_ptr, self.clone()))
   }
 
   /// Initialize a camera knowing its model name and port path
@@ -145,7 +160,7 @@ impl Context {
     let port_info = port_info_list.get_port_info(p)?;
     try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner)?);
 
-    Ok(Camera::new(camera, self.inner))
+    Ok(Camera::new(camera, self.clone()))
   }
 
   /// Set context progress functions
@@ -153,35 +168,10 @@ impl Context {
   /// `libgphoto2` allows you to set progress functions to a context, these
   /// allow you to show some progress bars whenever eg. an image is being downloaded.
   ///
-  /// These functions must be boxed because they might outlive [`Context`]
-  /// (eg. `Context::new()?.autodetect_camera()` drops [`Context`] but the internal
-  /// [`GPContext`](libgphoto2_sys::GPContext) is kept alive using `libgphoto2` reference counting)
-  ///
-  /// ### Start function
-  ///
-  ///  - The first argument is the target ([`f32`]), when the progress has reached this target it has completed
-  ///  - The second argument is the message for this progress ([`String`])
-  ///
-  /// This function must return a unique ID ([`u32`]), it will be passed to the following progress functions.
-  ///
-  /// ### Update function
-  ///
-  ///  - The first argument is the id previously returned in the start function
-  ///  - The second argument is the progress that has been made ([`f32`])
-  ///
-  /// ### Stop function
-  ///
-  /// This function only takes one argument which is the progress ID.
-  ///
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_functions(
-    &mut self,
-    start: ProgressStartFunc,
-    update: ProgressUpdateFunc,
-    stop: ProgressStopFunc,
-  ) {
+  pub fn set_progress_functions(&mut self, handler: Box<dyn ProgressHandler>) {
     unsafe extern "C" fn start_func(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: ffi::c_float,
@@ -208,26 +198,26 @@ impl Context {
       call_progress_func!(data, stop(id))
     }
 
-    let progress_functions = Box::new(ContextProgress { start, update, stop });
+    self.progress_handler = Some(Rc::new(handler));
 
     unsafe {
+      #[allow(clippy::as_conversions)]
       libgphoto2_sys::gp_context_set_progress_funcs(
         self.inner,
         Some(start_func),
         Some(update_func),
         Some(stop_func),
-        // The progress functions may outlive our Context wrapper, since the underlying GPContext
-        // will outlive the wrapper if it was dropped but a camera using it is still alive.
-        // **If** I understand the libgphoto2 source code, this should be freed when GPContext is
-        Box::into_raw(progress_functions).cast(),
+        (self.progress_handler.as_ref().unwrap().deref() as *const _
+          as *mut Box<dyn ProgressHandler>)
+          .cast(),
       )
     }
   }
 }
 
 macro_rules! call_progress_func {
-    ($data:expr, $function:ident ($($args:expr$(,)?)+)) => {
-          ($data.cast::<ContextProgress>().as_ref().unwrap().$function)($($args,)*)
+    ($data:expr, $function:ident $args:tt) => {
+          (&mut *$data.cast::<Box<dyn ProgressHandler>>()).$function $args
     };
 }
 

@@ -1,11 +1,7 @@
 #![allow(dead_code)] // This is just an example
 
 use gphoto2::{Context, Result};
-use std::{
-  collections::HashMap,
-  path::Path,
-  sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, path::Path};
 
 struct ContextProgress {
   message: String,
@@ -18,28 +14,30 @@ struct ProgressManager {
   next_progress_id: u32,
 }
 
-impl ProgressManager {
-  fn new() -> Self {
-    Self { progresses: Default::default(), next_progress_id: 0 }
-  }
-
-  fn new_progress(&mut self, message: String, target: f32) -> u32 {
+impl gphoto2::context::ProgressHandler for ProgressManager {
+  fn start(&mut self, target: f32, message: String) -> u32 {
     let id = self.next_progress_id;
 
     self.next_progress_id += 1;
-    self.progresses.insert(id, ContextProgress { message: message, target: target, current: 0.0 });
+    self.progresses.insert(id, ContextProgress { message, target, current: 0.0 });
     self.on_progress_update();
     id
   }
 
-  fn update_progress(&mut self, id: u32, progress: f32) {
+  fn update(&mut self, id: u32, progress: f32) {
     self.progresses.get_mut(&id).map(|cprogress| cprogress.current = progress);
     self.on_progress_update();
   }
 
-  fn end_progress(&mut self, id: u32) {
+  fn stop(&mut self, id: u32) {
     self.progresses.remove(&id);
     self.on_progress_update()
+  }
+}
+
+impl ProgressManager {
+  fn new() -> Self {
+    Self { progresses: Default::default(), next_progress_id: 0 }
   }
 
   fn on_progress_update(&self) {
@@ -62,26 +60,7 @@ fn main() -> Result<()> {
 
   env_logger::init();
 
-  // Wrapping this in an Arc is necessary because the context functions may outlive the context wrapper's scope
-  // (not in this case though because we are in `fn main()` and the context is dropped when the program ends)
-  let progresses = Arc::new(RwLock::new(ProgressManager::new()));
-
-  context.set_progress_functions(
-    {
-      let progresses_ref = progresses.clone();
-      Box::new(move |target, message| progresses_ref.write().unwrap().new_progress(message, target))
-    },
-    {
-      let progresses_ref = progresses.clone();
-      Box::new(move |id, current| {
-        progresses_ref.write().unwrap().update_progress(id, current);
-      })
-    },
-    {
-      let progresses_ref = progresses.clone();
-      Box::new(move |id| progresses_ref.write().unwrap().end_progress(id))
-    },
-  );
+  context.set_progress_functions(Box::new(ProgressManager::new()));
 
   let camera = context.autodetect_camera()?;
   let image = camera.capture_image()?;
