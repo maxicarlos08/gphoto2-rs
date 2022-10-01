@@ -10,14 +10,8 @@ use crate::{
 };
 use std::{ffi, rc::Rc};
 
-macro_rules! call_progress_func {
-  ($data:expr, $function:ident $args:tt) => {
-        (&mut *$data.cast::<Box<dyn ProgressHandler>>()).$function $args
-  };
-}
-
 /// Progress handler trait
-pub trait ProgressHandler {
+pub trait ProgressHandler: 'static {
   /// This method is called when a progress starts.
   ///
   /// It must return a unique ID which is passed to the following functions
@@ -51,7 +45,7 @@ pub trait ProgressHandler {
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  progress_handler: Option<Rc<Box<dyn ProgressHandler>>>,
+  progress_handler: Option<Rc<dyn ProgressHandler>>,
 }
 
 impl Drop for Context {
@@ -177,46 +171,56 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_functions(&mut self, handler: Box<dyn ProgressHandler>) {
-    unsafe extern "C" fn start_func(
-      _ctx: *mut libgphoto2_sys::GPContext,
-      target: ffi::c_float,
-      message: *const ffi::c_char,
-      data: *mut ffi::c_void,
-    ) -> ffi::c_uint {
-      call_progress_func!(data, start(target, chars_to_string(message)))
+  pub fn set_progress_functions<H: ProgressHandler>(&mut self, handler: H) {
+    use std::os::raw::{c_char, c_float, c_uint, c_void};
+
+    unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
+      &mut *data.cast()
     }
 
-    unsafe extern "C" fn update_func(
+    unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
-      id: ffi::c_uint,
-      current: ffi::c_float,
-      data: *mut ffi::c_void,
-    ) {
-      call_progress_func!(data, update(id, current))
+      target: c_float,
+      message: *const c_char,
+      data: *mut c_void,
+    ) -> c_uint {
+      as_handler::<H>(data).start(target, chars_to_string(message))
     }
 
-    unsafe extern "C" fn stop_func(
+    unsafe extern "C" fn update_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
-      id: ffi::c_uint,
-      data: *mut ffi::c_void,
+      id: c_uint,
+      current: c_float,
+      data: *mut c_void,
     ) {
-      call_progress_func!(data, stop(id))
+      as_handler::<H>(data).update(id, current)
+    }
+
+    unsafe extern "C" fn stop_func<H: ProgressHandler>(
+      _ctx: *mut libgphoto2_sys::GPContext,
+      id: c_uint,
+      data: *mut c_void,
+    ) {
+      as_handler::<H>(data).stop(id)
     }
 
     let progress_handler = Rc::new(handler);
 
+    // Now that handler is on the heap, the pointer should be stable.
+    // Also, we know that there are and won't be other mutable references to it,
+    // so we can safely cast it to a raw *mutable* pointer despite Rc only
+    // providing immutable access.
+    #[allow(clippy::as_conversions)]
+    let data_ptr = Rc::as_ptr(&progress_handler) as *mut c_void;
+
     unsafe {
-      #[allow(clippy::as_conversions)]
       libgphoto2_sys::gp_context_set_progress_funcs(
         self.inner,
-        Some(start_func),
-        Some(update_func),
-        Some(stop_func),
-        (&*progress_handler as *const _
-          as *mut Box<dyn ProgressHandler>)
-          .cast(),
-      )
+        Some(start_func::<H>),
+        Some(update_func::<H>),
+        Some(stop_func::<H>),
+        data_ptr,
+      );
     }
 
     self.progress_handler = Some(progress_handler);
@@ -229,5 +233,54 @@ mod tests {
   fn test_list_cameras() {
     let cameras = crate::sample_context().list_cameras().unwrap().collect::<Vec<_>>();
     insta::assert_debug_snapshot!(cameras);
+  }
+
+  #[test]
+  fn test_progress() {
+    use std::fmt::Write;
+
+    let mut context = crate::sample_context();
+
+    #[derive(Default)]
+    struct TestProgress {
+      log_lines: String,
+      next_progress_id: u32,
+    }
+
+    impl Drop for TestProgress {
+      fn drop(&mut self) {
+        insta::assert_snapshot!("progress", self.log_lines);
+      }
+    }
+
+    impl crate::context::ProgressHandler for TestProgress {
+      fn start(&mut self, target: f32, message: String) -> u32 {
+        let id = self.next_progress_id;
+
+        self.next_progress_id += 1;
+        writeln!(
+          self.log_lines,
+          "start #{id}: target: {target}, message: {message}",
+          message = message.replace(
+            libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap(),
+            "$LIBGPHOTO2_DIR"
+          ),
+        )
+        .unwrap();
+        id
+      }
+
+      fn update(&mut self, id: u32, progress: f32) {
+        writeln!(self.log_lines, "update #{id}: progress: {progress}").unwrap();
+      }
+
+      fn stop(&mut self, id: u32) {
+        writeln!(self.log_lines, "stop #{id}").unwrap();
+      }
+    }
+
+    context.set_progress_functions(TestProgress::default());
+
+    let _ignore = context.list_cameras();
   }
 }
