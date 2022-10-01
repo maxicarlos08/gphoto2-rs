@@ -20,4 +20,4 @@ jobs:
     - name: Install dependencies
       run: sudo apt install -y autopoint
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test -F test --verbose

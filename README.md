@@ -102,6 +102,16 @@ The reason this crate doesn't use `gp_log_add_func` by default is because it is 
 
 To use this feature, enable the `extended_logs` feature of this crate (the linker will fail if your version of `libgphoto2` was not compiled without the `--disabled-debug`).
 
+## Testing
+
+To run the tests of this crate the `test` feature must be enabled:
+
+```sh
+cargo test -F test
+```
+
+Note that `test` builds a very stripped down version of `libgphoto2`, which is only usable for testing (Don't enable this feature when using this crate).
+
 ## Stability
 
 In general all all APIs should be stable, I've tested the ones my camera supported and found no bugs so far.  
