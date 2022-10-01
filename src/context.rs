@@ -8,7 +8,13 @@ use crate::{
   port::PortInfoList,
   try_gp_internal, Error, Result,
 };
-use std::{ffi, ops::Deref, rc::Rc};
+use std::{ffi, rc::Rc};
+
+macro_rules! call_progress_func {
+  ($data:expr, $function:ident $args:tt) => {
+        (&mut *$data.cast::<dyn ProgressHandler>()).$function $args
+  };
+}
 
 /// Progress handler trait
 pub trait ProgressHandler {
@@ -216,14 +222,6 @@ impl Context {
     self.progress_handler = Some(progress_handler);
   }
 }
-
-macro_rules! call_progress_func {
-    ($data:expr, $function:ident $args:tt) => {
-          (&mut *$data.cast::<dyn ProgressHandler>()).$function $args
-    };
-}
-
-pub(self) use call_progress_func;
 
 #[cfg(test)]
 mod tests {
