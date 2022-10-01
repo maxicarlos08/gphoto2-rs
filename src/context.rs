@@ -12,7 +12,7 @@ use std::{ffi, rc::Rc};
 
 macro_rules! call_progress_func {
   ($data:expr, $function:ident $args:tt) => {
-        (&mut *$data.cast::<dyn ProgressHandler>()).$function $args
+        (&mut *$data.cast::<Box<dyn ProgressHandler>>()).$function $args
   };
 }
 
@@ -51,7 +51,7 @@ pub trait ProgressHandler {
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  progress_handler: Option<Rc<dyn ProgressHandler>>,
+  progress_handler: Option<Rc<Box<dyn ProgressHandler>>>,
 }
 
 impl Drop for Context {
@@ -177,7 +177,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_functions(&mut self, handler: impl ProgressHandler +'static) {
+  pub fn set_progress_functions(&mut self, handler: Box<dyn ProgressHandler>) {
     unsafe extern "C" fn start_func(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: ffi::c_float,
@@ -214,7 +214,7 @@ impl Context {
         Some(update_func),
         Some(stop_func),
         (&*progress_handler as *const _
-          as *mut dyn ProgressHandler)
+          as *mut Box<dyn ProgressHandler>)
           .cast(),
       )
     }
