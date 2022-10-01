@@ -249,7 +249,7 @@ mod tests {
 
     impl Drop for TestProgress {
       fn drop(&mut self) {
-        insta::assert_snapshot!(self.log_lines);
+        insta::assert_snapshot!("progress", self.log_lines);
       }
     }
 
