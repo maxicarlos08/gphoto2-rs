@@ -235,4 +235,45 @@ mod tests {
     let cameras = crate::sample_context().list_cameras().unwrap().collect::<Vec<_>>();
     insta::assert_debug_snapshot!(cameras);
   }
+
+  #[test]
+  fn test_progress() {
+    use std::fmt::Write;
+
+    let mut context = crate::sample_context();
+
+    #[derive(Default)]
+    struct TestProgress {
+      log_lines: String,
+      next_progress_id: u32,
+    }
+
+    impl Drop for TestProgress {
+      fn drop(&mut self) {
+        insta::assert_snapshot!(self.log_lines);
+      }
+    }
+
+    impl crate::context::ProgressHandler for TestProgress {
+      fn start(&mut self, target: f32, message: String) -> u32 {
+        let id = self.next_progress_id;
+
+        self.next_progress_id += 1;
+        writeln!(self.log_lines, "start #{id}: target: {target}, message: {message}").unwrap();
+        id
+      }
+
+      fn update(&mut self, id: u32, progress: f32) {
+        writeln!(self.log_lines, "update #{id}: progress: {progress}").unwrap();
+      }
+
+      fn stop(&mut self, id: u32) {
+        writeln!(self.log_lines, "stop #{id}").unwrap();
+      }
+    }
+
+    context.set_progress_functions(TestProgress::default());
+
+    let _ignore = context.list_cameras();
+  }
 }
