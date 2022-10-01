@@ -259,7 +259,15 @@ mod tests {
         let id = self.next_progress_id;
 
         self.next_progress_id += 1;
-        writeln!(self.log_lines, "start #{id}: target: {target}, message: {message}").unwrap();
+        writeln!(
+          self.log_lines,
+          "start #{id}: target: {target}, message: {message}",
+          message = message.replace(
+            libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap(),
+            "$LIBGPHOTO2_DIR"
+          ),
+        )
+        .unwrap();
         id
       }
 

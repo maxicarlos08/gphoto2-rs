@@ -2,7 +2,7 @@
 source: src/context.rs
 expression: self.log_lines
 ---
-start #0: target: 1, message: Loading camera drivers from '/home/rreverser/gphoto2-rs/target/debug/build/gphoto2_test-57fb6b144658fd80/out/install/lib/libgphoto2/2.5.30.1'...
+start #0: target: 1, message: Loading camera drivers from '$LIBGPHOTO2_DIR/lib/libgphoto2/2.5.30.1'...
 update #0: progress: 0
 stop #0
 
