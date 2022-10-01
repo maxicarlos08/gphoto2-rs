@@ -214,14 +214,13 @@ impl Context {
     let data_ptr = Rc::as_ptr(&progress_handler) as *mut c_void;
 
     unsafe {
-      #[allow(clippy::as_conversions)]
       libgphoto2_sys::gp_context_set_progress_funcs(
         self.inner,
         Some(start_func::<H>),
         Some(update_func::<H>),
         Some(stop_func::<H>),
         data_ptr,
-      )
+      );
     }
 
     self.progress_handler = Some(progress_handler);
