@@ -13,7 +13,7 @@ use crate::{
 use std::{ffi, os::raw::c_char, time::Duration};
 
 /// Event from camera
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CameraEvent {
   /// Unknown event
   Unknown(String),
@@ -427,6 +427,15 @@ mod tests {
       .collect::<BTreeMap<_, _>>();
 
     insta::assert_debug_snapshot!(storage_folders);
+  }
+
+  #[test]
+  fn test_camera_events() {
+    let camera = sample_camera();
+
+    let event = camera.wait_event(std::time::Duration::from_secs(2)).unwrap();
+
+    insta::assert_debug_snapshot!(event);
   }
 
   #[test]

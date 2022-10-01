@@ -45,6 +45,12 @@ impl Drop for CameraFile {
   }
 }
 
+impl PartialEq for CameraFilePath {
+  fn eq(&self, other: &Self) -> bool {
+    (self.name() == other.name()) && (self.folder() == other.folder())
+  }
+}
+
 impl From<libgphoto2_sys::CameraFileType> for FileType {
   fn from(file_type: libgphoto2_sys::CameraFileType) -> Self {
     use libgphoto2_sys::CameraFileType as GPFileType;
