@@ -14,7 +14,6 @@ readme = "README.md"
 [features]
 # Uses gp_log_add_func instead of gp_context_set_log_func for logging (not supported on many systems)
 extended_logs = []
-test = ["libgphoto2_sys/test"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,5 +26,6 @@ libc = "0.2"
 log = "0.4"
 
 [dev-dependencies]
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.1", features = ["test"] }
 env_logger = "0.9.1"
 insta = "1.20.0"

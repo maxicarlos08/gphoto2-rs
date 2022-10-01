@@ -304,7 +304,7 @@ impl Camera {
   }
 }
 
-#[cfg(all(test, feature = "test"))]
+#[cfg(test)]
 mod tests {
   fn sample_camera() -> super::Camera {
     crate::sample_context().autodetect_camera().unwrap()

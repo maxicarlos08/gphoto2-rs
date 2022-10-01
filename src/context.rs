@@ -139,7 +139,7 @@ impl Context {
   }
 }
 
-#[cfg(all(test, feature = "test"))]
+#[cfg(test)]
 mod tests {
   #[test]
   fn test_list_cameras() {
