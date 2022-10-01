@@ -28,7 +28,10 @@ pub use crate::{
 /// Use this at your own risk
 pub use libgphoto2_sys;
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "test")))]
+compile_error!("The test feature must be enabled to run the tests");
+
+#[cfg(all(test, feature = "test"))]
 fn sample_context() -> Context {
   use std::sync::Once;
 

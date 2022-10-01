@@ -30,7 +30,7 @@ cp $root_dir/blank.jpg $vcamera_dir/bar
 ./configure \
 	--prefix=$OUT_DIR/install \
 	--enable-vusb \
-	--disable-nls --disable-serial --disable-ptpip --disable-disk --without-libexif --with-camlibs=ptp2 \
+	--disable-nls --disable-serial --disable-ptpip --disable-disk --without-libusb --without-libusb-1.0 --without-libexif --with-camlibs=ptp2 \
 	CFLAGS="-g"
 
 # Unfortunately, MSYS/MINGW make can't handle the Cargo jobserver args.
