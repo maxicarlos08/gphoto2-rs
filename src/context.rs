@@ -45,7 +45,7 @@ pub trait ProgressHandler {
 /// ```
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  progress_handler: Option<Rc<Box<dyn ProgressHandler>>>,
+  progress_handler: Option<Rc<dyn ProgressHandler>>,
 }
 
 impl Drop for Context {
@@ -171,7 +171,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_functions(&mut self, handler: Box<dyn ProgressHandler>) {
+  pub fn set_progress_functions(&mut self, handler: impl ProgressHandler +'static) {
     unsafe extern "C" fn start_func(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: ffi::c_float,
@@ -198,7 +198,7 @@ impl Context {
       call_progress_func!(data, stop(id))
     }
 
-    self.progress_handler = Some(Rc::new(handler));
+    let progress_handler = Rc::new(handler);
 
     unsafe {
       #[allow(clippy::as_conversions)]
@@ -207,17 +207,19 @@ impl Context {
         Some(start_func),
         Some(update_func),
         Some(stop_func),
-        (self.progress_handler.as_ref().unwrap().deref() as *const _
-          as *mut Box<dyn ProgressHandler>)
+        (&*progress_handler as *const _
+          as *mut dyn ProgressHandler)
           .cast(),
       )
     }
+
+    self.progress_handler = Some(progress_handler);
   }
 }
 
 macro_rules! call_progress_func {
     ($data:expr, $function:ident $args:tt) => {
-          (&mut *$data.cast::<Box<dyn ProgressHandler>>()).$function $args
+          (&mut *$data.cast::<dyn ProgressHandler>()).$function $args
     };
 }
 
