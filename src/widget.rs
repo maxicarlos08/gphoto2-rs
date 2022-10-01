@@ -462,7 +462,7 @@ impl ButtonWidget {
   pub fn press(&self, camera: &Camera) -> Result<()> {
     let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context) })?;
+    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context.inner) })?;
     Ok(())
   }
 

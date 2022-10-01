@@ -269,7 +269,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       to_c_string!(file),
-      self.camera.context
+      self.camera.context.inner
     )?);
     Ok(())
   }
@@ -283,7 +283,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(folder),
       to_c_string!(file),
       inner.as_mut_ptr(),
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(FileInfo { inner: unsafe { inner.assume_init() } })
@@ -310,7 +310,7 @@ impl<'a> CameraFS<'a> {
       to_c_string!(filename),
       FileType::Normal.into(),
       file,
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(())
@@ -321,7 +321,7 @@ impl<'a> CameraFS<'a> {
     try_gp_internal!(gp_camera_folder_delete_all(
       self.camera.camera,
       to_c_string!(folder),
-      self.camera.context
+      self.camera.context.inner
     )?);
     Ok(())
   }
@@ -334,7 +334,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       file_list.inner,
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(FileListIter::new(file_list))
@@ -348,7 +348,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(folder),
       folder_list.inner,
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(FileListIter::new(folder_list))
@@ -360,7 +360,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(parent_folder),
       to_c_string!(new_folder),
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(())
@@ -372,7 +372,7 @@ impl<'a> CameraFS<'a> {
       self.camera.camera,
       to_c_string!(parent),
       to_c_string!(to_remove),
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(())
@@ -393,7 +393,7 @@ impl CameraFS<'_> {
       to_c_string!(file),
       libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
       camera_file.inner,
-      self.camera.context
+      self.camera.context.inner
     )?);
 
     Ok(camera_file)
