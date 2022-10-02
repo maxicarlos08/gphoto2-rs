@@ -262,7 +262,7 @@ mod tests {
           self.log_lines,
           "start #{id}: target: {target}, message: {message}",
           message = message.replace(
-            libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap(),
+            &libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap().replace('\\', "/"),
             "$LIBGPHOTO2_DIR"
           ),
         )
