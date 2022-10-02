@@ -1,23 +1,54 @@
 name: Rust
 
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  test_unix:
+    name: Build and Test (Unix)
 
-    runs-on: ubuntu-latest
-    name: Build and Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install dependencies
-      run: sudo apt install -y autopoint
-    - name: Run tests
-      run: cargo test -F test --verbose
+      - uses: actions/checkout@v3
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install -y autopoint
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install automake
+      - name: Run tests
+        run: cargo test -F test --verbose
+
+  test_windows:
+    name: Build and Test (Windows)
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup MSYS2 and dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          path-type: inherit
+          install: >-
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-libltdl
+            mingw-w64-x86_64-clang
+            pkgconf
+      - name: Setup Rust
+        run: rustup default stable-x86_64-pc-windows-gnu
+      - name: Run tests
+        run: cargo test -F test --verbose

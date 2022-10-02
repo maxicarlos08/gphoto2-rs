@@ -8,23 +8,18 @@ fn main() {
   let libgphoto2_dir = libgphoto2_dir.or_else(|| Some(gphoto2_test::libgphoto2_dir().to_owned()));
 
   if let Some(libgphoto2_dir) = libgphoto2_dir {
-    let paths = env::join_paths(
-      std::iter::once(libgphoto2_dir.join("lib/pkgconfig").into_os_string())
-        .chain(env::var_os("PKG_CONFIG_PATH")),
-    )
-    .unwrap();
+    env::set_var("PKG_CONFIG_PATH", libgphoto2_dir.join("lib/pkgconfig"));
 
-    env::set_var("PKG_CONFIG_PATH", paths);
+    if cfg!(windows) {
+      // This has to be hardcoded because on Windows only .la get put into the lib dir :(
+      println!("cargo:rustc-link-search=native={}", libgphoto2_dir.join("bin").display());
+    }
   }
 
   let lib = pkg_config::Config::new()
     .atleast_version("2.5.10")
     .probe("libgphoto2")
     .expect("Could not find libgphoto2");
-
-  for link_path in lib.link_paths {
-    println!("cargo:rustc-link-search=native={}", link_path.to_str().unwrap());
-  }
 
   let bindings = bindgen::Builder::default()
     .clang_args(lib.include_paths.iter().map(|path| format!("-I{}", path.to_str().unwrap())))
