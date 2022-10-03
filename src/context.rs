@@ -257,12 +257,16 @@ mod tests {
       fn start(&mut self, target: f32, message: String) -> u32 {
         let id = self.next_progress_id;
 
+        // For some reason, gphoto2 discovers each dynamic library twice on Windows.
+        #[cfg(windows)]
+        let target = target / 2.0;
+
         self.next_progress_id += 1;
         writeln!(
           self.log_lines,
           "start #{id}: target: {target}, message: {message}",
           message = message.replace(
-            libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap(),
+            &libgphoto2_sys::test_utils::libgphoto2_dir().to_str().unwrap().replace('\\', "/"),
             "$LIBGPHOTO2_DIR"
           ),
         )
