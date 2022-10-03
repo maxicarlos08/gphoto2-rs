@@ -3,13 +3,16 @@ set -e
 
 echo cargo:rerun-if-changed=$0
 
-root_dir=$(dirname $(readlink -f $0))
+root_dir=$PWD
 
 cd $OUT_DIR
 
+# get a Unix-y path in case original OUT_DIR was a Windows path and we are inside MSYS
+OUT_DIR=$PWD
+
 if [ ! -d libgphoto2 ] ; then
 	mkdir libgphoto2
-	curl -L https://github.com/gphoto/libgphoto2/archive/7605d4ab2b65d209bc94b6ae3fd0d26daf14a3f2.tar.gz | tar -xzv --strip 1 -C libgphoto2
+	curl -L https://github.com/gphoto/libgphoto2/archive/0c28822d5909f9ff9bc895b5095fcf8c21dac02a.tar.gz | tar -xzv --strip 1 -C libgphoto2
 fi
 
 cd libgphoto2
@@ -19,7 +22,7 @@ if [ ! -f configure ] ; then
 fi
 
 # Set VCAMERADIR to an isolated local directory instead of the global /usr/... default.
-vcamera_dir=${OUT_DIR//\\/\/}/vcamera
+vcamera_dir=$OUT_DIR/vcamera
 
 mkdir -p $vcamera_dir/{foo,bar/baz}
 cp $root_dir/blank.jpg $vcamera_dir
@@ -27,23 +30,23 @@ cp $root_dir/blank.jpg $vcamera_dir/foo
 cp $root_dir/blank.jpg $vcamera_dir/bar
 
 # Minimal build with just the virtual vusb driver.
-./configure \
+./configure -C \
 	--prefix=$OUT_DIR/install \
-	--enable-vusb \
-	--disable-nls --disable-serial --disable-ptpip --disable-disk --without-libusb --without-libusb-1.0 --without-libexif --with-camlibs=ptp2 \
+	--enable-vusb --with-camlibs=ptp2 \
+	--disable-serial --disable-ptpip --disable-disk --without-libusb-1.0 --without-libusb \
+	--disable-nls \
+	--without-libexif --without-jpeg --without-libxml-2.0 --without-libcurl --without-gdlib \
 	CFLAGS="-g"
 
+export MAKEFLAGS=$CARGO_MAKEFLAGS
+
 # Unfortunately, MSYS/MINGW make can't handle the Cargo jobserver args.
+# But, mingw32-make can.
 case "$(uname -s)" in
 CYGWIN*|MINGW32*|MSYS*|MINGW*)
-	echo "Ignoring jobserver args: $CARGO_MAKEFLAGS"
-	# Best-effort alternative - just pass number of available CPUs.
-	export MAKEFLAGS=-j$(nproc)
+	mingw32-make install
 	;;
 *)
-	export MAKEFLAGS=$CARGO_MAKEFLAGS
+	make install
 	;;
 esac
-
-make
-make install
