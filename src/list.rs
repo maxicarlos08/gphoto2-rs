@@ -70,7 +70,7 @@ macro_rules! camera_list_iter {
 }
 
 /// Descriptor representing model+port pair of the connected camera.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraDescriptor {
   /// Camera model.
   pub model: String,
