@@ -88,6 +88,13 @@ fn main() -> Result<()> {
 
 You can find more examples [here](https://github.com/maxicarlos08/gphoto2-rs/tree/master/examples)
 
+## Thead safety
+
+See: [#43](https://github.com/maxicarlos08/gphoto2-rs/issues/43)
+
+Currently, libgphoto2 does not seem to be thread safe at all.  
+This means that you cannot create `Context`'s on separate threads without risking to create internal race conditions.
+
 ## Logging
 
 To make your debugging life a bit easier, this crate hooks up the libgphoto2 log functions to the [`log`](https://docs.rs/log) crate.
