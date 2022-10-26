@@ -84,6 +84,13 @@ pub struct Camera {
   pub(crate) context: Context,
 }
 
+impl Clone for Camera {
+  fn clone(&self) -> Self {
+    try_gp_internal!(gp_camera_ref(self.camera).unwrap());
+    Self { camera: self.camera, context: self.context.clone() }
+  }
+}
+
 impl Drop for Camera {
   fn drop(&mut self) {
     // gp_camera_unref -> gp_camera_free -> gp_camera_exit -> libtool
