@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use gphoto2::{filesys::CameraFS, Context, Result};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 #[allow(dead_code)]

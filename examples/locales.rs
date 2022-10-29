@@ -1,6 +1,6 @@
 //! Run this example with your system locale set to something non UTF-8.
 
-use gphoto2::{Context, Result, widget::TextWidget};
+use gphoto2::{widget::TextWidget, Context, Result};
 
 const CONFIG_KEY: &str = "d406";
 const NON_UNICODE_VALUE: &str = "貓"; // "cat" in chinese (because they are awesome)
