@@ -56,7 +56,7 @@ impl ContextProgress {
 }
 
 fn main() -> Result<()> {
-  let mut context = Context::new()?;
+  let mut context = Context::new().wait()?;
 
   env_logger::init();
 

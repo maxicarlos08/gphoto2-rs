@@ -6,6 +6,7 @@ use crate::{
   list::CameraList,
   list::{CameraDescriptor, CameraListIter},
   port::PortInfoList,
+  task::{task, Task, UnsafeSend},
   try_gp_internal, Error, Result,
 };
 use std::{ffi, rc::Rc};
@@ -32,7 +33,7 @@ pub trait ProgressHandler: 'static {
 /// use gphoto2::{Context, Result};
 ///
 /// # fn main() -> Result<()> {
-/// let context = Context::new()?;
+/// let context = Context::new().wait()?;
 ///
 /// // Use first camera in the camera list
 ///
@@ -44,44 +45,50 @@ pub trait ProgressHandler: 'static {
 ///
 /// ```
 pub struct Context {
-  pub(crate) inner: *mut libgphoto2_sys::GPContext,
-  progress_handler: Option<Rc<dyn ProgressHandler>>,
+  pub(crate) inner: UnsafeSend<*mut libgphoto2_sys::GPContext>,
+  // TODO: Integrate progress into `Task`
+  progress_handler: UnsafeSend<Option<Rc<dyn ProgressHandler>>>,
 }
 
 impl Drop for Context {
   fn drop(&mut self) {
-    unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
+    unsafe { libgphoto2_sys::gp_context_unref(*self.inner) }
   }
 }
 
 impl Clone for Context {
   fn clone(&self) -> Self {
     unsafe {
-      libgphoto2_sys::gp_context_ref(self.inner);
+      libgphoto2_sys::gp_context_ref(*self.inner);
     }
 
-    Self { inner: self.inner, progress_handler: self.progress_handler.clone() }
+    Self {
+      inner: UnsafeSend(*self.inner),
+      progress_handler: UnsafeSend(self.progress_handler.clone()),
+    }
   }
 }
 
-as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
+as_ref!(Context -> libgphoto2_sys::GPContext, **self.inner);
 
 impl Context {
   /// Create a new context
-  pub fn new() -> Result<Self> {
+  pub fn new() -> Task<Result<Self>> {
     #[cfg(feature = "extended_logs")]
     crate::helper::hook_gp_log();
 
-    let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
+    task! {
+      let context_ptr = unsafe { libgphoto2_sys::gp_context_new() };
 
-    if context_ptr.is_null() {
-      return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
+      if context_ptr.is_null() {
+        return Err(Error::new(libgphoto2_sys::GP_ERROR_NO_MEMORY, None));
+      }
+
+      #[cfg(not(feature = "extended_logs"))]
+      crate::helper::hook_gp_context_log_func(context_ptr);
+
+      Ok(Self { inner: UnsafeSend(context_ptr), progress_handler: UnsafeSend(None) })
     }
-
-    #[cfg(not(feature = "extended_logs"))]
-    crate::helper::hook_gp_context_log_func(context_ptr);
-
-    Ok(Self { inner: context_ptr, progress_handler: None })
   }
 
   /// Lists all available cameras and their ports
@@ -93,7 +100,7 @@ impl Context {
     let _lock = libtool_lock();
 
     let camera_list = CameraList::new()?;
-    try_gp_internal!(gp_camera_autodetect(camera_list.inner, self.inner)?);
+    try_gp_internal!(gp_camera_autodetect(camera_list.inner, *self.inner)?);
 
     Ok(CameraListIter::new(camera_list))
   }
@@ -104,7 +111,7 @@ impl Context {
   /// use gphoto2::{Context, Result};
   ///
   /// # fn main() -> Result<()> {
-  /// let context = Context::new()?;
+  /// let context = Context::new().wait()?;
   /// if let Ok(camera) = context.autodetect_camera() {
   ///   println!("Successfully autodetected camera '{}'", camera.abilities().model());
   /// } else {
@@ -117,7 +124,7 @@ impl Context {
     let _lock = libtool_lock(); // gp_camera_init -> libtool
 
     try_gp_internal!(gp_camera_new(&out camera_ptr)?);
-    try_gp_internal!(gp_camera_init(camera_ptr, self.inner)?);
+    try_gp_internal!(gp_camera_init(camera_ptr, *self.inner)?);
 
     Ok(Camera::new(camera_ptr, self.clone()))
   }
@@ -128,7 +135,7 @@ impl Context {
   /// use gphoto2::{Context, Result};
   ///
   /// # fn main() -> Result<()> {
-  /// let context = Context::new()?;
+  /// let context = Context::new().wait()?;
   ///
   /// let camera_desc = context.list_cameras()?.next().ok_or("No cameras found")?;
   /// let camera = context.get_camera(&camera_desc)?;
@@ -215,7 +222,7 @@ impl Context {
 
     unsafe {
       libgphoto2_sys::gp_context_set_progress_funcs(
-        self.inner,
+        *self.inner,
         Some(start_func::<H>),
         Some(update_func::<H>),
         Some(stop_func::<H>),
@@ -223,7 +230,7 @@ impl Context {
       );
     }
 
-    self.progress_handler = Some(progress_handler);
+    self.progress_handler = UnsafeSend(Some(progress_handler));
   }
 }
 

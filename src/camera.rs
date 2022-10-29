@@ -47,7 +47,7 @@ pub enum CameraEvent {
 /// use gphoto2::{Context, Result};
 ///
 /// # fn main() -> Result<()> {
-/// let context = Context::new()?;
+/// let context = Context::new().wait()?;
 /// let camera = context.autodetect_camera()?;
 ///
 /// // Get some basic information about the camera
@@ -71,7 +71,7 @@ pub enum CameraEvent {
 /// use gphoto2::{Context, Result, widget::RadioWidget};
 ///
 /// # fn main() -> Result<()> {
-/// let context = Context::new()?;
+/// let context = Context::new().wait()?;
 /// let camera = context.autodetect_camera()?;
 ///
 /// let mut iso = camera.config_key::<RadioWidget>("iso")?;
@@ -115,7 +115,7 @@ impl Camera {
       self.camera,
       libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
       inner.as_mut_ptr(),
-      self.context.inner
+      *self.context.inner
     )?);
 
     Ok(CameraFilePath { inner: unsafe { inner.assume_init() } })
@@ -127,7 +127,7 @@ impl Camera {
   /// use gphoto2::{Context, Result};
   ///
   /// # fn main() -> Result<()> {
-  /// let context = Context::new()?;
+  /// let context = Context::new().wait()?;
   /// let camera = context.autodetect_camera()?;
   ///
   /// let image_preview = camera.capture_preview()?;
@@ -141,7 +141,7 @@ impl Camera {
     try_gp_internal!(gp_camera_capture_preview(
       self.camera,
       camera_file.inner,
-      self.context.inner
+      *self.context.inner
     )?);
 
     Ok(camera_file)
@@ -160,14 +160,14 @@ impl Camera {
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context.inner)?);
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, *self.context.inner)?);
 
     Ok(char_slice_to_cow(&summary.text).into_owned())
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context.inner)?);
+    try_gp_internal!(gp_camera_get_about(self.camera, &out about, *self.context.inner)?);
 
     Ok(char_slice_to_cow(&about.text).into_owned())
   }
@@ -176,7 +176,7 @@ impl Camera {
   ///
   /// Not all cameras support this, and will return NotSupported
   pub fn manual(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context.inner)?);
+    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, *self.context.inner)?);
 
     Ok(char_slice_to_cow(&manual.text).into_owned())
   }
@@ -187,7 +187,7 @@ impl Camera {
       self.camera,
       &out storages_ptr,
       &out storages_len,
-      self.context.inner
+      *self.context.inner
     )?);
 
     let storages = unsafe {
@@ -224,7 +224,7 @@ impl Camera {
       duration_milliseconds.try_into()?,
       &out event_type,
       &out event_data,
-      self.context.inner
+      *self.context.inner
     )?);
 
     Ok(match event_type {
@@ -265,7 +265,7 @@ impl Camera {
 
   /// Get the camera configuration
   pub fn config(&self) -> Result<GroupWidget> {
-    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, self.context.inner)?);
+    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, *self.context.inner)?);
 
     Widget::new_owned(root_widget).try_into::<GroupWidget>()
   }
@@ -281,7 +281,7 @@ impl Camera {
       self.camera,
       to_c_string!(key),
       &out widget,
-      self.context.inner
+      *self.context.inner
     )?);
 
     Ok(Widget::new_owned(widget).try_into()?)
@@ -289,7 +289,7 @@ impl Camera {
 
   /// Apply a full config object to the camera.
   pub fn set_all_config(&self, config: &GroupWidget) -> Result<()> {
-    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, self.context.inner)?);
+    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, *self.context.inner)?);
 
     Ok(())
   }
@@ -300,7 +300,7 @@ impl Camera {
       self.camera,
       to_c_string!(config.name()),
       config.inner,
-      self.context.inner
+      *self.context.inner
     )?);
 
     Ok(())

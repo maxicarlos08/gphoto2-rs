@@ -26,7 +26,7 @@ fn list_folder_recursive(fs: &CameraFS, folder_name: &str) -> Result<FolderConte
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new().wait()?.autodetect_camera()?;
   let fs = camera.fs();
 
   let folders = list_folder_recursive(&fs, "/")?;

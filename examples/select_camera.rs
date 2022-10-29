@@ -9,7 +9,7 @@ fn main() -> Result<()> {
 
   let camera_name = std::env::args().nth(1).expect("Missing argument: camera_model");
 
-  let context = Context::new()?;
+  let context = Context::new().wait()?;
 
   let camera_desc = context
     .list_cameras()?

@@ -3,7 +3,7 @@ use gphoto2::{Context, Result};
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new().wait()?.autodetect_camera()?;
 
   println!("==== SUMMARY   ====\n{}", camera.summary()?);
   println!("==== ABILITIES ====\n{:#?}", camera.abilities());

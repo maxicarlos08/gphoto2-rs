@@ -114,7 +114,7 @@ impl AbilitiesList {
     let _lock = libtool_lock(); // gp_abilities_list_load -> libtool
 
     try_gp_internal!(gp_abilities_list_new(&out abilities_inner)?);
-    try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner)?);
+    try_gp_internal!(gp_abilities_list_load(abilities_inner, *context.inner)?);
 
     Ok(Self { inner: abilities_inner })
   }

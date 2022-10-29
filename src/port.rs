@@ -7,7 +7,7 @@
 //! use gphoto2::{Context, Result};
 //!
 //! # fn main() -> Result<()> {
-//! let context= Context::new()?;
+//! let context= Context::new().wait()?;
 //! let camera = context.autodetect_camera()?;
 //!
 //! let port_info = camera.port_info()?; // Returns a PortInfo struct

@@ -5,7 +5,7 @@
 //! use gphoto2::{Context, widget::RadioWidget, Result};
 //!
 //! # fn main() -> Result<()> {
-//! let context = Context::new()?;
+//! let context = Context::new().wait()?;
 //! let camera = context.autodetect_camera()?;
 //!
 //! let mut config = camera.config_key::<RadioWidget>("iso")?;
@@ -462,7 +462,7 @@ impl ButtonWidget {
   pub fn press(&self, camera: &Camera) -> Result<()> {
     let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context.inner) })?;
+    Error::check(unsafe { callback(camera.camera, self.as_ptr(), *camera.context.inner) })?;
     Ok(())
   }
 

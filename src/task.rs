@@ -3,9 +3,18 @@
 use crate::thread::{ThreadManager, THREAD_MANAGER};
 use std::{
   future::Future,
+  ops::Deref,
   sync::{Arc, RwLock},
   task::{Poll, Waker},
 };
+
+macro_rules! task {
+  ($($tokens:tt)*) => {
+    $crate::task::Task::new(Box::new(move || { $($tokens)* }))
+  };
+}
+
+pub(crate) use task;
 
 /// Allows awaiting (or blocking) libgphoto2 function responses
 pub struct Task<T> {
@@ -15,6 +24,9 @@ pub struct Task<T> {
   waker: Arc<RwLock<Option<Waker>>>,
   waker_set: bool,
 }
+
+/// Marks any value as [`Send`]
+pub struct UnsafeSend<T>(pub T);
 
 impl<T> Task<T> {
   pub(crate) fn new(f: Box<dyn FnOnce() -> T + Send + 'static>) -> Self
@@ -45,8 +57,8 @@ impl<T> Task<T> {
   }
 
   /// Block until the response if available
-  pub fn wait(self) -> Result<T, oneshot::RecvError> {
-    self.rx.recv()
+  pub fn wait(self) -> T {
+    self.rx.recv().unwrap() // TODO: Check if this .unwrap is OK
   }
 
   /// Request the current task to be cancelled
@@ -78,3 +90,12 @@ impl<T> Future for Task<T> {
     }
   }
 }
+
+impl<T> Deref for UnsafeSend<T> {
+  type Target = T;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+unsafe impl<T> Send for UnsafeSend<T> {}

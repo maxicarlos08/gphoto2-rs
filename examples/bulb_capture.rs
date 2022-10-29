@@ -10,7 +10,7 @@ use std::{thread::sleep, time::Duration};
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new().wait()?.autodetect_camera()?;
 
   let shutter_speed = camera.config_key::<RadioWidget>("shutterspeed")?;
   let bulb_setting = camera.config_key::<ToggleWidget>("bulb")?;

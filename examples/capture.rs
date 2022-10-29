@@ -4,7 +4,7 @@ use std::path::Path;
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new().wait()?.autodetect_camera()?;
 
   let file = camera.capture_image()?;
   println!("Captured image {}", file.name());

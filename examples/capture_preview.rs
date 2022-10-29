@@ -6,7 +6,7 @@ use std::{fs, io::Write};
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new().wait()?.autodetect_camera()?;
 
   let mut file = fs::File::create("/tmp/preview_image")?;
 
