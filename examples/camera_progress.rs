@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
   env_logger::init();
 
-  context.set_progress_functions(ProgressManager::new());
+  context.set_progress_handlers(ProgressManager::new());
 
   let camera = context.autodetect_camera().wait()?;
   let image = camera.capture_image().wait()?;

@@ -1,13 +1,13 @@
 //! Allows thread safe interaction with libgphoto2
 
 use crate::{
-  context::CancelHandler,
+  context::{CancelHandler, ProgressHandler},
   thread::{ThreadManager, THREAD_MANAGER},
   Context,
 };
 use std::{
   future::Future,
-  ops::Deref,
+  ops::{Deref, DerefMut},
   sync::{Arc, RwLock},
   task::{Poll, Waker},
 };
@@ -37,6 +37,7 @@ pub struct Task<T> {
   waker_set: bool,
   task: ToBeRunTask<T>,
   context: Option<Context>,
+  progress_handler: Option<Box<dyn ProgressHandler>>,
 }
 
 struct TaskCancelHandler(Arc<RwLock<bool>>);
@@ -68,6 +69,7 @@ where
       waker_set: false,
       task: Some((fun, tx)),
       context: context.map(ToOwned::to_owned),
+      progress_handler: None,
     }
   }
 
@@ -75,18 +77,30 @@ where
     if let Some((fun, tx)) = self.task.take() {
       let fun = UnsafeSend(fun);
       let waker_clone = self.waker.clone();
-      let context = UnsafeSend(self.context.take()); // Take the context and move it to the task function
+      let mut context = UnsafeSend(self.context.take()); // Take the context and move it to the task function
+      let mut progress_handler = UnsafeSend(self.progress_handler.take());
       let cancel = self.cancel.clone();
 
       #[allow(unused_must_use)]
       let task = Box::new(move || {
         // Set context cancel function
-        if let Some(mut context) = context.take() {
+        if let Some(context) = context.as_mut() {
           let cancel_handler = TaskCancelHandler(cancel);
           context.set_cancel_handler(cancel_handler);
+
+          if let Some(progress_handler) = progress_handler.take() {
+            context.set_progress_handlers(progress_handler)
+          }
         }
 
-        tx.send(UnsafeSend(fun.call()));
+        let result = fun.call();
+
+        if let Some(context) = context.as_mut() {
+          context.unset_cancel_handlers();
+          context.unset_progress_handlers();
+        }
+
+        tx.send(UnsafeSend(result));
         if let Some(waker) = waker_clone.write().map(|mut guard| guard.take()).ok().flatten() {
           waker.wake()
         }
@@ -102,6 +116,16 @@ where
   pub fn wait(mut self) -> T {
     self.start_task();
     self.rx.recv().unwrap().0 // TODO: Check if this .unwrap is OK
+  }
+
+  /// Set the progress handler for the task
+  ///
+  /// Must be called before the task is started
+  pub fn set_progress_handler<H>(&mut self, handler: H)
+  where
+    H: ProgressHandler,
+  {
+    self.progress_handler = Some(Box::new(handler));
   }
 
   /// Request the current task to be cancelled
@@ -152,9 +176,9 @@ impl<T> Deref for UnsafeSend<T> {
   }
 }
 
-impl<T> UnsafeSend<T> {
-  fn take(self) -> T {
-    self.0
+impl<T> DerefMut for UnsafeSend<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
   }
 }
 

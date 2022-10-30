@@ -49,14 +49,14 @@ pub enum CameraEvent {
 ///
 /// # fn main() -> Result<()> {
 /// let context = Context::new()?;
-/// let camera = context.autodetect_camera()?;
+/// let camera = context.autodetect_camera().wait()?;
 ///
 /// // Get some basic information about the camera
 /// println!("Camera abilities: {:?}", camera.abilities());
 /// println!("Camera summary: {}", camera.summary()?);
 ///
 /// // Capture an image
-/// let image = camera.capture_image()?;
+/// let image = camera.capture_image().wait()?;
 ///
 /// // Image can be downloaded using image.download(&camera, download_path)
 /// # Ok(())
@@ -73,11 +73,11 @@ pub enum CameraEvent {
 ///
 /// # fn main() -> Result<()> {
 /// let context = Context::new()?;
-/// let camera = context.autodetect_camera()?;
+/// let camera = context.autodetect_camera().wait()?;
 ///
-/// let mut iso = camera.config_key::<RadioWidget>("iso")?;
+/// let mut iso = camera.config_key::<RadioWidget>("iso").wait()?;
 /// iso.set_choice("400")?;
-/// camera.set_config(&iso)?;
+/// camera.set_config(&iso).wait()?;
 /// # Ok(())
 /// # }
 pub struct Camera {
@@ -139,9 +139,9 @@ impl Camera {
   ///
   /// # fn main() -> Result<()> {
   /// let context = Context::new()?;
-  /// let camera = context.autodetect_camera()?;
+  /// let camera = context.autodetect_camera().wait()?;
   ///
-  /// let image_preview = camera.capture_preview()?;
+  /// let image_preview = camera.capture_preview().wait()?;
   /// println!("Preview name: {}", image_preview.name());
   /// # Ok(())
   /// # }

@@ -8,7 +8,7 @@
 //!
 //! # fn main() -> Result<()> {
 //! let context= Context::new()?;
-//! let camera = context.autodetect_camera()?;
+//! let camera = context.autodetect_camera().wait()?;
 //!
 //! let port_info = camera.port_info()?; // Returns a PortInfo struct
 //!

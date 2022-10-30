@@ -6,11 +6,11 @@
 //!
 //! # fn main() -> Result<()> {
 //! let context = Context::new()?;
-//! let camera = context.autodetect_camera()?;
+//! let camera = context.autodetect_camera().wait()?;
 //!
-//! let mut config = camera.config_key::<RadioWidget>("iso")?;
+//! let mut config = camera.config_key::<RadioWidget>("iso").wait()?;
 //! config.set_choice("100")?; // Set the iso to 100
-//! camera.set_config(&config); // Apply setting to camera
+//! camera.set_config(&config).wait(); // Apply setting to camera
 //! # Ok(())
 //! # }
 //! ```

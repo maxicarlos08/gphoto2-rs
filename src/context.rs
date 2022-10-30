@@ -9,7 +9,7 @@ use crate::{
   task::{task, Task},
   try_gp_internal, Error, Result,
 };
-use std::ffi;
+use std::{ffi, ops::DerefMut};
 use std::{
   os::raw::{c_char, c_float, c_uint, c_void},
   sync::Arc,
@@ -46,8 +46,8 @@ pub(crate) trait CancelHandler: 'static {
 ///
 /// // Use first camera in the camera list
 ///
-/// let camera_desc = context.list_cameras()?.next().ok_or("No cameras found")?;
-/// let camera = context.get_camera(&camera_desc)?;
+/// let camera_desc = context.list_cameras().wait()?.next().ok_or("No cameras found")?;
+/// let camera = context.get_camera(&camera_desc).wait()?;
 ///
 /// # Ok(())
 /// # }
@@ -124,7 +124,7 @@ impl Context {
   ///
   /// # fn main() -> Result<()> {
   /// let context = Context::new()?;
-  /// if let Ok(camera) = context.autodetect_camera() {
+  /// if let Ok(camera) = context.autodetect_camera().wait() {
   ///   println!("Successfully autodetected camera '{}'", camera.abilities().model());
   /// } else {
   ///   println!("Could not autodetect camera");
@@ -153,8 +153,8 @@ impl Context {
   /// # fn main() -> Result<()> {
   /// let context = Context::new()?;
   ///
-  /// let camera_desc = context.list_cameras()?.next().ok_or("No cameras found")?;
-  /// let camera = context.get_camera(&camera_desc)?;
+  /// let camera_desc = context.list_cameras().wait()?.next().ok_or("No cameras found")?;
+  /// let camera = context.get_camera(&camera_desc).wait()?;
   ///
   /// # Ok(())
   /// # }
@@ -202,7 +202,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_functions<H: ProgressHandler>(&mut self, handler: H) {
+  pub fn set_progress_handlers<H: ProgressHandler>(&mut self, handler: H) {
     unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: c_float,
@@ -278,10 +278,46 @@ impl Context {
 
     self.cancel_handler = Some(cancel_handler);
   }
+
+  pub(crate) fn unset_progress_handlers(&mut self) {
+    unsafe {
+      libgphoto2_sys::gp_context_set_progress_funcs(
+        self.inner,
+        None,
+        None,
+        None,
+        std::ptr::null_mut(),
+      );
+    }
+
+    self.progress_handler = None;
+  }
+
+  pub(crate) fn unset_cancel_handlers(&mut self) {
+    unsafe {
+      libgphoto2_sys::gp_context_set_cancel_func(self.inner, None, std::ptr::null_mut());
+    }
+
+    self.cancel_handler = None;
+  }
 }
 
 unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
   &mut *data.cast()
+}
+
+impl ProgressHandler for Box<dyn ProgressHandler> {
+  fn start(&mut self, target: f32, message: String) -> u32 {
+    self.deref_mut().start(target, message)
+  }
+
+  fn update(&mut self, id: u32, progress: f32) {
+    self.deref_mut().update(id, progress)
+  }
+
+  fn stop(&mut self, id: u32) {
+    self.deref_mut().stop(id)
+  }
 }
 
 #[cfg(all(test, feature = "test"))]
@@ -296,7 +332,7 @@ mod tests {
   fn test_progress() {
     use std::fmt::Write;
 
-    let mut context = crate::sample_context();
+    let context = crate::sample_context();
 
     #[derive(Default)]
     struct TestProgress {
@@ -340,8 +376,10 @@ mod tests {
       }
     }
 
-    context.set_progress_functions(TestProgress::default());
+    let mut task = context.list_cameras();
 
-    let _ignore = context.list_cameras();
+    task.set_progress_handler(TestProgress::default());
+
+    let _ = task.wait();
   }
 }
