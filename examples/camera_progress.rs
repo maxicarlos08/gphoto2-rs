@@ -66,7 +66,10 @@ fn main() -> Result<()> {
 
   let camera = context.autodetect_camera().wait()?;
   let image = camera.capture_image().wait()?;
-  camera.fs().download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned())).wait()?;
+  camera
+    .fs()
+    .download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned()))
+    .wait()?;
 
   Ok(())
 }

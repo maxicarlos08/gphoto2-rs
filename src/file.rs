@@ -3,7 +3,8 @@
 use crate::{
   error::Error,
   helper::{as_ref, char_slice_to_cow, chars_to_string, IntoUnixFd},
-  try_gp_internal, Result, task::{Task, task},
+  task::{task, Task},
+  try_gp_internal, Context, Result,
 };
 use std::{borrow::Cow, fmt, fs, path::Path};
 
@@ -46,12 +47,9 @@ impl Drop for CameraFile {
 
 impl Clone for CameraFile {
   fn clone(&self) -> Self {
-      try_gp_internal!(gp_file_ref(self.inner).unwrap());
+    try_gp_internal!(gp_file_ref(self.inner).unwrap());
 
-      Self {
-        inner: self.inner,
-        is_from_disk: self.is_from_disk
-      }
+    Self { inner: self.inner, is_from_disk: self.is_from_disk }
   }
 }
 
@@ -130,16 +128,17 @@ impl CameraFile {
   }
 
   /// Get the data of the file
-  pub fn get_data(&self) -> Task<Result<Box<[u8]>>> {
+  pub fn get_data(&self, context: &Context) -> Task<Result<Box<[u8]>>> {
     let file = self.clone();
 
     task! {
+      context: Some(context),
       exec: {
         try_gp_internal!(gp_file_get_data_and_size(file.inner, &out data, &out size)?);
-    
+
         let data_slice: Box<[u8]> =
           unsafe { std::slice::from_raw_parts(data.cast::<u8>(), size.try_into()?) }.into();
-    
+
         if file.is_from_disk {
           unsafe {
             // Casting a *const pointer to *mut is still unstable
@@ -147,7 +146,7 @@ impl CameraFile {
             libc::free((data as *mut i8).cast())
           }
         }
-    
+
         Ok(data_slice)
       }
     }
@@ -175,12 +174,13 @@ impl CameraFile {
   }
 
   /// File size
-  pub fn size(&self) -> Task<Result<u64>> {
+  pub fn size(&self, context: &Context) -> Task<Result<u64>> {
     let file = self.clone().inner;
     task! {
+      context: Some(context),
       exec: {
         try_gp_internal!(gp_file_get_data_and_size(file, std::ptr::null_mut(), &out size)?);
-    
+
         #[allow(clippy::useless_conversion)] // c_ulong depends on the platform
         Ok(size.into())
       }

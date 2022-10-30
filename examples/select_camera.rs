@@ -12,7 +12,8 @@ fn main() -> Result<()> {
   let context = Context::new()?;
 
   let camera_desc = context
-    .list_cameras().wait()?
+    .list_cameras()
+    .wait()?
     .find(|desc| desc.model == camera_name)
     .ok_or_else(|| format!("Could not find camera with name '{}'", camera_name))?;
 

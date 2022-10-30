@@ -97,6 +97,7 @@ impl Drop for Camera {
     let camera = self.camera;
 
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_unref(camera).unwrap());
       }
@@ -115,6 +116,7 @@ impl Camera {
   pub fn capture_image(&self) -> Task<Result<CameraFilePath>> {
     let camera = self.clone();
     task! {
+      context: Some(&self.context),
       exec: {
         let mut inner = UninitBox::uninit();
 
@@ -148,6 +150,7 @@ impl Camera {
     let camera = self.clone();
 
     task! {
+      context: Some(&self.context),
       exec: {
         let camera_file = CameraFile::new()?;
 
@@ -201,6 +204,7 @@ impl Camera {
     let camera = self.clone();
 
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_get_storageinfo(
           camera.camera,
@@ -243,6 +247,7 @@ impl Camera {
     let camera = self.clone();
 
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_wait_for_event(
           camera.camera,
@@ -294,6 +299,7 @@ impl Camera {
   pub fn config(&self) -> Task<Result<GroupWidget>> {
     let camera = self.clone();
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_get_config(camera.camera, &out root_widget, camera.context.inner)?);
 
@@ -313,6 +319,7 @@ impl Camera {
     let key = key.to_owned();
     let camera = self.clone();
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_get_single_config(
           camera.camera,
@@ -332,6 +339,7 @@ impl Camera {
     let camera = self.clone();
 
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_set_config(camera.camera, config.inner, camera.context.inner)?);
 
@@ -346,6 +354,7 @@ impl Camera {
     let camera = self.clone();
 
     task! {
+      context: Some(&self.context),
       exec: {
         try_gp_internal!(gp_camera_set_single_config(
           camera.camera,
@@ -471,7 +480,7 @@ mod tests {
     insta::assert_debug_snapshot!(captured_file);
 
     assert_eq!(
-      captured_file.get_data().wait().unwrap().as_ref(),
+      captured_file.get_data(&camera.context).wait().unwrap().as_ref(),
       libgphoto2_sys::test_utils::SAMPLE_IMAGE
     );
 

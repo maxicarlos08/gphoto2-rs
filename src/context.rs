@@ -9,7 +9,11 @@ use crate::{
   task::{task, Task},
   try_gp_internal, Error, Result,
 };
-use std::{ffi, rc::Rc};
+use std::ffi;
+use std::{
+  os::raw::{c_char, c_float, c_uint, c_void},
+  sync::Arc,
+};
 
 /// Progress handler trait
 pub trait ProgressHandler: 'static {
@@ -23,6 +27,11 @@ pub trait ProgressHandler: 'static {
 
   /// Progress has stopped
   fn stop(&mut self, id: u32);
+}
+
+/// Cancel handler trait
+pub(crate) trait CancelHandler: 'static {
+  fn cancel(&mut self) -> bool;
 }
 
 /// Context used internally by libgphoto2
@@ -47,7 +56,8 @@ pub trait ProgressHandler: 'static {
 pub struct Context {
   pub(crate) inner: *mut libgphoto2_sys::GPContext,
   // TODO: Integrate progress into `Task`
-  progress_handler: Option<Rc<dyn ProgressHandler>>,
+  progress_handler: Option<Arc<dyn ProgressHandler>>,
+  cancel_handler: Option<Arc<dyn CancelHandler>>,
 }
 
 impl Drop for Context {
@@ -62,7 +72,11 @@ impl Clone for Context {
       libgphoto2_sys::gp_context_ref(self.inner);
     }
 
-    Self { inner: self.inner, progress_handler: self.progress_handler.clone() }
+    Self {
+      inner: self.inner,
+      progress_handler: self.progress_handler.clone(),
+      cancel_handler: self.cancel_handler.clone(),
+    }
   }
 }
 
@@ -83,7 +97,7 @@ impl Context {
     #[cfg(not(feature = "extended_logs"))]
     crate::helper::hook_gp_context_log_func(context_ptr);
 
-    Ok(Self { inner: context_ptr, progress_handler: None })
+    Ok(Self { inner: context_ptr, progress_handler: None, cancel_handler: None })
   }
 
   /// Lists all available cameras and their ports
@@ -93,7 +107,7 @@ impl Context {
   pub fn list_cameras(&self) -> Task<Result<CameraListIter>> {
     let context = self.clone().inner;
     task! {
-      context: self.inner,
+      context: Some(self),
       exec: {
         let camera_list = CameraList::new()?;
         try_gp_internal!(gp_camera_autodetect(camera_list.inner, context)?);
@@ -121,6 +135,7 @@ impl Context {
   pub fn autodetect_camera(&self) -> Task<Result<Camera>> {
     let context = self.clone();
     task! {
+      context: Some(self),
       exec: {
         try_gp_internal!(gp_camera_new(&out camera_ptr)?);
         try_gp_internal!(gp_camera_init(camera_ptr, context.inner)?);
@@ -146,8 +161,9 @@ impl Context {
   pub fn get_camera(&self, camera_descriptor: &CameraDescriptor) -> Task<Result<Camera>> {
     let context = self.clone();
     let camera_descriptor = camera_descriptor.clone();
-    
+
     task! {
+      context: Some(self),
       exec: {
         let abilities_list = AbilitiesList::new_inner(&context)?;
         let port_info_list = PortInfoList::new_inner()?;
@@ -187,12 +203,6 @@ impl Context {
   ///
   /// An example can be found in the examples directory
   pub fn set_progress_functions<H: ProgressHandler>(&mut self, handler: H) {
-    use std::os::raw::{c_char, c_float, c_uint, c_void};
-
-    unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
-      &mut *data.cast()
-    }
-
     unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: c_float,
@@ -219,14 +229,14 @@ impl Context {
       as_handler::<H>(data).stop(id)
     }
 
-    let progress_handler = Rc::new(handler);
+    let progress_handler = Arc::new(handler);
 
     // Now that handler is on the heap, the pointer should be stable.
     // Also, we know that there are and won't be other mutable references to it,
     // so we can safely cast it to a raw *mutable* pointer despite Rc only
     // providing immutable access.
     #[allow(clippy::as_conversions)]
-    let data_ptr = Rc::as_ptr(&progress_handler) as *mut c_void;
+    let data_ptr = Arc::as_ptr(&progress_handler) as *mut c_void;
 
     unsafe {
       libgphoto2_sys::gp_context_set_progress_funcs(
@@ -240,6 +250,38 @@ impl Context {
 
     self.progress_handler = Some(progress_handler);
   }
+
+  pub(crate) fn set_cancel_handler<H>(&mut self, handler: H)
+  where
+    H: CancelHandler,
+  {
+    use libgphoto2_sys::GPContextFeedback;
+
+    unsafe extern "C" fn handle_cancel<H: CancelHandler>(
+      _ctx: *mut libgphoto2_sys::GPContext,
+      data: *mut c_void,
+    ) -> GPContextFeedback {
+      if as_handler::<H>(data).cancel() {
+        GPContextFeedback::GP_CONTEXT_FEEDBACK_CANCEL
+      } else {
+        GPContextFeedback::GP_CONTEXT_FEEDBACK_OK
+      }
+    }
+
+    let cancel_handler = Arc::new(handler);
+    #[allow(clippy::as_conversions)]
+    let handler_ptr = Arc::as_ptr(&cancel_handler) as *mut c_void;
+
+    unsafe {
+      libgphoto2_sys::gp_context_set_cancel_func(self.inner, Some(handle_cancel::<H>), handler_ptr);
+    }
+
+    self.cancel_handler = Some(cancel_handler);
+  }
+}
+
+unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
+  &mut *data.cast()
 }
 
 #[cfg(all(test, feature = "test"))]

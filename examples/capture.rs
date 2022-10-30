@@ -9,7 +9,10 @@ fn main() -> Result<()> {
   let file = camera.capture_image().wait()?;
   println!("Captured image {}", file.name());
 
-  camera.fs().download_to(&file.folder(), &file.name(), Path::new(&file.name().to_string())).wait()?;
+  camera
+    .fs()
+    .download_to(&file.folder(), &file.name(), Path::new(&file.name().to_string()))
+    .wait()?;
   println!("Downloaded image {}", file.name());
 
   Ok(())

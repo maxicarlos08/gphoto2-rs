@@ -270,6 +270,7 @@ impl<'a> CameraFS<'a> {
     let (folder, file) = (folder.to_owned(), file.to_owned());
 
     task! {
+      context: Some(&camera.context),
       exec: {
         try_gp_internal!(gp_camera_file_delete(
           camera.camera,
@@ -288,6 +289,7 @@ impl<'a> CameraFS<'a> {
     let (folder, file) = (folder.to_owned(), file.to_owned());
 
     task! {
+      context: Some(&camera.context),
       exec: {
         let mut inner = UninitBox::uninit();
 
@@ -321,6 +323,7 @@ impl<'a> CameraFS<'a> {
     let (folder, filename) = (folder.to_owned(), filename.to_owned());
 
     task! {
+      context: Some(&camera.context),
       exec: {
         try_gp_internal!(gp_file_new(&out file)?);
         try_gp_internal!(gp_file_append(file, data.as_ptr().cast(), data.len().try_into()?)?);
@@ -344,6 +347,7 @@ impl<'a> CameraFS<'a> {
     let folder = folder.to_owned();
 
     task! {
+      context: Some(&camera.context),
       exec: {
         try_gp_internal!(gp_camera_folder_delete_all(
           camera.camera,
@@ -360,6 +364,7 @@ impl<'a> CameraFS<'a> {
     let camera = self.camera.clone();
     let folder = folder.to_owned();
     task! {
+      context: Some(&camera.context),
       exec: {
         let file_list = CameraList::new()?;
 
@@ -380,6 +385,7 @@ impl<'a> CameraFS<'a> {
     let camera = self.camera.clone();
     let folder = folder.to_owned();
     task! {
+      context: Some(&camera.context),
       exec: {
         let folder_list = CameraList::new()?;
 
@@ -401,6 +407,7 @@ impl<'a> CameraFS<'a> {
     let camera = self.camera.clone();
 
     task! {
+      context: Some(&camera.context),
       exec: {
         try_gp_internal!(gp_camera_folder_make_dir(
           camera.camera,
@@ -420,6 +427,7 @@ impl<'a> CameraFS<'a> {
     let camera = self.camera.clone();
 
     task! {
+      context: Some(&camera.context),
       exec: {
         try_gp_internal!(gp_camera_folder_remove_dir(
           camera.camera,
@@ -446,6 +454,7 @@ impl CameraFS<'_> {
     let camera = self.camera.clone();
 
     task! {
+      context: Some(&camera.context),
       exec: {
         let camera_file = match path {
           Some(dest_path) => CameraFile::new_file(&dest_path)?,
