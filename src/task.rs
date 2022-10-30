@@ -56,8 +56,9 @@ impl<T> Task<T> {
 
     let f = UnsafeSend(f);
 
+    #[allow(unused_must_use)]
     let task = Box::new(move || {
-      tx.send(UnsafeSend(f.call())).unwrap();
+      tx.send(UnsafeSend(f.call()));
       if let Some(waker) = waker_clone.write().unwrap().take() {
         waker.wake()
       }
