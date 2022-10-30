@@ -3,7 +3,7 @@
 use crate::{
   error::Error,
   helper::{as_ref, char_slice_to_cow, chars_to_string, IntoUnixFd},
-  try_gp_internal, Result,
+  try_gp_internal, Result, task::{Task, task},
 };
 use std::{borrow::Cow, fmt, fs, path::Path};
 
@@ -41,6 +41,17 @@ impl Drop for CameraFile {
     unsafe {
       libgphoto2_sys::gp_file_unref(self.inner);
     }
+  }
+}
+
+impl Clone for CameraFile {
+  fn clone(&self) -> Self {
+      try_gp_internal!(gp_file_ref(self.inner).unwrap());
+
+      Self {
+        inner: self.inner,
+        is_from_disk: self.is_from_disk
+      }
   }
 }
 
@@ -119,21 +130,27 @@ impl CameraFile {
   }
 
   /// Get the data of the file
-  pub fn get_data(&self) -> Result<Box<[u8]>> {
-    try_gp_internal!(gp_file_get_data_and_size(self.inner, &out data, &out size)?);
+  pub fn get_data(&self) -> Task<Result<Box<[u8]>>> {
+    let file = self.clone();
 
-    let data_slice: Box<[u8]> =
-      unsafe { std::slice::from_raw_parts(data.cast::<u8>(), size.try_into()?) }.into();
-
-    if self.is_from_disk {
-      unsafe {
-        // Casting a *const pointer to *mut is still unstable
-        #[allow(clippy::as_conversions)]
-        libc::free((data as *mut i8).cast())
+    task! {
+      exec: {
+        try_gp_internal!(gp_file_get_data_and_size(file.inner, &out data, &out size)?);
+    
+        let data_slice: Box<[u8]> =
+          unsafe { std::slice::from_raw_parts(data.cast::<u8>(), size.try_into()?) }.into();
+    
+        if file.is_from_disk {
+          unsafe {
+            // Casting a *const pointer to *mut is still unstable
+            #[allow(clippy::as_conversions)]
+            libc::free((data as *mut i8).cast())
+          }
+        }
+    
+        Ok(data_slice)
       }
     }
-
-    Ok(data_slice)
   }
 
   /// File name
@@ -158,11 +175,16 @@ impl CameraFile {
   }
 
   /// File size
-  pub fn size(&self) -> Result<u64> {
-    try_gp_internal!(gp_file_get_data_and_size(self.inner, std::ptr::null_mut(), &out size)?);
-
-    #[allow(clippy::useless_conversion)] // c_ulong depends on the platform
-    Ok(size.into())
+  pub fn size(&self) -> Task<Result<u64>> {
+    let file = self.clone().inner;
+    task! {
+      exec: {
+        try_gp_internal!(gp_file_get_data_and_size(file, std::ptr::null_mut(), &out size)?);
+    
+        #[allow(clippy::useless_conversion)] // c_ulong depends on the platform
+        Ok(size.into())
+      }
+    }
   }
 }
 
@@ -172,13 +194,6 @@ impl fmt::Debug for CameraFile {
       .field("name", &self.name())
       .field("mime_type", &self.mime_type())
       .field("mtime", &self.mtime())
-      .field(
-        "size",
-        match &self.size() {
-          Ok(size) => size,
-          err => err,
-        },
-      )
       .finish()
   }
 }

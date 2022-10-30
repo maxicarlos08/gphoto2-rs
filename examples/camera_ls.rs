@@ -9,7 +9,7 @@ struct FolderContent {
 }
 
 fn list_folder_recursive(fs: &CameraFS, folder_name: &str) -> Result<FolderContent> {
-  let folders_iter = fs.list_folders(folder_name)?;
+  let folders_iter = fs.list_folders(folder_name).wait()?;
   let mut folders = HashMap::with_capacity(folders_iter.len());
 
   for folder in folders_iter {
@@ -18,7 +18,7 @@ fn list_folder_recursive(fs: &CameraFS, folder_name: &str) -> Result<FolderConte
     folders.insert(folder, list_folder_recursive(fs, &folder_full_name)?);
   }
 
-  let files = fs.list_files(folder_name)?.collect();
+  let files = fs.list_files(folder_name).wait()?.collect();
 
   Ok(FolderContent { files, folders })
 }
@@ -26,7 +26,7 @@ fn list_folder_recursive(fs: &CameraFS, folder_name: &str) -> Result<FolderConte
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new().wait()?.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera().wait()?;
   let fs = camera.fs();
 
   let folders = list_folder_recursive(&fs, "/")?;

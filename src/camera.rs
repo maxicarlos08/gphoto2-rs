@@ -4,8 +4,9 @@ use crate::{
   abilities::Abilities,
   file::{CameraFile, CameraFilePath},
   filesys::{CameraFS, StorageInfo},
-  helper::{as_ref, char_slice_to_cow, chars_to_string, libtool_lock, to_c_string, UninitBox},
+  helper::{as_ref, char_slice_to_cow, chars_to_string, to_c_string, UninitBox},
   port::PortInfo,
+  task::{task, Task},
   try_gp_internal,
   widget::{GroupWidget, Widget, WidgetBase},
   Context, Error, Result,
@@ -47,7 +48,7 @@ pub enum CameraEvent {
 /// use gphoto2::{Context, Result};
 ///
 /// # fn main() -> Result<()> {
-/// let context = Context::new().wait()?;
+/// let context = Context::new()?;
 /// let camera = context.autodetect_camera()?;
 ///
 /// // Get some basic information about the camera
@@ -71,7 +72,7 @@ pub enum CameraEvent {
 /// use gphoto2::{Context, Result, widget::RadioWidget};
 ///
 /// # fn main() -> Result<()> {
-/// let context = Context::new().wait()?;
+/// let context = Context::new()?;
 /// let camera = context.autodetect_camera()?;
 ///
 /// let mut iso = camera.config_key::<RadioWidget>("iso")?;
@@ -93,10 +94,13 @@ impl Clone for Camera {
 
 impl Drop for Camera {
   fn drop(&mut self) {
-    // gp_camera_unref -> gp_camera_free -> gp_camera_exit -> libtool
-    let _lock = libtool_lock();
+    let camera = self.camera;
 
-    try_gp_internal!(gp_camera_unref(self.camera).unwrap());
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_unref(camera).unwrap());
+      }
+    };
   }
 }
 
@@ -108,17 +112,22 @@ impl Camera {
   }
 
   /// Capture image
-  pub fn capture_image(&self) -> Result<CameraFilePath> {
-    let mut inner = UninitBox::uninit();
+  pub fn capture_image(&self) -> Task<Result<CameraFilePath>> {
+    let camera = self.clone();
+    task! {
+      exec: {
+        let mut inner = UninitBox::uninit();
 
-    try_gp_internal!(gp_camera_capture(
-      self.camera,
-      libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
-      inner.as_mut_ptr(),
-      *self.context.inner
-    )?);
+        try_gp_internal!(gp_camera_capture(
+          camera.camera,
+          libgphoto2_sys::CameraCaptureType::GP_CAPTURE_IMAGE,
+          inner.as_mut_ptr(),
+          camera.context.inner
+        )?);
 
-    Ok(CameraFilePath { inner: unsafe { inner.assume_init() } })
+        Ok(CameraFilePath { inner: unsafe { inner.assume_init() } })
+      }
+    }
   }
 
   /// Capture a preview image
@@ -127,7 +136,7 @@ impl Camera {
   /// use gphoto2::{Context, Result};
   ///
   /// # fn main() -> Result<()> {
-  /// let context = Context::new().wait()?;
+  /// let context = Context::new()?;
   /// let camera = context.autodetect_camera()?;
   ///
   /// let image_preview = camera.capture_preview()?;
@@ -135,16 +144,22 @@ impl Camera {
   /// # Ok(())
   /// # }
   /// ```
-  pub fn capture_preview(&self) -> Result<CameraFile> {
-    let camera_file = CameraFile::new()?;
+  pub fn capture_preview(&self) -> Task<Result<CameraFile>> {
+    let camera = self.clone();
 
-    try_gp_internal!(gp_camera_capture_preview(
-      self.camera,
-      camera_file.inner,
-      *self.context.inner
-    )?);
+    task! {
+      exec: {
+        let camera_file = CameraFile::new()?;
 
-    Ok(camera_file)
+        try_gp_internal!(gp_camera_capture_preview(
+          camera.camera,
+          camera_file.inner,
+          camera.context.inner
+        )?);
+
+        Ok(camera_file)
+      }
+    }
   }
 
   /// Get the camera's [`Abilities`]
@@ -160,14 +175,14 @@ impl Camera {
 
   /// Summary of the cameras model, settings, capabilities, etc.
   pub fn summary(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, *self.context.inner)?);
+    try_gp_internal!(gp_camera_get_summary(self.camera, &out summary, self.context.inner)?);
 
     Ok(char_slice_to_cow(&summary.text).into_owned())
   }
 
   /// Get about information about the camera#
   pub fn about(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_about(self.camera, &out about, *self.context.inner)?);
+    try_gp_internal!(gp_camera_get_about(self.camera, &out about, self.context.inner)?);
 
     Ok(char_slice_to_cow(&about.text).into_owned())
   }
@@ -176,36 +191,42 @@ impl Camera {
   ///
   /// Not all cameras support this, and will return NotSupported
   pub fn manual(&self) -> Result<String> {
-    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, *self.context.inner)?);
+    try_gp_internal!(gp_camera_get_manual(self.camera, &out manual, self.context.inner)?);
 
     Ok(char_slice_to_cow(&manual.text).into_owned())
   }
 
   /// List of storages available on the camera
-  pub fn storages(&self) -> Result<Vec<StorageInfo>> {
-    try_gp_internal!(gp_camera_get_storageinfo(
-      self.camera,
-      &out storages_ptr,
-      &out storages_len,
-      *self.context.inner
-    )?);
+  pub fn storages(&self) -> Task<Result<Vec<StorageInfo>>> {
+    let camera = self.clone();
 
-    let storages = unsafe {
-      std::slice::from_raw_parts(
-        // We can cast pointer safely because StorageInfo is repr(transparent).
-        storages_ptr.cast::<StorageInfo>(),
-        storages_len.try_into()?,
-      )
-    };
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_get_storageinfo(
+          camera.camera,
+          &out storages_ptr,
+          &out storages_len,
+          camera.context.inner
+        )?);
 
-    let result = storages.to_vec();
+        let storages = unsafe {
+          std::slice::from_raw_parts(
+            // We can cast pointer safely because StorageInfo is repr(transparent).
+            storages_ptr.cast::<StorageInfo>(),
+            storages_len.try_into()?,
+          )
+        };
 
-    unsafe {
-      // Must be freed using libc deallocator rather than Rust one.
-      libc::free(storages_ptr.cast());
+        let result = storages.to_vec();
+
+        unsafe {
+          // Must be freed using libc deallocator rather than Rust one.
+          libc::free(storages_ptr.cast());
+        }
+
+        Ok(result)
+      }
     }
-
-    Ok(result)
   }
 
   /// Filesystem actions
@@ -214,46 +235,52 @@ impl Camera {
   }
 
   /// Waits for an event on the camera until timeout
-  pub fn wait_event(&self, timeout: Duration) -> Result<CameraEvent> {
+  pub fn wait_event(&self, timeout: Duration) -> Task<Result<CameraEvent>> {
     use libgphoto2_sys::CameraEventType;
 
     let duration_milliseconds = timeout.as_millis();
 
-    try_gp_internal!(gp_camera_wait_for_event(
-      self.camera,
-      duration_milliseconds.try_into()?,
-      &out event_type,
-      &out event_data,
-      *self.context.inner
-    )?);
+    let camera = self.clone();
 
-    Ok(match event_type {
-      CameraEventType::GP_EVENT_UNKNOWN => {
-        let s = chars_to_string(event_data.cast::<c_char>());
-        unsafe {
-          libc::free(event_data);
-        }
-        CameraEvent::Unknown(s)
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_wait_for_event(
+          camera.camera,
+          duration_milliseconds.try_into()?,
+          &out event_type,
+          &out event_data,
+          camera.context.inner
+        )?);
+
+        Ok(match event_type {
+          CameraEventType::GP_EVENT_UNKNOWN => {
+            let s = chars_to_string(event_data.cast::<c_char>());
+            unsafe {
+              libc::free(event_data);
+            }
+            CameraEvent::Unknown(s)
+          }
+          CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
+          CameraEventType::GP_EVENT_FILE_ADDED
+          | CameraEventType::GP_EVENT_FOLDER_ADDED
+          | CameraEventType::GP_EVENT_FILE_CHANGED => {
+            let file_path = CameraFilePath {
+              inner: Box::new(unsafe { *event_data.cast::<libgphoto2_sys::CameraFilePath>() }),
+            };
+            unsafe {
+              libc::free(event_data);
+            }
+            match event_type {
+              CameraEventType::GP_EVENT_FILE_ADDED => CameraEvent::NewFile(file_path),
+              CameraEventType::GP_EVENT_FOLDER_ADDED => CameraEvent::NewFolder(file_path),
+              CameraEventType::GP_EVENT_FILE_CHANGED => CameraEvent::FileChanged(file_path),
+              _ => unreachable!(),
+            }
+          }
+          CameraEventType::GP_EVENT_CAPTURE_COMPLETE => CameraEvent::CaptureComplete,
+        })
       }
-      CameraEventType::GP_EVENT_TIMEOUT => CameraEvent::Timeout,
-      CameraEventType::GP_EVENT_FILE_ADDED
-      | CameraEventType::GP_EVENT_FOLDER_ADDED
-      | CameraEventType::GP_EVENT_FILE_CHANGED => {
-        let file_path = CameraFilePath {
-          inner: Box::new(unsafe { *event_data.cast::<libgphoto2_sys::CameraFilePath>() }),
-        };
-        unsafe {
-          libc::free(event_data);
-        }
-        match event_type {
-          CameraEventType::GP_EVENT_FILE_ADDED => CameraEvent::NewFile(file_path),
-          CameraEventType::GP_EVENT_FOLDER_ADDED => CameraEvent::NewFolder(file_path),
-          CameraEventType::GP_EVENT_FILE_CHANGED => CameraEvent::FileChanged(file_path),
-          _ => unreachable!(),
-        }
-      }
-      CameraEventType::GP_EVENT_CAPTURE_COMPLETE => CameraEvent::CaptureComplete,
-    })
+    }
   }
 
   /// Port used to connect to the camera
@@ -264,53 +291,79 @@ impl Camera {
   }
 
   /// Get the camera configuration
-  pub fn config(&self) -> Result<GroupWidget> {
-    try_gp_internal!(gp_camera_get_config(self.camera, &out root_widget, *self.context.inner)?);
+  pub fn config(&self) -> Task<Result<GroupWidget>> {
+    let camera = self.clone();
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_get_config(camera.camera, &out root_widget, camera.context.inner)?);
 
-    Widget::new_owned(root_widget).try_into::<GroupWidget>()
+        Widget::new_owned(root_widget).try_into::<GroupWidget>()
+      }
+    }
   }
 
   /// Get a single configuration by name.
   /// Pass either a specific widget type as a generic parameter or [`Widget`]
   /// if you're not sure what this config represents.
-  pub fn config_key<T: TryFrom<Widget>>(&self, key: &str) -> Result<T>
+  // TODO: Get rid of the 'static lifetime
+  pub fn config_key<T: TryFrom<Widget> + 'static>(&self, key: &str) -> Task<Result<T>>
   where
     Error: From<T::Error>,
   {
-    try_gp_internal!(gp_camera_get_single_config(
-      self.camera,
-      to_c_string!(key),
-      &out widget,
-      *self.context.inner
-    )?);
+    let key = key.to_owned();
+    let camera = self.clone();
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_get_single_config(
+          camera.camera,
+          to_c_string!(&*key),
+          &out widget,
+          camera.context.inner
+        )?);
 
-    Ok(Widget::new_owned(widget).try_into()?)
+        Ok(Widget::new_owned(widget).try_into()?)
+      }
+    }
   }
 
   /// Apply a full config object to the camera.
-  pub fn set_all_config(&self, config: &GroupWidget) -> Result<()> {
-    try_gp_internal!(gp_camera_set_config(self.camera, config.inner, *self.context.inner)?);
+  pub fn set_all_config(&self, config: &GroupWidget) -> Task<Result<()>> {
+    let config = config.clone();
+    let camera = self.clone();
 
-    Ok(())
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_set_config(camera.camera, config.inner, camera.context.inner)?);
+
+        Ok(())
+      }
+    }
   }
 
   /// Set a single configuration widget to the camera
-  pub fn set_config(&self, config: &WidgetBase) -> Result<()> {
-    try_gp_internal!(gp_camera_set_single_config(
-      self.camera,
-      to_c_string!(config.name()),
-      config.inner,
-      *self.context.inner
-    )?);
+  pub fn set_config(&self, config: &WidgetBase) -> Task<Result<()>> {
+    let config = config.clone();
+    let camera = self.clone();
 
-    Ok(())
+    task! {
+      exec: {
+        try_gp_internal!(gp_camera_set_single_config(
+          camera.camera,
+          to_c_string!(config.name()),
+          config.inner,
+          camera.context.inner
+        )?);
+
+        Ok(())
+      }
+    }
   }
 }
 
 #[cfg(all(test, feature = "test"))]
 mod tests {
   fn sample_camera() -> super::Camera {
-    crate::sample_context().autodetect_camera().unwrap()
+    crate::sample_context().autodetect_camera().wait().unwrap()
   }
 
   #[test]
@@ -354,7 +407,7 @@ mod tests {
 
   #[test]
   fn test_storages() {
-    let storages = sample_camera().storages().unwrap();
+    let storages = sample_camera().storages().wait().unwrap();
     insta::assert_debug_snapshot!(storages);
   }
 
@@ -375,6 +428,7 @@ mod tests {
         FolderDbg {
           folders: fs
             .list_folders(path)
+            .wait()
             .unwrap()
             .map(|folder_name| {
               let folder = Self::collect(fs, &format!("{path}/{folder_name}"));
@@ -383,9 +437,10 @@ mod tests {
             .collect(),
           files: fs
             .list_files(path)
+            .wait()
             .unwrap()
             .map(|file_name| {
-              let mut file_info = fs.file_info(path, &file_name).unwrap();
+              let mut file_info = fs.file_info(path, &file_name).wait().unwrap();
               // Change timestamp to a constant for the snapshot.
               file_info.inner.file.mtime = 42;
               (file_name, file_info)
@@ -401,11 +456,14 @@ mod tests {
     // modifies the filesystem and it's easier to check both in the same test
     // than dealing with potential race conditions changing the file tree.
 
-    let captured_file_path = camera.capture_image().unwrap();
+    let captured_file_path = camera.capture_image().wait().unwrap();
     insta::assert_debug_snapshot!(captured_file_path);
 
-    let captured_file =
-      camera.fs().download(&captured_file_path.folder(), &captured_file_path.name()).unwrap();
+    let captured_file = camera
+      .fs()
+      .download(&captured_file_path.folder(), &captured_file_path.name())
+      .wait()
+      .unwrap();
     unsafe {
       // Fixup mtime to a constant for the snapshot.
       libgphoto2_sys::gp_file_set_mtime(captured_file.inner, 42);
@@ -413,12 +471,12 @@ mod tests {
     insta::assert_debug_snapshot!(captured_file);
 
     assert_eq!(
-      captured_file.get_data().unwrap().as_ref(),
+      captured_file.get_data().wait().unwrap().as_ref(),
       libgphoto2_sys::test_utils::SAMPLE_IMAGE
     );
 
     let fs = camera.fs();
-    let storages = camera.storages().unwrap();
+    let storages = camera.storages().wait().unwrap();
 
     let storage_folders = storages
       .iter()
@@ -443,7 +501,7 @@ mod tests {
   fn test_config() {
     use crate::widget::{DateWidget, TextWidget};
 
-    let widget_tree = sample_camera().config().unwrap();
+    let widget_tree = sample_camera().config().wait().unwrap();
 
     // Some widgets represent dynamic information.
     // Find and fix it up before snapshotting.

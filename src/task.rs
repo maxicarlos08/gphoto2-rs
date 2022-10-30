@@ -8,9 +8,16 @@ use std::{
   task::{Poll, Waker},
 };
 
+/// Handy macro to create a new task
+///
+/// # CAUTION
+///
+/// Any closure passed will be marked as [`Send`] (to allow sending raw pointer).
+///
+/// Creating a task inside a task will cause a deadlock.
 macro_rules! task {
-  ($($tokens:tt)*) => {
-    $crate::task::Task::new(Box::new(move || { $($tokens)* }))
+  { $(context: $context:expr,)? exec: $task:tt } => {
+    $crate::task::Task::new(Box::new(move || $task))
   };
 }
 
@@ -18,7 +25,7 @@ pub(crate) use task;
 
 /// Allows awaiting (or blocking) libgphoto2 function responses
 pub struct Task<T> {
-  rx: oneshot::Receiver<T>,
+  rx: oneshot::Receiver<UnsafeSend<T>>,
   // TODO: Implement libgphoto2 task cancelling
   cancel: Arc<RwLock<bool>>,
   waker: Arc<RwLock<Option<Waker>>>,
@@ -26,12 +33,17 @@ pub struct Task<T> {
 }
 
 /// Marks any value as [`Send`]
-pub struct UnsafeSend<T>(pub T);
+struct UnsafeSend<T>(pub T);
 
 impl<T> Task<T> {
-  pub(crate) fn new(f: Box<dyn FnOnce() -> T + Send + 'static>) -> Self
+  /// Starts a new task
+  ///
+  /// # CAUTION
+  ///
+  /// Any closure passed here will be marked as [`Send`]
+  pub(crate) fn new(f: Box<dyn FnOnce() -> T + 'static>) -> Self
   where
-    T: Send + 'static,
+    T: 'static,
   {
     ThreadManager::ensure_started();
 
@@ -42,8 +54,10 @@ impl<T> Task<T> {
     let waker_clone = waker.clone();
     let _cancel_clone = cancel.clone();
 
+    let f = UnsafeSend(f);
+
     let task = Box::new(move || {
-      tx.send(f()).unwrap();
+      tx.send(UnsafeSend(f.call())).unwrap();
       if let Some(waker) = waker_clone.write().unwrap().take() {
         waker.wake()
       }
@@ -58,7 +72,7 @@ impl<T> Task<T> {
 
   /// Block until the response if available
   pub fn wait(self) -> T {
-    self.rx.recv().unwrap() // TODO: Check if this .unwrap is OK
+    self.rx.recv().unwrap().0 // TODO: Check if this .unwrap is OK
   }
 
   /// Request the current task to be cancelled
@@ -84,7 +98,7 @@ impl<T> Future for Task<T> {
     }
 
     if let Ok(value) = self.rx.try_recv() {
-      Poll::Ready(value)
+      Poll::Ready(value.0)
     } else {
       Poll::Pending
     }
@@ -95,6 +109,15 @@ impl<T> Deref for UnsafeSend<T> {
   type Target = T;
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+impl<T> UnsafeSend<Box<dyn FnOnce() -> T>>
+where
+  T: 'static,
+{
+  fn call(self) -> T {
+    self.0()
   }
 }
 

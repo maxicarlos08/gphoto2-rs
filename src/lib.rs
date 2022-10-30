@@ -51,5 +51,5 @@ fn sample_context() -> Context {
     libgphoto2_sys::test_utils::set_env();
   });
 
-  Context::new().wait().unwrap()
+  Context::new().unwrap()
 }

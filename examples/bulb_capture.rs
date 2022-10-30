@@ -10,28 +10,28 @@ use std::{thread::sleep, time::Duration};
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new().wait()?.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera().wait()?;
 
-  let shutter_speed = camera.config_key::<RadioWidget>("shutterspeed")?;
-  let bulb_setting = camera.config_key::<ToggleWidget>("bulb")?;
+  let shutter_speed = camera.config_key::<RadioWidget>("shutterspeed").wait()?;
+  let bulb_setting = camera.config_key::<ToggleWidget>("bulb").wait()?;
 
   shutter_speed.set_choice("Bulb")?;
-  camera.set_config(&shutter_speed)?;
+  camera.set_config(&shutter_speed).wait()?;
 
   println!("Starting bulb capture");
 
   bulb_setting.set_toggled(true);
-  camera.set_config(&bulb_setting)?;
+  camera.set_config(&bulb_setting).wait()?;
 
   sleep(Duration::from_secs(2));
 
   bulb_setting.set_toggled(false);
-  camera.set_config(&bulb_setting)?;
+  camera.set_config(&bulb_setting).wait()?;
 
   let mut retry = 0;
 
   loop {
-    let event = camera.wait_event(Duration::from_secs(10))?;
+    let event = camera.wait_event(Duration::from_secs(10)).wait()?;
 
     if let CameraEvent::NewFile(file) = event {
       println!("New file: {}", file.name());

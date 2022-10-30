@@ -9,14 +9,14 @@ fn main() -> Result<()> {
 
   let camera_name = std::env::args().nth(1).expect("Missing argument: camera_model");
 
-  let context = Context::new().wait()?;
+  let context = Context::new()?;
 
   let camera_desc = context
-    .list_cameras()?
+    .list_cameras().wait()?
     .find(|desc| desc.model == camera_name)
     .ok_or_else(|| format!("Could not find camera with name '{}'", camera_name))?;
 
-  let _camera = context.get_camera(&camera_desc)?;
+  let _camera = context.get_camera(&camera_desc).wait()?;
 
   Ok(())
 }

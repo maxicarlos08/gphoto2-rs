@@ -2,7 +2,7 @@
 //!
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
-use crate::helper::{as_ref, bitflags, char_slice_to_cow, libtool_lock};
+use crate::helper::{as_ref, bitflags, char_slice_to_cow};
 use crate::{context::Context, try_gp_internal, Result};
 use std::{borrow::Cow, fmt};
 
@@ -110,11 +110,10 @@ as_ref!(AbilitiesList -> libgphoto2_sys::CameraAbilitiesList, *self.inner);
 as_ref!(Abilities -> libgphoto2_sys::CameraAbilities, self.inner);
 
 impl AbilitiesList {
-  pub(crate) fn new(context: &Context) -> Result<Self> {
-    let _lock = libtool_lock(); // gp_abilities_list_load -> libtool
-
+  /// Must be called from a [`Task`]
+  pub(crate) fn new_inner(context: &Context) -> Result<Self> {
     try_gp_internal!(gp_abilities_list_new(&out abilities_inner)?);
-    try_gp_internal!(gp_abilities_list_load(abilities_inner, *context.inner)?);
+    try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner)?);
 
     Ok(Self { inner: abilities_inner })
   }
@@ -135,9 +134,6 @@ impl Abilities {
   pub fn driver_status(&self) -> CameraDriverStatus {
     self.inner.status.into()
   }
-
-  // TODO: Port speeds
-  // TODO: Usb info
 
   /// Get the [camera operations](CameraOperations) of the device
   pub fn camera_operations(&self) -> CameraOperations {

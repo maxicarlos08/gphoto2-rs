@@ -5,7 +5,7 @@
 //! use gphoto2::{Context, widget::RadioWidget, Result};
 //!
 //! # fn main() -> Result<()> {
-//! let context = Context::new().wait()?;
+//! let context = Context::new()?;
 //! let camera = context.autodetect_camera()?;
 //!
 //! let mut config = camera.config_key::<RadioWidget>("iso")?;
@@ -51,7 +51,7 @@ impl ExactSizeIterator for WidgetIterator<'_> {
 
 /// Base widget type providing general information about the widget.
 ///
-/// Normally you shouldn't use this type directly but should acccess its
+/// Normally you shouldn't use this type directly but should access its
 /// properties via [`Widget`] or specific typed widgets instead.
 pub struct WidgetBase {
   pub(crate) inner: *mut libgphoto2_sys::CameraWidget,
@@ -462,7 +462,7 @@ impl ButtonWidget {
   pub fn press(&self, camera: &Camera) -> Result<()> {
     let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    Error::check(unsafe { callback(camera.camera, self.as_ptr(), *camera.context.inner) })?;
+    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context.inner) })?;
     Ok(())
   }
 

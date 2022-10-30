@@ -72,7 +72,7 @@ use std::path::Path;
 
 fn main() -> Result<()> {
   // Create a new context and detect the first camera from it
-  let camera = Context::new().wait()?.autodetect_camera().expect("Failed to autodetect camera");
+  let camera = Context::new()?.autodetect_camera().expect("Failed to autodetect camera");
   let camera_fs = camera.fs();
 
 
