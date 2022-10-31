@@ -123,7 +123,7 @@ where
   /// Must be called before the task is started
   pub fn set_progress_handler<H>(&mut self, handler: H)
   where
-    H: ProgressHandler,
+    H: ProgressHandler + Send,
   {
     self.progress_handler = Some(Box::new(handler));
   }
