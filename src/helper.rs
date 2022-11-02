@@ -144,6 +144,10 @@ macro_rules! as_ref {
     as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, *$self $($rest)*);
   };
 
+  ($from:ident $(<$lt:tt>)? -> $to:ty, ** $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, **$self $($rest)*);
+  };
+
   (@ $from:ty, $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {
     impl AsRef<$to> for $from {
       fn as_ref(&$self) -> &$to {

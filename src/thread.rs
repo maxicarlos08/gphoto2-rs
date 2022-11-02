@@ -1,20 +1,19 @@
 use std::{
-  collections::VecDeque,
-  sync::{Arc, Mutex, Once, RwLock},
+  sync::{Once, RwLock},
   thread,
   thread::JoinHandle,
 };
+
+use crossbeam_channel::{unbounded, Receiver, Sender};
 
 pub static THREAD_MANAGER: RwLock<Option<ThreadManager>> = RwLock::new(None);
 
 pub type TaskFunc = Box<dyn FnOnce() + Send>;
 
 pub struct ThreadManager {
-  handle: JoinHandle<()>,
-  queue: Arc<Mutex<VecDeque<TaskFunc>>>,
+  _handle: JoinHandle<()>,
+  send_task: Sender<TaskFunc>,
 }
-
-pub struct UnsafeSend<T>(T);
 
 impl ThreadManager {
   pub fn ensure_started() {
@@ -24,36 +23,23 @@ impl ThreadManager {
   }
 
   fn new() -> Result<Self, std::io::Error> {
-    let queue = Arc::new(Mutex::new(VecDeque::new()));
+    let (send_task, receive_task) = unbounded();
 
-    let queue_clone = queue.clone();
     let thread_handle = thread::Builder::new()
       .name("gphoto2".to_string()) // Give the thread a name for debugging
-      .spawn(move || start_thread(queue_clone))?;
+      .spawn(move || start_thread(receive_task))?;
 
-    Ok(Self { handle: thread_handle, queue })
+    Ok(Self { _handle: thread_handle, send_task })
   }
 
-  fn continue_camera_thread(&self) {
-    self.handle.thread().unpark();
-  }
-
+  #[allow(unused_must_use)]
   pub fn spawn_task(&self, task: TaskFunc) {
-    self.queue.lock().unwrap().push_back(task);
-    self.continue_camera_thread();
+    self.send_task.send(task);
   }
 }
 
-fn start_thread(queue: Arc<Mutex<VecDeque<TaskFunc>>>) {
-  loop {
-    let tasks = queue.lock().unwrap().drain(..).collect::<Vec<TaskFunc>>();
-
-    for task in tasks {
-      task();
-    }
-
-    thread::park();
+fn start_thread(recv_task: Receiver<TaskFunc>) {
+  while let Ok(fun) = recv_task.recv() {
+    fun()
   }
 }
-
-unsafe impl<T> Send for UnsafeSend<T> {}

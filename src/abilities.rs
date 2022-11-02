@@ -3,11 +3,12 @@
 //! The device abilities describe the abilities of the driver used to connect to a device.
 
 use crate::helper::{as_ref, bitflags, char_slice_to_cow};
+use crate::task::BackgroundPtr;
 use crate::{context::Context, try_gp_internal, Result};
 use std::{borrow::Cow, fmt};
 
 pub(crate) struct AbilitiesList {
-  pub(crate) inner: *mut libgphoto2_sys::CameraAbilitiesList,
+  pub(crate) inner: BackgroundPtr<libgphoto2_sys::CameraAbilitiesList>,
 }
 
 /// Provides functions to get device abilities
@@ -63,7 +64,7 @@ pub enum DeviceType {
 
 impl Drop for AbilitiesList {
   fn drop(&mut self) {
-    try_gp_internal!(gp_abilities_list_free(self.inner).unwrap());
+    try_gp_internal!(gp_abilities_list_free(*self.inner).unwrap());
   }
 }
 
@@ -105,7 +106,7 @@ impl fmt::Debug for Abilities {
   }
 }
 
-as_ref!(AbilitiesList -> libgphoto2_sys::CameraAbilitiesList, *self.inner);
+as_ref!(AbilitiesList -> libgphoto2_sys::CameraAbilitiesList, **self.inner);
 
 as_ref!(Abilities -> libgphoto2_sys::CameraAbilities, self.inner);
 
@@ -113,9 +114,9 @@ impl AbilitiesList {
   /// Must be called from a [`Task`]
   pub(crate) fn new_inner(context: &Context) -> Result<Self> {
     try_gp_internal!(gp_abilities_list_new(&out abilities_inner)?);
-    try_gp_internal!(gp_abilities_list_load(abilities_inner, context.inner)?);
+    try_gp_internal!(gp_abilities_list_load(abilities_inner, *context.inner)?);
 
-    Ok(Self { inner: abilities_inner })
+    Ok(Self { inner: BackgroundPtr(abilities_inner) })
   }
 }
 

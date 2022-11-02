@@ -6,7 +6,7 @@ use crate::{
   list::CameraList,
   list::{CameraDescriptor, CameraListIter},
   port::PortInfoList,
-  task::{task, Task},
+  task::{BackgroundPtr, Task},
   try_gp_internal, Error, Result,
 };
 use std::{ffi, ops::DerefMut};
@@ -16,7 +16,7 @@ use std::{
 };
 
 /// Progress handler trait
-pub trait ProgressHandler: 'static {
+pub trait ProgressHandler: 'static + Send {
   /// This method is called when a progress starts.
   ///
   /// It must return a unique ID which is passed to the following functions
@@ -30,7 +30,7 @@ pub trait ProgressHandler: 'static {
 }
 
 /// Cancel handler trait
-pub(crate) trait CancelHandler: 'static {
+pub(crate) trait CancelHandler: 'static + Send {
   fn cancel(&mut self) -> bool;
 }
 
@@ -54,22 +54,22 @@ pub(crate) trait CancelHandler: 'static {
 ///
 /// ```
 pub struct Context {
-  pub(crate) inner: *mut libgphoto2_sys::GPContext,
+  pub(crate) inner: BackgroundPtr<libgphoto2_sys::GPContext>,
   // TODO: Integrate progress into `Task`
-  progress_handler: Option<Arc<dyn ProgressHandler>>,
-  cancel_handler: Option<Arc<dyn CancelHandler>>,
+  progress_handler: Option<Arc<dyn ProgressHandler + 'static + Send>>,
+  cancel_handler: Option<Arc<dyn CancelHandler + 'static + Send>>,
 }
 
 impl Drop for Context {
   fn drop(&mut self) {
-    unsafe { libgphoto2_sys::gp_context_unref(self.inner) }
+    unsafe { libgphoto2_sys::gp_context_unref(*self.inner) }
   }
 }
 
 impl Clone for Context {
   fn clone(&self) -> Self {
     unsafe {
-      libgphoto2_sys::gp_context_ref(self.inner);
+      libgphoto2_sys::gp_context_ref(*self.inner);
     }
 
     Self {
@@ -80,7 +80,7 @@ impl Clone for Context {
   }
 }
 
-as_ref!(Context -> libgphoto2_sys::GPContext, *self.inner);
+as_ref!(Context -> libgphoto2_sys::GPContext, **self.inner);
 
 impl Context {
   /// Create a new context
@@ -97,7 +97,7 @@ impl Context {
     #[cfg(not(feature = "extended_logs"))]
     crate::helper::hook_gp_context_log_func(context_ptr);
 
-    Ok(Self { inner: context_ptr, progress_handler: None, cancel_handler: None })
+    Ok(Self { inner: BackgroundPtr(context_ptr), progress_handler: None, cancel_handler: None })
   }
 
   /// Lists all available cameras and their ports
@@ -106,15 +106,16 @@ impl Context {
   /// which can be used in [`Context::get_camera`].
   pub fn list_cameras(&self) -> Task<Result<CameraListIter>> {
     let context = self.clone().inner;
-    task! {
-      context: Some(self),
-      exec: {
+
+    unsafe {
+      Task::new(move || {
         let camera_list = CameraList::new()?;
-        try_gp_internal!(gp_camera_autodetect(camera_list.inner, context)?);
+        try_gp_internal!(gp_camera_autodetect(*camera_list.inner, *context)?);
 
         Ok(CameraListIter::new(camera_list))
-      }
+      })
     }
+    .context(self.inner)
   }
 
   /// Auto chooses a camera
@@ -134,14 +135,15 @@ impl Context {
   /// ```
   pub fn autodetect_camera(&self) -> Task<Result<Camera>> {
     let context = self.clone();
-    task! {
-      context: Some(self),
-      exec: {
-        try_gp_internal!(gp_camera_new(&out camera_ptr)?);
-        try_gp_internal!(gp_camera_init(camera_ptr, context.inner)?);
 
-        Ok(Camera::new(camera_ptr, context))
-      }
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_new(&out camera_ptr)?);
+        try_gp_internal!(gp_camera_init(camera_ptr, *context.inner)?);
+
+        Ok(Camera::new(BackgroundPtr(camera_ptr), context))
+      })
+      .context(self.inner)
     }
   }
 
@@ -162,21 +164,20 @@ impl Context {
     let context = self.clone();
     let camera_descriptor = camera_descriptor.clone();
 
-    task! {
-      context: Some(self),
-      exec: {
+    unsafe {
+      Task::new(move || {
         let abilities_list = AbilitiesList::new_inner(&context)?;
         let port_info_list = PortInfoList::new_inner()?;
 
         try_gp_internal!(gp_camera_new(&out camera)?);
 
         try_gp_internal!(let model_index = gp_abilities_list_lookup_model(
-          abilities_list.inner,
+          *abilities_list.inner,
           to_c_string!(camera_descriptor.model.as_str())
         )?);
 
         try_gp_internal!(gp_abilities_list_get_abilities(
-          abilities_list.inner,
+          *abilities_list.inner,
           model_index,
           &out model_abilities
         )?);
@@ -189,9 +190,10 @@ impl Context {
         let port_info = port_info_list.get_port_info(p)?;
         try_gp_internal!(gp_camera_set_port_info(camera, port_info.inner)?);
 
-        Ok(Camera::new(camera, context))
-      }
+        Ok(Camera::new(BackgroundPtr(camera), context))
+      })
     }
+    .context(self.inner)
   }
 
   /// Set context progress functions
@@ -202,7 +204,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_handlers<H: ProgressHandler>(&mut self, handler: H) {
+  pub fn set_progress_handlers<H: ProgressHandler + Send>(&mut self, handler: H) {
     unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: c_float,
@@ -240,7 +242,7 @@ impl Context {
 
     unsafe {
       libgphoto2_sys::gp_context_set_progress_funcs(
-        self.inner,
+        *self.inner,
         Some(start_func::<H>),
         Some(update_func::<H>),
         Some(stop_func::<H>),
@@ -273,7 +275,11 @@ impl Context {
     let handler_ptr = Arc::as_ptr(&cancel_handler) as *mut c_void;
 
     unsafe {
-      libgphoto2_sys::gp_context_set_cancel_func(self.inner, Some(handle_cancel::<H>), handler_ptr);
+      libgphoto2_sys::gp_context_set_cancel_func(
+        *self.inner,
+        Some(handle_cancel::<H>),
+        handler_ptr,
+      );
     }
 
     self.cancel_handler = Some(cancel_handler);
@@ -282,7 +288,7 @@ impl Context {
   pub(crate) fn unset_progress_handlers(&mut self) {
     unsafe {
       libgphoto2_sys::gp_context_set_progress_funcs(
-        self.inner,
+        *self.inner,
         None,
         None,
         None,
@@ -295,10 +301,16 @@ impl Context {
 
   pub(crate) fn unset_cancel_handlers(&mut self) {
     unsafe {
-      libgphoto2_sys::gp_context_set_cancel_func(self.inner, None, std::ptr::null_mut());
+      libgphoto2_sys::gp_context_set_cancel_func(*self.inner, None, std::ptr::null_mut());
     }
 
     self.cancel_handler = None;
+  }
+}
+
+impl Context {
+  pub(crate) fn from_ptr(ptr: BackgroundPtr<libgphoto2_sys::GPContext>) -> Self {
+    Self { cancel_handler: None, inner: ptr, progress_handler: None }
   }
 }
 
@@ -306,7 +318,7 @@ unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
   &mut *data.cast()
 }
 
-impl ProgressHandler for Box<dyn ProgressHandler> {
+impl ProgressHandler for Box<dyn ProgressHandler + Send> {
   fn start(&mut self, target: f32, message: String) -> u32 {
     self.deref_mut().start(target, message)
   }
@@ -319,6 +331,8 @@ impl ProgressHandler for Box<dyn ProgressHandler> {
     self.deref_mut().stop(id)
   }
 }
+
+unsafe impl Send for Context {}
 
 #[cfg(all(test, feature = "test"))]
 mod tests {
