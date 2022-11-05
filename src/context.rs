@@ -62,7 +62,11 @@ pub struct Context {
 
 impl Drop for Context {
   fn drop(&mut self) {
-    unsafe { libgphoto2_sys::gp_context_unref(*self.inner) }
+    let context = self.inner;
+
+    unsafe {
+      Task::new(move || libgphoto2_sys::gp_context_unref(*context));
+    }
   }
 }
 
