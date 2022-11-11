@@ -127,6 +127,11 @@ where
   pub fn cancel(&self) {
     self.cancel.store(true, Ordering::Relaxed);
   }
+
+  /// Starts the task in background
+  pub(crate) fn background(&mut self) {
+    self.start_task();
+  }
 }
 
 impl<T> Future for Task<T>

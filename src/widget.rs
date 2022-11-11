@@ -17,7 +17,7 @@
 
 use crate::{
   helper::{as_ref, chars_to_string, to_c_string},
-  task::BackgroundPtr,
+  task::{BackgroundPtr, Task},
   try_gp_internal, Camera, Error, Result,
 };
 use std::{
@@ -67,7 +67,13 @@ impl Clone for WidgetBase {
 
 impl Drop for WidgetBase {
   fn drop(&mut self) {
-    try_gp_internal!(gp_widget_unref(*self.inner).unwrap());
+    let widget_ptr = self.inner;
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_widget_unref(*widget_ptr).unwrap());
+      })
+    }
+    .background();
   }
 }
 
