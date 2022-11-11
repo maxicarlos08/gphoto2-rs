@@ -1,15 +1,15 @@
 //! List of cameras and ports
 
-use crate::{helper::chars_to_string, try_gp_internal, Result};
+use crate::{helper::chars_to_string, task::BackgroundPtr, try_gp_internal, Result};
 use std::{ops::Range, os::raw::c_int};
 
 pub(crate) struct CameraList {
-  pub(crate) inner: *mut libgphoto2_sys::CameraList,
+  pub(crate) inner: BackgroundPtr<libgphoto2_sys::CameraList>,
 }
 
 impl Drop for CameraList {
   fn drop(&mut self) {
-    try_gp_internal!(gp_list_unref(self.inner).unwrap());
+    try_gp_internal!(gp_list_unref(*self.inner).unwrap());
   }
 }
 
@@ -17,20 +17,20 @@ impl CameraList {
   pub(crate) fn new() -> Result<Self> {
     try_gp_internal!(gp_list_new(&out list)?);
 
-    Ok(Self { inner: list })
+    Ok(Self { inner: BackgroundPtr(list) })
   }
 
   fn range(&self) -> Range<c_int> {
-    0..unsafe { libgphoto2_sys::gp_list_count(self.inner) }
+    0..unsafe { libgphoto2_sys::gp_list_count(*self.inner) }
   }
 
   fn get_name_at_unchecked(&self, i: c_int) -> String {
-    try_gp_internal!(gp_list_get_name(self.inner, i, &out name).unwrap());
+    try_gp_internal!(gp_list_get_name(*self.inner, i, &out name).unwrap());
     chars_to_string(name)
   }
 
   fn get_value_at_unchecked(&self, i: c_int) -> String {
-    try_gp_internal!(gp_list_get_value(self.inner, i, &out value).unwrap());
+    try_gp_internal!(gp_list_get_value(*self.inner, i, &out value).unwrap());
     chars_to_string(value)
   }
 }
@@ -70,7 +70,7 @@ macro_rules! camera_list_iter {
 }
 
 /// Descriptor representing model+port pair of the connected camera.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CameraDescriptor {
   /// Camera model.
   pub model: String,

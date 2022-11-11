@@ -4,6 +4,7 @@ use crate::{
   file::{CameraFile, FileType},
   helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
   list::{CameraList, FileListIter},
+  task::Task,
   try_gp_internal, Camera, Result,
 };
 use libgphoto2_sys::time_t;
@@ -264,138 +265,223 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Delete a file
-  pub fn delete_file(&self, folder: &str, file: &str) -> Result<()> {
-    try_gp_internal!(gp_camera_file_delete(
-      self.camera.camera,
-      to_c_string!(folder),
-      to_c_string!(file),
-      self.camera.context.inner
-    )?);
-    Ok(())
+  pub fn delete_file(&self, folder: &str, file: &str) -> Task<Result<()>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
+    let (folder, file) = (folder.to_owned(), file.to_owned());
+
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_file_delete(
+          *camera,
+          to_c_string!(folder),
+          to_c_string!(file),
+          *context
+        )?);
+        Ok(())
+      })
+    }
+    .context(context)
   }
 
   /// Get information of a file
-  pub fn file_info(&self, folder: &str, file: &str) -> Result<FileInfo> {
-    let mut inner = UninitBox::uninit();
+  pub fn file_info(&self, folder: &str, file: &str) -> Task<Result<FileInfo>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
+    let (folder, file) = (folder.to_owned(), file.to_owned());
 
-    try_gp_internal!(gp_camera_file_get_info(
-      self.camera.camera,
-      to_c_string!(folder),
-      to_c_string!(file),
-      inner.as_mut_ptr(),
-      self.camera.context.inner
-    )?);
+    unsafe {
+      Task::new(move || {
+        let mut inner = UninitBox::uninit();
 
-    Ok(FileInfo { inner: unsafe { inner.assume_init() } })
+        try_gp_internal!(gp_camera_file_get_info(
+          *camera,
+          to_c_string!(folder),
+          to_c_string!(file),
+          inner.as_mut_ptr(),
+          *context
+        )?);
+
+        Ok(FileInfo { inner: inner.assume_init() })
+      })
+    }
+    .context(context)
   }
 
   /// Downloads a file from the camera
-  pub fn download_to(&self, folder: &str, file: &str, path: &Path) -> Result<CameraFile> {
+  pub fn download_to(&self, folder: &str, file: &str, path: &Path) -> Task<Result<CameraFile>> {
     self.to_camera_file(folder, file, Some(path))
   }
 
   /// Downloads a camera file to memory
-  pub fn download(&self, folder: &str, file: &str) -> Result<CameraFile> {
+  pub fn download(&self, folder: &str, file: &str) -> Task<Result<CameraFile>> {
     self.to_camera_file(folder, file, None)
   }
 
   /// Upload a file to the camera
   #[allow(clippy::boxed_local)]
-  pub fn upload_file(&self, folder: &str, filename: &str, data: Box<[u8]>) -> Result<()> {
-    try_gp_internal!(gp_file_new(&out file)?);
-    try_gp_internal!(gp_file_append(file, data.as_ptr().cast(), data.len().try_into()?)?);
-    try_gp_internal!(gp_camera_folder_put_file(
-      self.camera.camera,
-      to_c_string!(folder),
-      to_c_string!(filename),
-      FileType::Normal.into(),
-      file,
-      self.camera.context.inner
-    )?);
+  pub fn upload_file(&self, folder: &str, filename: &str, data: Box<[u8]>) -> Task<Result<()>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    Ok(())
+    let (folder, filename) = (folder.to_owned(), filename.to_owned());
+
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_file_new(&out file)?);
+        try_gp_internal!(gp_file_append(file, data.as_ptr().cast(), data.len().try_into()?)?);
+        try_gp_internal!(gp_camera_folder_put_file(
+          *camera,
+          to_c_string!(folder),
+          to_c_string!(filename),
+          FileType::Normal.into(),
+          file,
+          *context
+        )?);
+
+        Ok(())
+      })
+    }
+    .context(context)
   }
 
   /// Delete all files in a folder
-  pub fn delete_all_in_folder(&self, folder: &str) -> Result<()> {
-    try_gp_internal!(gp_camera_folder_delete_all(
-      self.camera.camera,
-      to_c_string!(folder),
-      self.camera.context.inner
-    )?);
-    Ok(())
+  pub fn delete_all_in_folder(&self, folder: &str) -> Task<Result<()>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
+    let folder = folder.to_owned();
+
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_folder_delete_all(*camera, to_c_string!(folder), *context)?);
+        Ok(())
+      })
+    }
+    .context(context)
   }
 
   /// List files in a folder
-  pub fn list_files(&self, folder: &str) -> Result<FileListIter> {
-    let file_list = CameraList::new()?;
+  pub fn list_files(&self, folder: &str) -> Task<Result<FileListIter>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    try_gp_internal!(gp_camera_folder_list_files(
-      self.camera.camera,
-      to_c_string!(folder),
-      file_list.inner,
-      self.camera.context.inner
-    )?);
+    let folder = folder.to_owned();
 
-    Ok(FileListIter::new(file_list))
+    unsafe {
+      Task::new(move || {
+        let file_list = CameraList::new()?;
+
+        try_gp_internal!(gp_camera_folder_list_files(
+          *camera,
+          to_c_string!(folder),
+          *file_list.inner,
+          *context
+        )?);
+
+        Ok(FileListIter::new(file_list))
+      })
+    }
+    .context(context)
   }
 
   /// List folders in a folder
-  pub fn list_folders(&self, folder: &str) -> Result<FileListIter> {
-    let folder_list = CameraList::new()?;
+  pub fn list_folders(&self, folder: &str) -> Task<Result<FileListIter>> {
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    try_gp_internal!(gp_camera_folder_list_folders(
-      self.camera.camera,
-      to_c_string!(folder),
-      folder_list.inner,
-      self.camera.context.inner
-    )?);
+    let folder = folder.to_owned();
 
-    Ok(FileListIter::new(folder_list))
+    unsafe {
+      Task::new(move || {
+        let folder_list = CameraList::new()?;
+
+        try_gp_internal!(gp_camera_folder_list_folders(
+          *camera,
+          to_c_string!(folder),
+          *folder_list.inner,
+          *context
+        )?);
+
+        Ok(FileListIter::new(folder_list))
+      })
+    }
+    .context(context)
   }
 
   /// Creates a new folder
-  pub fn create_directory(&self, parent_folder: &str, new_folder: &str) -> Result<()> {
-    try_gp_internal!(gp_camera_folder_make_dir(
-      self.camera.camera,
-      to_c_string!(parent_folder),
-      to_c_string!(new_folder),
-      self.camera.context.inner
-    )?);
+  pub fn create_directory(&self, parent_folder: &str, new_folder: &str) -> Task<Result<()>> {
+    let (parent_folder, new_folder) = (parent_folder.to_owned(), new_folder.to_owned());
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    Ok(())
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_folder_make_dir(
+          *camera,
+          to_c_string!(parent_folder),
+          to_c_string!(new_folder),
+          *context
+        )?);
+
+        Ok(())
+      })
+    }
+    .context(context)
   }
 
   /// Removes a folder
-  pub fn remove_directory(&self, parent: &str, to_remove: &str) -> Result<()> {
-    try_gp_internal!(gp_camera_folder_remove_dir(
-      self.camera.camera,
-      to_c_string!(parent),
-      to_c_string!(to_remove),
-      self.camera.context.inner
-    )?);
+  pub fn remove_directory(&self, parent: &str, to_remove: &str) -> Task<Result<()>> {
+    let (parent, to_remove) = (parent.to_owned(), to_remove.to_owned());
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    Ok(())
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_folder_remove_dir(
+          *camera,
+          to_c_string!(parent),
+          to_c_string!(to_remove),
+          *context
+        )?);
+
+        Ok(())
+      })
+    }
+    .context(context)
   }
 }
 
 /// Private implementations
 impl CameraFS<'_> {
-  fn to_camera_file(&self, folder: &str, file: &str, path: Option<&Path>) -> Result<CameraFile> {
-    let camera_file = match path {
-      Some(dest_path) => CameraFile::new_file(dest_path)?,
-      None => CameraFile::new()?,
-    };
+  fn to_camera_file(
+    &self,
+    folder: &str,
+    file: &str,
+    path: Option<&Path>,
+  ) -> Task<Result<CameraFile>> {
+    let (folder, file, path) = (folder.to_owned(), file.to_owned(), path.map(ToOwned::to_owned));
+    let camera = self.camera.camera;
+    let context = self.camera.context.inner;
 
-    try_gp_internal!(gp_camera_file_get(
-      self.camera.camera,
-      to_c_string!(folder),
-      to_c_string!(file),
-      libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
-      camera_file.inner,
-      self.camera.context.inner
-    )?);
+    unsafe {
+      Task::new(move || {
+        let camera_file = match path {
+          Some(dest_path) => CameraFile::new_file(&dest_path)?,
+          None => CameraFile::new()?,
+        };
 
-    Ok(camera_file)
+        try_gp_internal!(gp_camera_file_get(
+          *camera,
+          to_c_string!(folder),
+          to_c_string!(file),
+          libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
+          *camera_file.inner,
+          *context
+        )?);
+
+        Ok(camera_file)
+      })
+    }
+    .context(context)
   }
 }

@@ -5,9 +5,9 @@ use gphoto2::{Context, Result};
 fn main() -> Result<()> {
   env_logger::init();
 
-  let camera = Context::new()?.autodetect_camera()?;
+  let camera = Context::new()?.autodetect_camera().wait()?;
 
-  let widget = camera.config()?;
+  let widget = camera.config().wait()?;
   let abilities = camera.abilities();
 
   drop(camera);

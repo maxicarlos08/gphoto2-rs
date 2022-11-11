@@ -5,10 +5,8 @@ use std::{
   mem::MaybeUninit,
   os::raw::{c_char, c_int},
   sync::Once,
-  sync::{Mutex, MutexGuard},
 };
 
-static LIBTOOL_LOCK: Mutex<()> = Mutex::new(());
 static HOOK_LOG_FUNCTION: Once = Once::new();
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
@@ -113,14 +111,6 @@ pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
   });
 }
 
-pub fn libtool_lock() -> MutexGuard<'static, ()> {
-  match LIBTOOL_LOCK.lock() {
-    Ok(guard) => guard,
-    // Since the lock contains no meaningful data, if the Mutex got poisoned there is no need for other threads to panic
-    Err(err) => err.into_inner(),
-  }
-}
-
 pub struct UninitBox<T> {
   inner: Box<MaybeUninit<T>>,
 }
@@ -152,6 +142,10 @@ macro_rules! as_ref {
 
   ($from:ident $(<$lt:tt>)? -> $to:ty, * $self:ident $($rest:tt)*) => {
     as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, *$self $($rest)*);
+  };
+
+  ($from:ident $(<$lt:tt>)? -> $to:ty, ** $self:ident $($rest:tt)*) => {
+    as_ref!(@ $from $(<$lt>)?, $to, unsafe, $self, **$self $($rest)*);
   };
 
   (@ $from:ty, $to:ty, $($unsafe:ident)?, $self:ident, $value:expr) => {

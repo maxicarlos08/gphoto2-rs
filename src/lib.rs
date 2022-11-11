@@ -12,6 +12,8 @@ pub mod filesys;
 pub(crate) mod helper;
 pub mod list;
 pub mod port;
+pub mod task;
+pub(crate) mod thread;
 pub mod widget;
 
 use self::error::try_gp_internal;

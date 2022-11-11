@@ -8,7 +8,7 @@
 //!
 //! # fn main() -> Result<()> {
 //! let context= Context::new()?;
-//! let camera = context.autodetect_camera()?;
+//! let camera = context.autodetect_camera().wait()?;
 //!
 //! let port_info = camera.port_info()?; // Returns a PortInfo struct
 //!
@@ -17,7 +17,7 @@
 //! ```
 
 use crate::{
-  helper::{as_ref, chars_to_string, libtool_lock},
+  helper::{as_ref, chars_to_string},
   try_gp_internal, Result,
 };
 use std::{fmt, marker::PhantomData};
@@ -130,9 +130,8 @@ impl PortInfo<'_> {
 }
 
 impl PortInfoList {
-  pub(crate) fn new() -> Result<Self> {
-    let _lock = libtool_lock(); // gp_port_info_list_load -> libtool
-
+  /// Must be called from a [`Task`]
+  pub(crate) fn new_inner() -> Result<Self> {
     try_gp_internal!(gp_port_info_list_new(&out port_info_list)?);
     try_gp_internal!(gp_port_info_list_load(port_info_list)?);
 

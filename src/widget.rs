@@ -6,17 +6,18 @@
 //!
 //! # fn main() -> Result<()> {
 //! let context = Context::new()?;
-//! let camera = context.autodetect_camera()?;
+//! let camera = context.autodetect_camera().wait()?;
 //!
-//! let mut config = camera.config_key::<RadioWidget>("iso")?;
+//! let mut config = camera.config_key::<RadioWidget>("iso").wait()?;
 //! config.set_choice("100")?; // Set the iso to 100
-//! camera.set_config(&config); // Apply setting to camera
+//! camera.set_config(&config).wait(); // Apply setting to camera
 //! # Ok(())
 //! # }
 //! ```
 
 use crate::{
   helper::{as_ref, chars_to_string, to_c_string},
+  task::{BackgroundPtr, Task},
   try_gp_internal, Camera, Error, Result,
 };
 use std::{
@@ -51,63 +52,69 @@ impl ExactSizeIterator for WidgetIterator<'_> {
 
 /// Base widget type providing general information about the widget.
 ///
-/// Normally you shouldn't use this type directly but should acccess its
+/// Normally you shouldn't use this type directly but should access its
 /// properties via [`Widget`] or specific typed widgets instead.
 pub struct WidgetBase {
-  pub(crate) inner: *mut libgphoto2_sys::CameraWidget,
+  pub(crate) inner: BackgroundPtr<libgphoto2_sys::CameraWidget>,
 }
 
 impl Clone for WidgetBase {
   fn clone(&self) -> Self {
-    try_gp_internal!(gp_widget_ref(self.inner).unwrap());
+    try_gp_internal!(gp_widget_ref(*self.inner).unwrap());
     Self { inner: self.inner }
   }
 }
 
 impl Drop for WidgetBase {
   fn drop(&mut self) {
-    try_gp_internal!(gp_widget_unref(self.inner).unwrap());
+    let widget_ptr = self.inner;
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_widget_unref(*widget_ptr).unwrap());
+      })
+    }
+    .background();
   }
 }
 
 impl WidgetBase {
   fn as_ptr(&self) -> *mut libgphoto2_sys::CameraWidget {
-    self.inner
+    *self.inner
   }
 
   /// Get exact widget type.
   fn ty(&self) -> libgphoto2_sys::CameraWidgetType {
-    try_gp_internal!(gp_widget_get_type(self.inner, &out widget_type).unwrap());
+    try_gp_internal!(gp_widget_get_type(*self.inner, &out widget_type).unwrap());
     widget_type
   }
 
   /// If true, the widget cannot be written
   pub fn readonly(&self) -> bool {
-    try_gp_internal!(gp_widget_get_readonly(self.inner, &out readonly).unwrap());
+    try_gp_internal!(gp_widget_get_readonly(*self.inner, &out readonly).unwrap());
     readonly == 1
   }
 
   /// Get the widget label
   pub fn label(&self) -> String {
-    try_gp_internal!(gp_widget_get_label(self.inner, &out label).unwrap());
+    try_gp_internal!(gp_widget_get_label(*self.inner, &out label).unwrap());
     chars_to_string(label)
   }
 
   /// Get the widget name
   pub fn name(&self) -> String {
-    try_gp_internal!(gp_widget_get_name(self.inner, &out name).unwrap());
+    try_gp_internal!(gp_widget_get_name(*self.inner, &out name).unwrap());
     chars_to_string(name)
   }
 
   /// Get the widget id
   pub fn id(&self) -> i32 {
-    try_gp_internal!(gp_widget_get_id(self.inner, &out id).unwrap());
+    try_gp_internal!(gp_widget_get_id(*self.inner, &out id).unwrap());
     id
   }
 
   /// Get information about the widget
   pub fn info(&self) -> String {
-    try_gp_internal!(gp_widget_get_info(self.inner, &out info).unwrap());
+    try_gp_internal!(gp_widget_get_info(*self.inner, &out info).unwrap());
     chars_to_string(info)
   }
 
@@ -120,12 +127,12 @@ impl WidgetBase {
 
   unsafe fn raw_value<T>(&self) -> T {
     let mut value = std::mem::MaybeUninit::<T>::uninit();
-    try_gp_internal!(gp_widget_get_value(self.inner, value.as_mut_ptr().cast::<c_void>()).unwrap());
+    try_gp_internal!(gp_widget_get_value(*self.inner, value.as_mut_ptr().cast::<c_void>()).unwrap());
     value.assume_init()
   }
 
   unsafe fn set_raw_value<T>(&self, value: *const T) {
-    try_gp_internal!(gp_widget_set_value(self.inner, value.cast::<c_void>()).unwrap());
+    try_gp_internal!(gp_widget_set_value(*self.inner, value.cast::<c_void>()).unwrap());
   }
 }
 
@@ -138,7 +145,7 @@ impl fmt::Debug for WidgetBase {
   }
 }
 
-as_ref!(WidgetBase -> libgphoto2_sys::CameraWidget, *self.inner);
+as_ref!(WidgetBase -> libgphoto2_sys::CameraWidget, **self.inner);
 
 macro_rules! join_strings {
   ($delim:literal, $first:expr $(, $rest:expr)*) => {
@@ -158,7 +165,7 @@ macro_rules! typed_widgets {
     }
 
     impl Widget {
-      pub(crate) fn new_owned(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
+      pub(crate) fn new_owned(widget: BackgroundPtr<libgphoto2_sys::CameraWidget>) -> Self {
         let inner = WidgetBase { inner: widget };
 
         match inner.ty() {
@@ -297,28 +304,28 @@ impl GroupWidget {
   pub fn get_child(&self, index: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child(self.as_ptr(), index.try_into()?, &out child)?);
 
-    Ok(Widget::new_shared(child))
+    Ok(Widget::new_shared(BackgroundPtr(child)))
   }
 
   /// Get a child by its id
   pub fn get_child_by_id(&self, id: usize) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_id(self.as_ptr(), id.try_into()?, &out child)?);
 
-    Ok(Widget::new_shared(child))
+    Ok(Widget::new_shared(BackgroundPtr(child)))
   }
 
   /// Get a child by its label
   pub fn get_child_by_label(&self, label: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_label(self.as_ptr(), to_c_string!(label), &out child)?);
 
-    Ok(Widget::new_shared(child))
+    Ok(Widget::new_shared(BackgroundPtr(child)))
   }
 
   /// Get a child by its name
   pub fn get_child_by_name(&self, name: &str) -> Result<Widget> {
     try_gp_internal!(gp_widget_get_child_by_name(self.as_ptr(), to_c_string!(name), &out child)?);
 
-    Ok(Widget::new_shared(child))
+    Ok(Widget::new_shared(BackgroundPtr(child)))
   }
 
   fn fmt_fields(&self, f: &mut fmt::DebugStruct) {
@@ -462,7 +469,7 @@ impl ButtonWidget {
   pub fn press(&self, camera: &Camera) -> Result<()> {
     let callback = unsafe { self.raw_value::<libgphoto2_sys::CameraWidgetCallback>() }
       .ok_or("Button without callback")?;
-    Error::check(unsafe { callback(camera.camera, self.as_ptr(), camera.context.inner) })?;
+    Error::check(unsafe { callback(*camera.camera, self.as_ptr(), *camera.context.inner) })?;
     Ok(())
   }
 
@@ -470,8 +477,8 @@ impl ButtonWidget {
 }
 
 impl Widget {
-  pub(crate) fn new_shared(widget: *mut libgphoto2_sys::CameraWidget) -> Self {
-    try_gp_internal!(gp_widget_ref(widget).unwrap());
+  pub(crate) fn new_shared(widget: BackgroundPtr<libgphoto2_sys::CameraWidget>) -> Self {
+    try_gp_internal!(gp_widget_ref(*widget).unwrap());
     Self::new_owned(widget)
   }
 }

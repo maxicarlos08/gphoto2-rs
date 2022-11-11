@@ -7,7 +7,7 @@ fn main() -> Result<()> {
   let context = Context::new()?;
 
   println!("Available cameras:");
-  for CameraDescriptor { model, port } in context.list_cameras()? {
+  for CameraDescriptor { model, port } in context.list_cameras().wait()? {
     println!("  {} on port {}", model, port);
   }
 

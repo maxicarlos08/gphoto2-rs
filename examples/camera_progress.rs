@@ -25,7 +25,9 @@ impl gphoto2::context::ProgressHandler for ProgressManager {
   }
 
   fn update(&mut self, id: u32, progress: f32) {
-    self.progresses.get_mut(&id).map(|cprogress| cprogress.current = progress);
+    if let Some(cprogress) = self.progresses.get_mut(&id) {
+      cprogress.current = progress;
+    }
     self.on_progress_update();
   }
 
@@ -60,11 +62,14 @@ fn main() -> Result<()> {
 
   env_logger::init();
 
-  context.set_progress_functions(ProgressManager::new());
+  context.set_progress_handlers(ProgressManager::new());
 
-  let camera = context.autodetect_camera()?;
-  let image = camera.capture_image()?;
-  camera.fs().download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned()))?;
+  let camera = context.autodetect_camera().wait()?;
+  let image = camera.capture_image().wait()?;
+  camera
+    .fs()
+    .download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned()))
+    .wait()?;
 
   Ok(())
 }
