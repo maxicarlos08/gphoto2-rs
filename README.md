@@ -78,7 +78,7 @@ fn main() -> Result<()> {
 
   // And take pictures
   let file_path = camera.capture_image().wait().expect("Could not capture image");
-  camera_fs.download_to(&file_path.name(), &file_path.folder(), Path::new(&file_path.name().to_string())).wait()?;
+  camera_fs.download_to(&file_path.folder(), &file_path.name(), Path::new(&file_path.name().to_string())).wait()?;
 
   // For more advanced examples take a look at the examples/ folder
 
