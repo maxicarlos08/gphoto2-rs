@@ -48,6 +48,8 @@ pub enum ErrorKind {
   Timeout,
   /// Port is not known
   UnknownPort,
+  /// Couldn't claim USB device.
+  IoUsbClaim,
 }
 
 /// General error
@@ -93,6 +95,7 @@ impl Error {
       libgphoto2_sys::GP_ERROR_PATH_NOT_ABSOLUTE => ErrorKind::PathNotAbsolute,
       libgphoto2_sys::GP_ERROR_TIMEOUT => ErrorKind::Timeout,
       libgphoto2_sys::GP_ERROR_UNKNOWN_PORT => ErrorKind::UnknownPort,
+      libgphoto2_sys::GP_ERROR_IO_USB_CLAIM => ErrorKind::IoUsbClaim,
 
       libgphoto2_sys::GP_ERROR => ErrorKind::Other,
       _ => ErrorKind::Other,
