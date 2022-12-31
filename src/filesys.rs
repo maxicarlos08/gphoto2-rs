@@ -310,12 +310,17 @@ impl<'a> CameraFS<'a> {
 
   /// Downloads a file from the camera
   pub fn download_to(&self, folder: &str, file: &str, path: &Path) -> Task<Result<CameraFile>> {
-    self.to_camera_file(folder, file, Some(path))
+    self.to_camera_file(folder, file, FileType::Normal, Some(path))
   }
 
   /// Downloads a camera file to memory
   pub fn download(&self, folder: &str, file: &str) -> Task<Result<CameraFile>> {
-    self.to_camera_file(folder, file, None)
+    self.to_camera_file(folder, file, FileType::Normal, None)
+  }
+
+  /// Downloads a preview into memory
+  pub fn download_preview(&self,folder: &str, file: &str) -> Task<Result<CameraFile>> {
+    self.to_camera_file(folder, file, FileType::Preview, None)
   }
 
   /// Upload a file to the camera
@@ -457,6 +462,7 @@ impl CameraFS<'_> {
     &self,
     folder: &str,
     file: &str,
+    type_: FileType,
     path: Option<&Path>,
   ) -> Task<Result<CameraFile>> {
     let (folder, file, path) = (folder.to_owned(), file.to_owned(), path.map(ToOwned::to_owned));
@@ -474,7 +480,7 @@ impl CameraFS<'_> {
           *camera,
           to_c_string!(folder),
           to_c_string!(file),
-          libgphoto2_sys::CameraFileType::GP_FILE_TYPE_NORMAL,
+          type_.into(),
           *camera_file.inner,
           *context
         )?);
