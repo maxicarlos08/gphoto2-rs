@@ -15,6 +15,7 @@ use std::{ffi, os::raw::c_char, time::Duration};
 
 /// Event from camera
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum CameraEvent {
   /// Unknown event
   Unknown(String),

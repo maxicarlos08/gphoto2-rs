@@ -42,6 +42,7 @@ pub struct UsbInfo {
 
 /// Status of the gphoto driver used
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum CameraDriverStatus {
   /// The driver is stable
   Production,
@@ -55,6 +56,7 @@ pub enum CameraDriverStatus {
 
 /// Type of the device
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum DeviceType {
   /// Still camera
   Camera,

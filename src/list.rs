@@ -71,6 +71,7 @@ macro_rules! camera_list_iter {
 
 /// Descriptor representing model+port pair of the connected camera.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct CameraDescriptor {
   /// Camera model.
   pub model: String,

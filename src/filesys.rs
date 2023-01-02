@@ -54,6 +54,7 @@ macro_rules! storage_info {
 
 /// Hardware storage type
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum StorageType {
   /// Unknown storage type
   Unknown,
@@ -69,6 +70,7 @@ pub enum StorageType {
 
 /// Type of the filesystem hierarchy
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum FilesystemType {
   /// Unknown filesystem type
   Unknown,
@@ -82,6 +84,7 @@ pub enum FilesystemType {
 
 /// Access types of storage
 #[derive(Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum AccessType {
   /// Read/Write
   Rw,
