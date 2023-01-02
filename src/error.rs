@@ -191,6 +191,7 @@ macro_rules! try_gp_internal {
   // no-op, just checks that error is handled properly before .assume_init()
   (@check_unwrap_allowed .unwrap()) => {};
   (@check_unwrap_allowed ?) => {};
+  (@check_unwrap_allowed .map_err$handler:tt?) => {};
   (@check_unwrap_allowed $($rest:tt)*) => {
     compile_error!("try_gp_internal!() must be used with .unwrap() or ?")
   };
