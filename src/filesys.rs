@@ -5,10 +5,10 @@ use crate::{
   helper::{bitflags, char_slice_to_cow, to_c_string, UninitBox},
   list::{CameraList, FileListIter},
   task::Task,
-  try_gp_internal, Camera, Result,
+  try_gp_internal, Camera, Error, Result,
 };
 use libgphoto2_sys::time_t;
-use std::{borrow::Cow, ffi, fmt, path::Path};
+use std::{borrow::Cow, ffi, fmt, fs, path::Path};
 
 macro_rules! storage_info {
   ($(# $attr:tt)* $name:ident: $bitflag_ty:ident, |$inner:ident: $inner_ty:ident| { $($(# $field_attr:tt)* $field:ident: $ty:ty = $bitflag:ident, $expr:expr;)* }) => {
@@ -319,7 +319,7 @@ impl<'a> CameraFS<'a> {
   }
 
   /// Downloads a preview into memory
-  pub fn download_preview(&self,folder: &str, file: &str) -> Task<Result<CameraFile>> {
+  pub fn download_preview(&self, folder: &str, file: &str) -> Task<Result<CameraFile>> {
     self.to_camera_file(folder, file, FileType::Preview, None)
   }
 
@@ -471,8 +471,8 @@ impl CameraFS<'_> {
 
     unsafe {
       Task::new(move || {
-        let camera_file = match path {
-          Some(dest_path) => CameraFile::new_file(&dest_path)?,
+        let camera_file = match &path {
+          Some(dest_path) => CameraFile::new_file(dest_path)?,
           None => CameraFile::new()?,
         };
 
@@ -483,7 +483,16 @@ impl CameraFS<'_> {
           type_.into(),
           *camera_file.inner,
           *context
-        )?);
+        )
+        .map_err(|e| {
+          if let Some(path) = path {
+            if let Err(error) = fs::remove_file(path) {
+              return Into::<Error>::into(error);
+            }
+          }
+
+          e
+        })?);
 
         Ok(camera_file)
       })
