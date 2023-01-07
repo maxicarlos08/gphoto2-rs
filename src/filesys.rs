@@ -323,6 +323,11 @@ impl<'a> CameraFS<'a> {
     self.to_camera_file(folder, file, FileType::Preview, None)
   }
 
+  /// Downloads the EXIF block into memory
+  pub fn download_exif(&self, folder: &str, file: &str) -> Task<Result<CameraFile>> {
+    self.to_camera_file(folder, file, FileType::Exif, None)
+  }
+
   /// Upload a file to the camera
   #[allow(clippy::boxed_local)]
   pub fn upload_file(&self, folder: &str, filename: &str, data: Box<[u8]>) -> Task<Result<()>> {
