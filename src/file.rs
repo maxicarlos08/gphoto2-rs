@@ -1,5 +1,8 @@
 //! Files stored on camera
 
+#[cfg(feature = "serde")]
+use serde::ser::SerializeMap;
+
 use crate::{
   error::Error,
   helper::{as_ref, char_slice_to_cow, chars_to_string, IntoUnixFd},
@@ -14,6 +17,7 @@ pub struct CameraFilePath {
 }
 
 /// Type of a file
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum FileType {
   /// Preview of an image
   Preview,
@@ -65,6 +69,19 @@ impl From<libgphoto2_sys::CameraFileType> for FileType {
       GPFileType::GP_FILE_TYPE_EXIF => Self::Exif,
       GPFileType::GP_FILE_TYPE_METADATA => Self::Metadata,
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for CameraFilePath {
+  fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+      where
+          S: serde::Serializer {
+      let mut m = serializer.serialize_map(Some(2))?;
+      m.serialize_entry("name", &self.name())?;
+      m.serialize_entry("folder", &self.folder())?;
+
+      m.end()
   }
 }
 

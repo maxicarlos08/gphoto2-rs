@@ -1,8 +1,10 @@
 //! Error handling
 
+use crate::helper::chars_to_string;
 use std::{error, fmt, os::raw::c_int};
 
-use crate::helper::chars_to_string;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 /// Result type used in this library
 pub type Result<T> = std::result::Result<T, Error>;
@@ -100,6 +102,16 @@ impl Error {
       libgphoto2_sys::GP_ERROR => ErrorKind::Other,
       _ => ErrorKind::Other,
     }
+  }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Error {
+  fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    serializer.serialize_str(&self.to_string())
   }
 }
 

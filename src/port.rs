@@ -24,6 +24,7 @@ use std::{fmt, marker::PhantomData};
 
 /// Type of the port
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum PortType {
   /// Serial port
   Serial,

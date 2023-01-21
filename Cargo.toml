@@ -15,6 +15,7 @@ readme = "README.md"
 # Uses gp_log_add_func instead of gp_context_set_log_func for logging (not supported on many systems)
 extended_logs = []
 test = ["libgphoto2_sys/test"]
+serde = ["dep:serde"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -26,6 +27,7 @@ libgphoto2_sys = { path = "libgphoto2-sys", version = "1.1" }
 libc = "0.2"
 log = "0.4"
 crossbeam-channel = "0.5.6"
+serde = { version = "1", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 env_logger = "0.9.1"
