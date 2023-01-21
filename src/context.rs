@@ -55,7 +55,6 @@ pub(crate) trait CancelHandler: 'static + Send {
 /// ```
 pub struct Context {
   pub(crate) inner: BackgroundPtr<libgphoto2_sys::GPContext>,
-  // TODO: Integrate progress into `Task`
   progress_handler: Option<Arc<dyn ProgressHandler + 'static + Send>>,
   cancel_handler: Option<Arc<dyn CancelHandler + 'static + Send>>,
 }
