@@ -75,13 +75,14 @@ impl From<libgphoto2_sys::CameraFileType> for FileType {
 #[cfg(feature = "serde")]
 impl serde::Serialize for CameraFilePath {
   fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-      where
-          S: serde::Serializer {
-      let mut m = serializer.serialize_map(Some(2))?;
-      m.serialize_entry("name", &self.name())?;
-      m.serialize_entry("folder", &self.folder())?;
+  where
+    S: serde::Serializer,
+  {
+    let mut m = serializer.serialize_map(Some(2))?;
+    m.serialize_entry("name", &self.name())?;
+    m.serialize_entry("folder", &self.folder())?;
 
-      m.end()
+    m.end()
   }
 }
 

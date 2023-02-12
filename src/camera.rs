@@ -378,6 +378,12 @@ impl Camera {
 
 #[cfg(all(test, feature = "test"))]
 mod tests {
+  // Compile-only test to ensure that Camera is Send + Sync.
+  const _: () = {
+    const fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<super::Camera>()
+  };
+
   fn sample_camera() -> super::Camera {
     crate::sample_context().autodetect_camera().wait().unwrap()
   }
