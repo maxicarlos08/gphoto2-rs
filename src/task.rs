@@ -29,7 +29,7 @@ pub struct Task<T> {
   waker_set: bool,
   task: ToBeRunTask<T>,
   context: Option<BackgroundPtr<libgphoto2_sys::GPContext>>,
-  progress_handler: Option<Box<dyn ProgressHandler + Send>>,
+  progress_handler: Option<Box<dyn ProgressHandler>>,
   recv_waker: Option<Receiver<Waker>>,
 }
 
@@ -118,7 +118,7 @@ where
   /// Must be called before the task is started
   pub fn set_progress_handler<H>(&mut self, handler: H)
   where
-    H: ProgressHandler + Send,
+    H: ProgressHandler,
   {
     self.progress_handler = Some(Box::new(handler));
   }

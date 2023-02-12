@@ -9,11 +9,10 @@ use crate::{
   task::{BackgroundPtr, Task},
   try_gp_internal, Error, Result,
 };
-use std::{ffi, ops::DerefMut};
-use std::{
-  os::raw::{c_char, c_float, c_uint, c_void},
-  sync::Arc,
-};
+use std::ffi;
+use std::ops::DerefMut;
+use std::os::raw::{c_char, c_float, c_uint, c_void};
+use std::sync::{Arc, Mutex};
 
 /// Progress handler trait
 pub trait ProgressHandler: 'static + Send {
@@ -55,8 +54,8 @@ pub(crate) trait CancelHandler: 'static + Send {
 /// ```
 pub struct Context {
   pub(crate) inner: BackgroundPtr<libgphoto2_sys::GPContext>,
-  progress_handler: Option<Arc<dyn ProgressHandler + 'static + Send>>,
-  cancel_handler: Option<Arc<dyn CancelHandler + 'static + Send>>,
+  progress_handler: Option<Arc<Mutex<dyn ProgressHandler>>>,
+  cancel_handler: Option<Arc<Mutex<dyn CancelHandler>>>,
 }
 
 impl Drop for Context {
@@ -84,6 +83,21 @@ impl Clone for Context {
 }
 
 as_ref!(Context -> libgphoto2_sys::GPContext, **self.inner);
+
+// TODO: once CoerceUnsized is stable, make this a function.
+macro_rules! alloc_handler {
+  ($handler:expr) => {{
+    let mut handler = Arc::new(Mutex::new($handler));
+
+    // Now that handler is on the heap, the pointer should be stable.
+    // Also, we know that there are and won't be other mutable references to it,
+    // so we can safely retrieve a raw mutable pointer from the Mutex
+    // and give it to the C code.
+    let handler_ptr: *mut _ = Arc::get_mut(&mut handler).unwrap().get_mut().unwrap();
+
+    (handler, handler_ptr.cast::<c_void>())
+  }};
+}
 
 impl Context {
   /// Create a new context
@@ -207,7 +221,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_handlers<H: ProgressHandler + Send>(&mut self, handler: H) {
+  pub fn set_progress_handlers<H: ProgressHandler>(&mut self, handler: H) {
     unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: c_float,
@@ -234,14 +248,7 @@ impl Context {
       as_handler::<H>(data).stop(id)
     }
 
-    let progress_handler = Arc::new(handler);
-
-    // Now that handler is on the heap, the pointer should be stable.
-    // Also, we know that there are and won't be other mutable references to it,
-    // so we can safely cast it to a raw *mutable* pointer despite Rc only
-    // providing immutable access.
-    #[allow(clippy::as_conversions)]
-    let data_ptr = Arc::as_ptr(&progress_handler) as *mut c_void;
+    let (progress_handler, progress_handler_ptr) = alloc_handler!(handler);
 
     unsafe {
       libgphoto2_sys::gp_context_set_progress_funcs(
@@ -249,7 +256,7 @@ impl Context {
         Some(start_func::<H>),
         Some(update_func::<H>),
         Some(stop_func::<H>),
-        data_ptr,
+        progress_handler_ptr,
       );
     }
 
@@ -273,15 +280,13 @@ impl Context {
       }
     }
 
-    let cancel_handler = Arc::new(handler);
-    #[allow(clippy::as_conversions)]
-    let handler_ptr = Arc::as_ptr(&cancel_handler) as *mut c_void;
+    let (cancel_handler, cancel_handler_ptr) = alloc_handler!(handler);
 
     unsafe {
       libgphoto2_sys::gp_context_set_cancel_func(
         *self.inner,
         Some(handle_cancel::<H>),
-        handler_ptr,
+        cancel_handler_ptr,
       );
     }
 
@@ -321,7 +326,7 @@ unsafe fn as_handler<H>(data: *mut c_void) -> &'static mut H {
   &mut *data.cast()
 }
 
-impl ProgressHandler for Box<dyn ProgressHandler + Send> {
+impl ProgressHandler for Box<dyn ProgressHandler> {
   fn start(&mut self, target: f32, message: String) -> u32 {
     self.deref_mut().start(target, message)
   }
@@ -335,10 +340,14 @@ impl ProgressHandler for Box<dyn ProgressHandler + Send> {
   }
 }
 
-unsafe impl Send for Context {}
-
 #[cfg(all(test, feature = "test"))]
 mod tests {
+  // Compile-only test to ensure that Context is Send + Sync.
+  const _: () = {
+    const fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<super::Context>()
+  };
+
   #[test]
   fn test_list_cameras() {
     let cameras = crate::sample_context().list_cameras().wait().unwrap().collect::<Vec<_>>();
