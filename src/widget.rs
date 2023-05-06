@@ -187,7 +187,7 @@ macro_rules! typed_widgets {
         fn try_from(widget: Widget) -> Result<Self> {
           match widget {
             Widget::$variant(widget) => Ok(widget),
-            _ => Err(Error::from(format!("Expected {} but got {:?}", stringify!($name), widget))),
+            _ => Err(Error::from(format!("Got {} but expected {:?}", stringify!($name),widget))),
           }
         }
       }
