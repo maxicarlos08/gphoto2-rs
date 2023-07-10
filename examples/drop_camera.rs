@@ -1,9 +1,11 @@
 //! Test if the camera can be dropped while there are is still eg. a widget of that camera present
 
+mod logging;
+
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  logging::setup();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 

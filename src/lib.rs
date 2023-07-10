@@ -36,15 +36,13 @@ compile_error!("The test feature must be enabled to run the tests");
 #[cfg(all(test, feature = "test"))]
 fn sample_context() -> Context {
   use std::sync::Once;
+  use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
   static INIT: Once = Once::new();
   INIT.call_once(|| {
-    // Enable logging.
-    env_logger::builder()
-      // As much logging as possible.
-      .filter_module("gphoto2", log::LevelFilter::max())
-      // But hide logs if tests are successful.
-      .is_test(true)
+    tracing_subscriber::registry()
+      .with(fmt::layer())
+      .with(EnvFilter::from_default_env().add_directive("gphoto2=trace".parse().unwrap()))
       .init();
 
     // Tell libgphoto2 to look for drivers in a custom built directory.

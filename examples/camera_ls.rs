@@ -1,3 +1,5 @@
+mod logging;
+
 use gphoto2::{filesys::CameraFS, Context, Result};
 use std::collections::HashMap;
 
@@ -24,7 +26,7 @@ fn list_folder_recursive(fs: &CameraFS, folder_name: &str) -> Result<FolderConte
 }
 
 fn main() -> Result<()> {
-  env_logger::init();
+  logging::setup();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
   let fs = camera.fs();

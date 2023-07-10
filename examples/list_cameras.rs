@@ -1,8 +1,10 @@
+mod logging;
+
 use gphoto2::list::CameraDescriptor;
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  logging::setup();
 
   let context = Context::new()?;
 

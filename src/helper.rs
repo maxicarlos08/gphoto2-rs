@@ -41,45 +41,56 @@ impl IntoUnixFd for File {
   }
 }
 
+// Code borrowed from: https://github.com/tokio-rs/tracing/issues/372#issuecomment-762529515 (remove when tokio-rs/tracing!372 is fixed)
+macro_rules! event {
+    (target: $target:expr, $level:expr, $($args:tt)*) => {{
+        use ::tracing::Level;
+
+        match $level {
+            Level::ERROR => ::tracing::event!(target: $target, Level::ERROR, $($args)*),
+            Level::WARN => ::tracing::event!(target: $target, Level::WARN, $($args)*),
+            Level::INFO => ::tracing::event!(target: $target, Level::INFO, $($args)*),
+            Level::DEBUG => ::tracing::event!(target: $target, Level::DEBUG, $($args)*),
+            Level::TRACE => ::tracing::event!(target: $target, Level::TRACE, $($args)*),
+        }
+    }};
+}
+
 #[cfg(feature = "extended_logs")]
 pub fn hook_gp_log() {
   use libgphoto2_sys::GPLogLevel;
-  use log::LevelFilter;
+  use tracing::Level;
 
   unsafe extern "C" fn log_function(
     level: libgphoto2_sys::GPLogLevel,
-    domain: *const std::os::raw::c_char,
+    _domain: *const std::os::raw::c_char,
     message: *const std::os::raw::c_char,
     _data: *mut ffi::c_void,
   ) {
     let log_level = match level {
-      GPLogLevel::GP_LOG_ERROR => log::Level::Error,
-      GPLogLevel::GP_LOG_DEBUG => log::Level::Debug,
-      GPLogLevel::GP_LOG_VERBOSE => log::Level::Info,
-      GPLogLevel::GP_LOG_DATA => log::Level::Trace,
+      GPLogLevel::GP_LOG_ERROR => Level::ERROR,
+      GPLogLevel::GP_LOG_DEBUG => Level::DEBUG,
+      GPLogLevel::GP_LOG_VERBOSE => Level::INFO,
+      GPLogLevel::GP_LOG_DATA => Level::TRACE,
     };
 
-    let target = format!("gphoto2::{}", chars_to_string(domain));
+    // let target = format!("gphoto2::{}", chars_to_string(domain)); -> Can't use this until tokio-rs/tracing!372 is resolved
 
-    log::log!(target: &target, log_level, "{}", chars_to_string(message));
+    event!(target: "gphoto2", log_level, "{}", chars_to_string(message));
   }
 
-  let max_log_level = match log::STATIC_MAX_LEVEL {
-    LevelFilter::Debug | LevelFilter::Warn => GPLogLevel::GP_LOG_DEBUG,
-    LevelFilter::Error => GPLogLevel::GP_LOG_ERROR,
-    LevelFilter::Info => GPLogLevel::GP_LOG_VERBOSE,
-    LevelFilter::Trace => GPLogLevel::GP_LOG_DATA,
-    LevelFilter::Off => return,
-  };
-
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
-    libgphoto2_sys::gp_log_add_func(max_log_level, Some(log_function), std::ptr::null_mut());
+    libgphoto2_sys::gp_log_add_func(
+      GPLogLevel::GP_LOG_DEBUG,
+      Some(log_function),
+      std::ptr::null_mut(),
+    );
   });
 }
 
 #[cfg(not(feature = "extended_logs"))]
 pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
-  use log::Level;
+  use tracing::Level;
 
   unsafe extern "C" fn log_func(
     _context: *mut libgphoto2_sys::GPContext,
@@ -88,12 +99,12 @@ pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
   ) {
     let log_level: Level = std::mem::transmute(log_level);
 
-    log::log!(target: "gphoto2", log_level, "{}", chars_to_string(message));
+    event!(target: "gphoto2", log_level, "{}", chars_to_string(message));
   }
 
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
-    if log::log_enabled!(log::Level::Error) {
-      let log_level_as_ptr = std::mem::transmute(log::Level::Error);
+    if tracing::enabled!(Level::ERROR) {
+      let log_level_as_ptr = std::mem::transmute(Level::ERROR);
 
       libgphoto2_sys::gp_context_set_error_func(context, Some(log_func), log_level_as_ptr);
 
@@ -101,11 +112,11 @@ pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
       libgphoto2_sys::gp_context_set_message_func(context, Some(log_func), log_level_as_ptr);
     }
 
-    if log::log_enabled!(log::Level::Info) {
+    if tracing::enabled!(Level::INFO) {
       libgphoto2_sys::gp_context_set_status_func(
         context,
         Some(log_func),
-        std::mem::transmute(log::Level::Info),
+        std::mem::transmute(Level::INFO),
       );
     }
   });

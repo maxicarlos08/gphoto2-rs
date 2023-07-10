@@ -4,12 +4,14 @@
 //! This example starts and ends live view mode on the camera for 10 s,
 //! this example only works on Nikon cameras.
 
+mod logging;
+
 use gphoto2::widget::TextWidget;
 use gphoto2::{Context, Result};
 use std::{thread, time::Duration};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  logging::setup();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 

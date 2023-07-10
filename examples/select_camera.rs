@@ -2,10 +2,12 @@
 //! Usage: select_camera <camera_name>
 //! To get a list of connected cameras, run example list_cameras
 
+mod logging;
+
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  logging::setup();
 
   let camera_name = std::env::args().nth(1).expect("Missing argument: camera_model");
 
