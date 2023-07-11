@@ -1,10 +1,8 @@
-mod logging;
-
 use gphoto2::list::CameraDescriptor;
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  logging::setup();
+  tracing_subscriber::fmt::init();
 
   let context = Context::new()?;
 

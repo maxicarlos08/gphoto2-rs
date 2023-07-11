@@ -3,14 +3,12 @@
 //! There are also actions for capturing movies, changing liveview, etc.  
 //! This example will only work for Nikon DSLR cameras.
 
-mod logging;
-
 use gphoto2::widget::{RadioWidget, ToggleWidget};
 use gphoto2::{camera::CameraEvent, Context, Result};
 use std::{thread::sleep, time::Duration};
 
 fn main() -> Result<()> {
-  logging::setup();
+  tracing_subscriber::fmt::init();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 

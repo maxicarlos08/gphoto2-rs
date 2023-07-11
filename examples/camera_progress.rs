@@ -1,7 +1,5 @@
 #![allow(dead_code)] // This is just an example
 
-mod logging;
-
 use gphoto2::{Context, Result};
 use std::{collections::HashMap, path::Path};
 
@@ -62,7 +60,7 @@ impl ContextProgress {
 fn main() -> Result<()> {
   let mut context = Context::new()?;
 
-  logging::setup();
+  tracing_subscriber::fmt::init();
 
   context.set_progress_handlers(ProgressManager::new());
 

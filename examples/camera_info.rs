@@ -1,9 +1,7 @@
-mod logging;
-
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  logging::setup();
+  tracing_subscriber::fmt::init();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 
