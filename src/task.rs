@@ -123,6 +123,17 @@ where
     self.progress_handler = Some(Box::new(handler));
   }
 
+  /// Set the progress handler for the task
+  ///
+  /// Must be called before the task is started
+  pub fn with_progress_handler<H>(mut self, handler: H) -> Self
+  where
+    H: ProgressHandler,
+  {
+    self.progress_handler = Some(Box::new(handler));
+    self
+  }
+
   /// Request the current task to be cancelled
   pub fn cancel(&self) {
     self.cancel.store(true, Ordering::Relaxed);
