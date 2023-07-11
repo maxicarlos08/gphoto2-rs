@@ -7,6 +7,8 @@ use std::{
   sync::Once,
 };
 
+use tracing::Level;
+
 static HOOK_LOG_FUNCTION: Once = Once::new();
 
 pub fn char_slice_to_cow(chars: &[c_char]) -> Cow<'_, str> {
@@ -42,18 +44,14 @@ impl IntoUnixFd for File {
 }
 
 // Code borrowed from: https://github.com/tokio-rs/tracing/issues/372#issuecomment-762529515 (remove when tokio-rs/tracing!372 is fixed)
-macro_rules! event {
-    (target: $target:expr, $level:expr, $($args:tt)*) => {{
-        use ::tracing::Level;
-
-        match $level {
-            Level::ERROR => ::tracing::event!(target: $target, Level::ERROR, $($args)*),
-            Level::WARN => ::tracing::event!(target: $target, Level::WARN, $($args)*),
-            Level::INFO => ::tracing::event!(target: $target, Level::INFO, $($args)*),
-            Level::DEBUG => ::tracing::event!(target: $target, Level::DEBUG, $($args)*),
-            Level::TRACE => ::tracing::event!(target: $target, Level::TRACE, $($args)*),
-        }
-    }};
+fn event(level: Level, message: String) {
+  match level {
+    Level::ERROR => ::tracing::event!(target: "gphoto2", Level::ERROR, message),
+    Level::WARN => ::tracing::event!(target: "gphoto2", Level::WARN, message),
+    Level::INFO => ::tracing::event!(target: "gphoto2", Level::INFO, message),
+    Level::DEBUG => ::tracing::event!(target: "gphoto2", Level::DEBUG, message),
+    Level::TRACE => ::tracing::event!(target: "gphoto2", Level::TRACE, message),
+  }
 }
 
 #[cfg(feature = "extended_logs")]
@@ -76,7 +74,7 @@ pub fn hook_gp_log() {
 
     // let target = format!("gphoto2::{}", chars_to_string(domain)); -> Can't use this until tokio-rs/tracing!372 is resolved
 
-    event!(target: "gphoto2", log_level, "{}", chars_to_string(message));
+    event(log_level, chars_to_string(message));
   }
 
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
@@ -90,8 +88,6 @@ pub fn hook_gp_log() {
 
 #[cfg(not(feature = "extended_logs"))]
 pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
-  use tracing::Level;
-
   unsafe extern "C" fn log_func(
     _context: *mut libgphoto2_sys::GPContext,
     message: *const c_char,
@@ -99,7 +95,7 @@ pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
   ) {
     let log_level: Level = std::mem::transmute(log_level);
 
-    event!(target: "gphoto2", log_level, "{}", chars_to_string(message));
+    event(log_level, chars_to_string(message));
   }
 
   HOOK_LOG_FUNCTION.call_once(|| unsafe {

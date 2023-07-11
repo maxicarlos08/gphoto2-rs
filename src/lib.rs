@@ -41,7 +41,7 @@ fn sample_context() -> Context {
   static INIT: Once = Once::new();
   INIT.call_once(|| {
     tracing_subscriber::registry()
-      .with(fmt::layer())
+      .with(fmt::layer().with_test_writer())
       .with(EnvFilter::from_default_env().add_directive("gphoto2=trace".parse().unwrap()))
       .init();
 
