@@ -58,17 +58,16 @@ impl ContextProgress {
 }
 
 fn main() -> Result<()> {
-  let mut context = Context::new()?;
+  let context = Context::new()?;
 
   env_logger::init();
-
-  context.set_progress_handlers(ProgressManager::new());
 
   let camera = context.autodetect_camera().wait()?;
   let image = camera.capture_image().wait()?;
   camera
     .fs()
     .download_to(&image.folder(), &image.name(), Path::new(&image.name().into_owned()))
+    .with_progress_handler(ProgressManager::new())
     .wait()?;
 
   Ok(())

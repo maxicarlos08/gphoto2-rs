@@ -221,7 +221,7 @@ impl Context {
   /// # Example
   ///
   /// An example can be found in the examples directory
-  pub fn set_progress_handlers<H: ProgressHandler>(&mut self, handler: H) {
+  pub(crate) fn set_progress_handlers<H: ProgressHandler>(&mut self, handler: H) {
     unsafe extern "C" fn start_func<H: ProgressHandler>(
       _ctx: *mut libgphoto2_sys::GPContext,
       target: c_float,
