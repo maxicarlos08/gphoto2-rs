@@ -296,7 +296,7 @@ impl Camera {
     Ok(unsafe { PortInfo::new(port_info) })
   }
 
-  /// Get the camera configuration
+  /// Get the entire camera configuration tree
   pub fn config(&self) -> Task<Result<GroupWidget>> {
     let camera = self.camera;
     let context = self.context.inner;

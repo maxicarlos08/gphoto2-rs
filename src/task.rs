@@ -5,7 +5,7 @@ use crate::{
   thread::{TaskFunc, ThreadManager, THREAD_MANAGER},
   Context,
 };
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use std::{
   future::Future,
   ops::Deref,
@@ -108,9 +108,14 @@ where
   }
 
   /// Block until the response if available
-  pub fn wait(mut self) -> T {
+  pub fn wait(self) -> T {
+    self.try_wait().unwrap()
+  }
+
+  /// Try blocking until a result is available
+  pub fn try_wait(mut self) -> Result<T, RecvError> {
     self.start_task();
-    self.rx.recv().unwrap()
+    self.rx.recv()
   }
 
   /// Set the progress handler for the task

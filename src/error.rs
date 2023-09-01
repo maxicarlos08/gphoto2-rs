@@ -40,8 +40,22 @@ pub enum ErrorKind {
   NoMemory,
   /// Not enough space
   NoSpace,
-  /// Io error
+  /// Generic I/O error
   Io,
+  /// I/O during read
+  IoRead,
+  /// I/O during write
+  IoWrite,
+  /// I/O during update of settings
+  IoUpdate,
+  /// Specified serial speed not possible
+  IoSerialSpeed,
+  /// Error during USB clear HALT
+  IoUsbClearHalt,
+  /// Error while trying to find USB device
+  IoUsbFind,
+  /// Error while trying to lock IO device
+  IoLock,
   /// OS error
   OsFailure,
   /// Path is not absolute
@@ -98,6 +112,13 @@ impl Error {
       libgphoto2_sys::GP_ERROR_TIMEOUT => ErrorKind::Timeout,
       libgphoto2_sys::GP_ERROR_UNKNOWN_PORT => ErrorKind::UnknownPort,
       libgphoto2_sys::GP_ERROR_IO_USB_CLAIM => ErrorKind::IoUsbClaim,
+      libgphoto2_sys::GP_ERROR_IO_READ => ErrorKind::IoRead,
+      libgphoto2_sys::GP_ERROR_IO_WRITE => ErrorKind::IoWrite,
+      libgphoto2_sys::GP_ERROR_IO_UPDATE => ErrorKind::IoUpdate,
+      libgphoto2_sys::GP_ERROR_IO_SERIAL_SPEED => ErrorKind::IoSerialSpeed,
+      libgphoto2_sys::GP_ERROR_IO_USB_CLEAR_HALT => ErrorKind::IoUsbClearHalt,
+      libgphoto2_sys::GP_ERROR_IO_USB_FIND => ErrorKind::IoUsbFind,
+      libgphoto2_sys::GP_ERROR_IO_LOCK => ErrorKind::IoLock,
 
       libgphoto2_sys::GP_ERROR => ErrorKind::Other,
       _ => ErrorKind::Other,
