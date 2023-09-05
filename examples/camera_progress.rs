@@ -60,7 +60,7 @@ impl ContextProgress {
 fn main() -> Result<()> {
   let context = Context::new()?;
 
-  env_logger::init();
+  tracing_subscriber::fmt::init();
 
   let camera = context.autodetect_camera().wait()?;
   let image = camera.capture_image().wait()?;

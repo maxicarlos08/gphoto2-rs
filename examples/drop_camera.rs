@@ -3,7 +3,7 @@
 use gphoto2::{Context, Result};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  tracing_subscriber::fmt::init();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 
