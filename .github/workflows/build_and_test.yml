@@ -22,7 +22,7 @@ jobs:
         run: sudo apt install -y autopoint
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install automake
+        run: brew install automake libtool
       - name: Run tests
         run: cargo test -F test --verbose
 
@@ -48,6 +48,7 @@ jobs:
             mingw-w64-x86_64-libltdl
             mingw-w64-x86_64-clang
             pkgconf
+            libtool
       - name: Setup Rust
         run: rustup default stable-x86_64-pc-windows-gnu
       - name: Run tests
