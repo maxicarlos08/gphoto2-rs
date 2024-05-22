@@ -138,6 +138,23 @@ impl Camera {
     .context(context)
   }
 
+  /// Trigger a capture, without waiting for an image to be returned.
+  ///
+  /// The image can later be retreived by listening for the [`CameraEvent::NewFile`] event.
+  pub fn trigger_capture(&self) -> Task<Result<()>> {
+    let camera = self.camera;
+    let context = self.context.inner;
+
+    unsafe {
+      Task::new(move || {
+        try_gp_internal!(gp_camera_trigger_capture(*camera, *context)?);
+
+        Ok(())
+      })
+    }
+    .context(context)
+  }
+
   /// Capture a preview image
   ///
   /// ```no_run
