@@ -33,7 +33,7 @@ Run `cargo add gphoto2` to add gphoto2 to your project or add this to your `Carg
 
 ```toml
 [dependencies]
-gphoto2 = "1"
+gphoto2 = "3.3"
 ```
 
 #### Install libgphoto2
