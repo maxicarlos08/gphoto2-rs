@@ -1,6 +1,6 @@
 [package]
 name = "gphoto2_test"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "Test environment for gphoto2-rs"
 authors = ["Ingvar Stepanyan <me@rreverser.com>"]
