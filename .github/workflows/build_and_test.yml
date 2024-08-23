@@ -16,13 +16,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt install -y autopoint
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install automake
+        run: brew install automake libtool
       - name: Run tests
         run: cargo test -F test --verbose
 
@@ -36,7 +36,7 @@ jobs:
         shell: msys2 {0}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup MSYS2 and dependencies
         uses: msys2/setup-msys2@v2
         with:
@@ -48,6 +48,7 @@ jobs:
             mingw-w64-x86_64-libltdl
             mingw-w64-x86_64-clang
             pkgconf
+            libtool
       - name: Setup Rust
         run: rustup default stable-x86_64-pc-windows-gnu
       - name: Run tests

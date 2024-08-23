@@ -1,8 +1,9 @@
 ---
 source: src/context.rs
+assertion_line: 371
 expression: self.log_lines
 ---
-start #0: target: 1, message: Loading camera drivers from '$LIBGPHOTO2_DIR/lib/libgphoto2/2.5.30.1'...
+start #0: target: 1, message: Loading camera drivers from '$LIBGPHOTO2_DIR/lib/libgphoto2/2.5.31.1'...
 update #0: progress: 0
 stop #0
 

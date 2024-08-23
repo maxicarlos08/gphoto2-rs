@@ -4,7 +4,7 @@ expression: about
 ---
 PTP2 driver
 (c) 2001-2005 by Mariusz Woloszyn <emsi@ipartners.pl>.
-(c) 2003-2021 by Marcus Meissner <marcus@jet.franken.de>.
+(c) 2003-2023 by Marcus Meissner <marcus@jet.franken.de>.
 This driver supports cameras that support PTP or PictBridge(tm), and
 Media Players that support the Media Transfer Protocol (MTP).
 

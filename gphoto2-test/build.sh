@@ -12,7 +12,7 @@ OUT_DIR=$PWD
 
 if [ ! -d libgphoto2 ] ; then
 	mkdir libgphoto2
-	curl -L https://github.com/gphoto/libgphoto2/archive/0c28822d5909f9ff9bc895b5095fcf8c21dac02a.tar.gz | tar -xzv --strip 1 -C libgphoto2
+	curl -L https://github.com/maxicarlos08/libgphoto2/archive/refs/heads/maxicarlos08/fix-windows-vcamera-build.tar.gz | tar -xzv --strip 1 -C libgphoto2
 fi
 
 cd libgphoto2
