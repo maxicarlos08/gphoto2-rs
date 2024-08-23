@@ -8,7 +8,7 @@ use gphoto2::{camera::CameraEvent, Context, Result};
 use std::{thread::sleep, time::Duration};
 
 fn main() -> Result<()> {
-  env_logger::init();
+  tracing_subscriber::fmt::init();
 
   let camera = Context::new()?.autodetect_camera().wait()?;
 
