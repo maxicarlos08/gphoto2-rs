@@ -16,6 +16,8 @@ pub mod task;
 pub(crate) mod thread;
 pub mod widget;
 
+use std::ffi::CStr;
+
 use self::error::try_gp_internal;
 
 #[doc(inline)]
@@ -32,6 +34,17 @@ pub use libgphoto2_sys;
 
 #[cfg(all(test, not(feature = "test")))]
 compile_error!("The test feature must be enabled to run the tests");
+
+/// Get the short version of the libgphoto2 library used
+pub fn library_version() -> Option<&'static str> {
+  unsafe {
+    CStr::from_ptr(*libgphoto2_sys::gp_library_version(
+      libgphoto2_sys::GPVersionVerbosity::GP_VERSION_SHORT,
+    ))
+    .to_str()
+    .ok()
+  }
+}
 
 #[cfg(all(test, feature = "test"))]
 fn sample_context() -> Context {
@@ -52,4 +65,10 @@ fn sample_context() -> Context {
   });
 
   Context::new().unwrap()
+}
+
+#[cfg(all(test, feature = "test"))]
+#[test]
+fn test_version() {
+  insta::assert_snapshot!(library_version().unwrap());
 }

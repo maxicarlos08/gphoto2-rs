@@ -1,0 +1,5 @@
+---
+source: src/lib.rs
+expression: library_version().unwrap()
+---
+2.5.31.1
