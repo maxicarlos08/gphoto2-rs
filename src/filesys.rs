@@ -508,3 +508,9 @@ impl CameraFS<'_> {
     .context(context)
   }
 }
+
+impl AsRef<crate::Context> for &CameraFS<'_> {
+  fn as_ref(&self) -> &crate::Context {
+    &self.camera.context
+  }
+}

@@ -393,6 +393,12 @@ impl Camera {
   }
 }
 
+impl AsRef<Context> for &Camera {
+  fn as_ref(&self) -> &Context {
+    &self.context
+  }
+}
+
 #[cfg(all(test, feature = "test"))]
 mod tests {
   // Compile-only test to ensure that Camera is Send + Sync.

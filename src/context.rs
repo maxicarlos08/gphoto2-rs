@@ -340,6 +340,12 @@ impl ProgressHandler for Box<dyn ProgressHandler> {
   }
 }
 
+impl AsRef<Context> for &Context {
+  fn as_ref(&self) -> &Context {
+    self
+  }
+}
+
 #[cfg(all(test, feature = "test"))]
 mod tests {
   // Compile-only test to ensure that Context is Send + Sync.

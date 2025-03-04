@@ -146,7 +146,7 @@ impl CameraFile {
   }
 
   /// Get the data of the file
-  pub fn get_data(&self, context: &Context) -> Task<Result<Box<[u8]>>> {
+  pub fn get_data(&self, context: impl AsRef<Context>) -> Task<Result<Box<[u8]>>> {
     let file = self.clone();
 
     unsafe {
@@ -165,7 +165,7 @@ impl CameraFile {
         Ok(data_slice)
       })
     }
-    .context(context.inner)
+    .context(context.as_ref().inner)
   }
 
   /// File name
