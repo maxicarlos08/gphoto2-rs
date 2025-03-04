@@ -402,7 +402,7 @@ pub struct ChoicesIter<'a> {
   range: Range<c_int>,
 }
 
-impl<'a> Iterator for ChoicesIter<'a> {
+impl Iterator for ChoicesIter<'_> {
   type Item = String;
 
   fn next(&mut self) -> Option<Self::Item> {

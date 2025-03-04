@@ -79,21 +79,20 @@ pub fn hook_gp_log() {
 
 #[cfg(not(feature = "extended_logs"))]
 pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
-  use log::Level;
-
   unsafe extern "C" fn log_func(
     _context: *mut libgphoto2_sys::GPContext,
     message: *const c_char,
     log_level: *mut ffi::c_void,
   ) {
-    let log_level: Level = std::mem::transmute(log_level);
+    let log_level = std::mem::transmute::<*mut libc::c_void, log::Level>(log_level);
 
     log::log!(target: "gphoto2", log_level, "{}", chars_to_string(message));
   }
 
   HOOK_LOG_FUNCTION.call_once(|| unsafe {
     if log::log_enabled!(log::Level::Error) {
-      let log_level_as_ptr = std::mem::transmute(log::Level::Error);
+      let log_level_as_ptr =
+        std::mem::transmute::<log::Level, *mut libc::c_void>(log::Level::Error);
 
       libgphoto2_sys::gp_context_set_error_func(context, Some(log_func), log_level_as_ptr);
 
@@ -105,7 +104,7 @@ pub fn hook_gp_context_log_func(context: *mut libgphoto2_sys::GPContext) {
       libgphoto2_sys::gp_context_set_status_func(
         context,
         Some(log_func),
-        std::mem::transmute(log::Level::Info),
+        std::mem::transmute::<log::Level, *mut libc::c_void>(log::Level::Info),
       );
     }
   });
