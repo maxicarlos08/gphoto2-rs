@@ -23,7 +23,7 @@ serde = ["dep:serde"]
 members = ["libgphoto2-sys", "gphoto2-test"]
 
 [dependencies]
-libgphoto2_sys = { path = "libgphoto2-sys", version = "1.2" }
+libgphoto2_sys = { path = "libgphoto2-sys", version = "1.2.3" }
 libc = "0.2"
 log = "0.4"
 crossbeam-channel = "0.5.6"

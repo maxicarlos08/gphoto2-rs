@@ -22,7 +22,7 @@ type ToBeRunTask<T> = Option<(Box<dyn FnOnce() -> T + Send>, Sender<T>)>;
 pub(crate) struct BackgroundPtr<T>(pub *mut T);
 
 /// Allows awaiting (or blocking) libgphoto2 function responses
-pub struct Task<T> {
+pub struct Task<T> where T: 'static + Send {
   rx: Receiver<T>,
   cancel: Arc<AtomicBool>,
   set_waker: Sender<Waker>,
@@ -176,6 +176,12 @@ where
   }
 }
 
+impl<T> Drop for Task<T> where T: 'static + Send {
+    fn drop(&mut self) {
+      self.cancel();
+    }
+}
+
 impl CancelHandler for TaskCancelHandler {
   fn cancel(&mut self) -> bool {
     self.0.load(Ordering::Relaxed)
@@ -192,4 +198,4 @@ impl<T> Deref for BackgroundPtr<T> {
 
 unsafe impl<T> Send for BackgroundPtr<T> {}
 unsafe impl<T> Sync for BackgroundPtr<T> {}
-impl<T> Unpin for Task<T> {}
+impl<T> Unpin for Task<T> where T: Send {}
